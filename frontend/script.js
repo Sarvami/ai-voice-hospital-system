@@ -1,52 +1,56 @@
-const recordBtn = document.getElementById("recordBtn");
+const micBtn = document.getElementById("micBtn");
 const statusText = document.getElementById("status");
-const audioPlayer = document.getElementById("audioPlayer");
+const player = document.getElementById("audioPlayer");
 
-let mediaRecorder;
-let audioChunks = [];
+let recorder;
+let chunks = [];
 
-recordBtn.onclick = async () => {
-    // 1. Ask for microphone access
+micBtn.onclick = async () => {
+
+    // Ask mic permission
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    // 2. Create recorder
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
+    recorder = new MediaRecorder(stream);
+    chunks = [];
 
-    mediaRecorder.start();
+    recorder.start();
     statusText.innerText = "Listening...";
 
-    // 3. Collect audio data
-    mediaRecorder.ondataavailable = event => {
-        audioChunks.push(event.data);
+    recorder.ondataavailable = e => {
+        chunks.push(e.data);
     };
 
-    // 4. Stop after 5 seconds
+    // Stop after 5 seconds
     setTimeout(() => {
-        mediaRecorder.stop();
+        recorder.stop();
         statusText.innerText = "Processing...";
     }, 5000);
 
-    // 5. When recording stops
-    mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+    recorder.onstop = async () => {
 
-        const formData = new FormData();
-        formData.append("audio", audioBlob, "recording.wav");
+        const blob = new Blob(chunks, { type: "audio/wav" });
 
-        // 6. Send to backend
-        const response = await fetch("http://127.0.0.1:8000/process-audio", {
+        const data = new FormData();
+        data.append("audio", blob, "voice.wav");
+
+        // Send to backend
+        const res = await fetch("http://127.0.0.1:8000/process-audio", {
             method: "POST",
-            body: formData
+            body: data
         });
 
-        // 7. Get audio reply
-        const responseAudio = await response.blob();
-        const audioUrl = URL.createObjectURL(responseAudio);
+        if (!res.ok) {
+            statusText.innerText = "Backend error";
+            return;
+        }
 
-        audioPlayer.src = audioUrl;
-        audioPlayer.play();
+        const audio = await res.blob();
+        const url = URL.createObjectURL(audio);
 
-        statusText.innerText = "Response received";
+        // Play reply
+        player.src = url;
+        player.play();
+
+        statusText.innerText = "Done";
     };
 };
