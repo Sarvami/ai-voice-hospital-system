@@ -7,12 +7,24 @@ import requests
 import uuid
 import os
 import time
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
 
 translator = Translator()
 
