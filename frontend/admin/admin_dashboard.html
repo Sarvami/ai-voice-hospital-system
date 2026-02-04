@@ -1,63 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
   <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="admin.css">
 </head>
-<body onload="loadDashboard()">
+<body>
 
+<div class="dashboard">
   <h1>Admin Dashboard</h1>
 
-  <div class="nav">
-    <button onclick="showSection('doctors')">Doctors</button>
-    <button onclick="showSection('appointments')">Appointments</button>
-    <button onclick="showSection('analytics')">Analytics</button>
-    <button onclick="logout()">Logout</button>
+  <div class="cards">
+    <div class="card yellow">
+      <h3>Total Doctors</h3>
+      <p id="doctorCount">12</p>
+    </div>
+
+    <div class="card yellow">
+      <h3>Total Patients</h3>
+      <p id="patientCount">58</p>
+    </div>
+
+    <div class="card yellow">
+      <h3>Appointments</h3>
+      <p id="appointmentCount">34</p>
+    </div>
+
+    <div class="card yellow">
+      <h3>Today</h3>
+      <p>8 Appointments</p>
+    </div>
   </div>
 
-  <!-- DOCTORS -->
-  <section id="doctors" class="section">
-    <h2>Doctors Management</h2>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Department</th>
-          <th>Experience</th>
-          <th>Days</th>
-        </tr>
-      </thead>
-      <tbody id="doctorTable"></tbody>
-    </table>
-  </section>
-
-  <!-- APPOINTMENTS -->
-  <section id="appointments" class="section hidden">
+  <div class="section">
     <h2>Appointments</h2>
-
     <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Time</th>
-          <th>Patient</th>
-          <th>Doctor</th>
-          <th>Language</th>
-          <th>Source</th>
-        </tr>
-      </thead>
-      <tbody id="appointmentTable"></tbody>
+      <tr>
+        <th>Doctor</th>
+        <th>Patient</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Status</th>
+      </tr>
+      <!-- filled from JS -->
     </table>
-  </section>
+  </div>
 
-  <!-- ANALYTICS -->
-  <section id="analytics" class="section hidden">
-    <h2>Language Analytics</h2>
-    <ul id="analyticsList"></ul>
-  </section>
+</div>
 
-  <script src="admin.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>

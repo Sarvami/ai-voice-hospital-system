@@ -1,0 +1,29 @@
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f7f5ff;
+  margin: 0;
+}
+
+.dashboard {
+  padding: 30px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.card {
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.purple {
+  background: linear-gradient(135deg, #e6ddff, #c4b5fd);
+}
+
+.card p {
+  font-size: 28px;
+}
