@@ -1,9 +1,14 @@
+<<<<<<< HEAD
 console.log("script loaded");
 
 const recordBtn = document.getElementById("recordBtn");
+=======
+const micBtn = document.getElementById("micBtn");
+>>>>>>> 5043525029955964947ba698f6c45e0dd67c2f33
 const statusText = document.getElementById("status");
-const audioPlayer = document.getElementById("audioPlayer");
+const player = document.getElementById("audioPlayer");
 
+<<<<<<< HEAD
 let mediaRecorder;
 let audioChunks = [];
 let selectedLanguage = "hi";
@@ -28,15 +33,29 @@ recordBtn.addEventListener("click", async () => {
   }
 
   try {
+=======
+let recorder;
+let chunks = [];
+
+micBtn.onclick = async () => {
+
+    // Ask mic permission
+>>>>>>> 5043525029955964947ba698f6c45e0dd67c2f33
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     console.log("Mic permission granted");
 
+<<<<<<< HEAD
     mediaRecorder = new MediaRecorder(stream);
     audioChunks = [];
+=======
+    recorder = new MediaRecorder(stream);
+    chunks = [];
+>>>>>>> 5043525029955964947ba698f6c45e0dd67c2f33
 
-    mediaRecorder.start();
+    recorder.start();
     statusText.innerText = "Listening...";
 
+<<<<<<< HEAD
     mediaRecorder.ondataavailable = event => {
       audioChunks.push(event.data);
     };
@@ -72,3 +91,43 @@ recordBtn.addEventListener("click", async () => {
     alert("Microphone access denied");
   }
 });
+=======
+    recorder.ondataavailable = e => {
+        chunks.push(e.data);
+    };
+
+    // Stop after 5 seconds
+    setTimeout(() => {
+        recorder.stop();
+        statusText.innerText = "Processing...";
+    }, 5000);
+
+    recorder.onstop = async () => {
+
+        const blob = new Blob(chunks, { type: "audio/wav" });
+
+        const data = new FormData();
+        data.append("audio", blob, "voice.wav");
+
+        // Send to backend
+        const res = await fetch("http://127.0.0.1:8000/process-audio", {
+            method: "POST",
+            body: data
+        });
+
+        if (!res.ok) {
+            statusText.innerText = "Backend error";
+            return;
+        }
+
+        const audio = await res.blob();
+        const url = URL.createObjectURL(audio);
+
+        // Play reply
+        player.src = url;
+        player.play();
+
+        statusText.innerText = "Done";
+    };
+};
+>>>>>>> 5043525029955964947ba698f6c45e0dd67c2f33
