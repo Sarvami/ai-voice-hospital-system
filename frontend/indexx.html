@@ -1,20 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>AI Voice Hospital Assistant</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>AI Voice Hospital Assistant</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>AI Voice Hospital Assistant</h1>
+<div class="glass-card">
 
-    <button id="micBtn">🎤 Speak</button>
+  <div class="top-bar">
+    Namaste, I’m listening…
+  </div>
 
-    <p id="status"></p>
+  <div class="orbital">
 
-    <audio id="audioPlayer" controls></audio>
+    <!-- Language bubbles -->
+    <button class="bubble top active" data-lang="hi">🌸<span>Hindi</span></button>
+    <button class="bubble left" data-lang="mr">📜<span>Marathi</span></button>
+    <button class="bubble right" data-lang="en">☁️<span>English</span></button>
+    <button class="bubble bottom-left" data-lang="ta">🏺<span>Tamil</span></button>
+    <button class="bubble bottom-right" data-lang="te">🌿<span>Telugu</span></button>
 
-    <script src="script.js"></script>
+    <!-- Center microphone -->
+    <button id="recordBtn" class="mic-orb">🎤</button>
+
+  </div>
+
+  <p id="status">Tap the mic and speak</p>
+
+  <div class="audio-box">
+    <audio id="audioPlayer" controls autoplay></audio>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>

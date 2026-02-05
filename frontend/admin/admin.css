@@ -1,29 +1,48 @@
 body {
-  font-family: Arial, sans-serif;
-  margin: 40px;
+  font-family: "Segoe UI", sans-serif;
+  background: #f6f7fb;
+  margin: 0;
 }
 
-h1, h2 {
-  text-align: center;
+.dashboard {
+  padding: 30px;
 }
 
-.nav {
-  text-align: center;
-  margin-bottom: 30px;
+h1 {
+  margin-bottom: 20px;
 }
 
-.nav button {
-  margin: 5px;
-  padding: 10px 15px;
-  cursor: pointer;
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.card {
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.card h3 {
+  margin: 0;
+  font-weight: 500;
+}
+
+.card p {
+  font-size: 32px;
+  margin-top: 10px;
+}
+
+.yellow {
+  background: linear-gradient(135deg, #fff3c4, #ffe08a);
 }
 
 .section {
-  margin-top: 20px;
-}
-
-.hidden {
-  display: none;
+  margin-top: 40px;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
 }
 
 table {
@@ -31,36 +50,7 @@ table {
   border-collapse: collapse;
 }
 
-table, th, td {
-  border: 1px solid #ccc;
-}
-
 th, td {
-  padding: 10px;
-  text-align: center;
-}
-
-/* LOGIN PAGE */
-.login-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
-.login-box {
-  border: 1px solid #ccc;
-  padding: 30px;
-  width: 300px;
-  text-align: center;
-}
-
-.login-box input {
-  width: 90%;
-  margin: 10px 0;
-  padding: 8px;
-}
-
-.error {
-  color: red;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
 }

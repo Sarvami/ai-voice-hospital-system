@@ -1,120 +1,55 @@
-/* =========================
-   ADMIN LOGIN
-========================= */
+// admin.js
+const API = "http://127.0.0.1:8000";
 
-function login() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-
-  if (username === "admin" && password === "admin123") {
-    localStorage.setItem("adminLoggedIn", "true");
-    window.location.href = "admin_dashboard.html";
-  } else {
-    document.getElementById("error").innerText = "Invalid credentials";
-  }
+async function fetchJSON(url, opts={}) {
+  const r = await fetch(url, opts);
+  return r.json();
 }
 
-/* =========================
-   AUTH CHECK
-========================= */
-
-function loadDashboard() {
-  if (localStorage.getItem("adminLoggedIn") !== "true") {
-    window.location.href = "admin_login.html";
-    return;
-  }
-
-  fetchDoctors();
-  fetchAppointments();
-  fetchAnalytics();
+async function loadStats() {
+  const data = await fetchJSON(`${API}/admin/stats`);
+  document.getElementById("stats").innerHTML = JSON.stringify(data);
 }
 
-/* =========================
-   NAVIGATION
-========================= */
+async function loadDoctors() {
+  const d = await fetchJSON(`${API}/admin/doctors`);
+  document.getElementById("doctors").innerHTML = JSON.stringify(d);
+}
 
-function showSection(section) {
-  document.querySelectorAll(".section").forEach(sec => {
-    sec.classList.add("hidden");
+async function loadPatients() {
+  const p = await fetchJSON(`${API}/admin/patients`);
+  document.getElementById("patients").innerHTML = JSON.stringify(p);
+}
+
+async function loadAppointments() {
+  const a = await fetchJSON(`${API}/admin/appointments`);
+  document.getElementById("appointments").innerHTML = JSON.stringify(a);
+}
+
+async function rescheduleAppointment(id, date, time) {
+  await fetchJSON(`${API}/admin/appointments/${id}`, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({date, time})
   });
-  document.getElementById(section).classList.remove("hidden");
+  loadAppointments();
 }
 
-function logout() {
-  localStorage.removeItem("adminLoggedIn");
-  window.location.href = "admin_login.html";
+async function assignNurse(doctor_id, nurse_name) {
+  await fetchJSON(`${API}/admin/assign-nurse`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({doctor_id, nurse_name})
+  });
 }
 
-/* =========================
-   FETCH DOCTORS
-========================= */
-
-async function fetchDoctors() {
-  try {
-    const res = await fetch("http://localhost:8000/admin/doctors");
-    const doctors = await res.json();
-
-    const table = document.getElementById("doctorTable");
-    table.innerHTML = "";
-
-    doctors.forEach(d => {
-      table.innerHTML += `
-        <tr>
-          <td>${d.name}</td>
-          <td>${d.department}</td>
-          <td>${d.experience_years}</td>
-          <td>${d.available_days}</td>
-        </tr>`;
-    });
-  } catch {
-    console.log("Backend not connected (doctors)");
-  }
+async function loadVoiceNotes() {
+  const v = await fetchJSON(`${API}/admin/voice-notes`);
+  document.getElementById("voice").innerHTML = JSON.stringify(v);
 }
 
-/* =========================
-   FETCH APPOINTMENTS
-========================= */
-
-async function fetchAppointments() {
-  try {
-    const res = await fetch("http://localhost:8000/admin/appointments");
-    const appointments = await res.json();
-
-    const table = document.getElementById("appointmentTable");
-    table.innerHTML = "";
-
-    appointments.forEach(a => {
-      table.innerHTML += `
-        <tr>
-          <td>${a.appointment_date}</td>
-          <td>${a.appointment_time}</td>
-          <td>${a.patient_name}</td>
-          <td>${a.doctor_name}</td>
-          <td>${a.language_used}</td>
-          <td>${a.booking_source}</td>
-        </tr>`;
-    });
-  } catch {
-    console.log("Backend not connected (appointments)");
-  }
-}
-
-/* =========================
-   FETCH ANALYTICS
-========================= */
-
-async function fetchAnalytics() {
-  try {
-    const res = await fetch("http://localhost:8000/admin/stats/languages");
-    const stats = await res.json();
-
-    const list = document.getElementById("analyticsList");
-    list.innerHTML = "";
-
-    Object.keys(stats).forEach(lang => {
-      list.innerHTML += `<li>${lang}: ${stats[lang]} bookings</li>`;
-    });
-  } catch {
-    console.log("Backend not connected (analytics)");
-  }
-}
+loadStats();
+loadDoctors();
+loadPatients();
+loadAppointments();
+loadVoiceNotes();

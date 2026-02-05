@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Login</title>
+  <title>Doctor Login</title>
   <style>
     body {
       font-family: Segoe UI, sans-serif;
-      background: #f6f7fb;
+      background: #f7f5ff;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -25,7 +25,8 @@
       margin-top: 12px;
     }
     button {
-      background: #facc15;
+      background: #7c3aed;
+      color: white;
       border: none;
       border-radius: 8px;
       font-weight: bold;
@@ -36,20 +37,16 @@
 <body>
 
 <div class="login-box">
-  <h2>Admin Login</h2>
-  <input id="user" placeholder="Username">
-  <input id="pass" type="password" placeholder="Password">
+  <h2>Doctor Login</h2>
+  <input id="docId" placeholder="Doctor ID">
   <button onclick="login()">Login</button>
-  <p id="err" style="color:red;"></p>
 </div>
 
 <script>
 function login() {
-  if (user.value === "admin" && pass.value === "admin123") {
-    window.location.href = "admin_dashboard.html";
-  } else {
-    err.innerText = "Invalid credentials";
-  }
+  if (!docId.value) return;
+  window.location.href =
+    `doctor_dashboard.html?doctor_id=${docId.value}`;
 }
 </script>
 
