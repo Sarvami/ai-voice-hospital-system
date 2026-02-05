@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Doctor Dashboard</title>
+  <style>
+    body {
+      font-family: Segoe UI, sans-serif;
+      background: #f7f5ff;
+      margin: 0;
+    }
+
+    .dashboard {
+      padding: 30px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: linear-gradient(135deg, #e6ddff, #c4b5fd);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+
+    .card h3 {
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .card p {
+      font-size: 28px;
+      margin-top: 10px;
+    }
+
+    .section {
+      margin-top: 40px;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+  <h1>Doctor Dashboard</h1>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Today's Appointments</h3>
+      <p>6</p>
+    </div>
+
+    <div class="card">
+      <h3>Total Patients</h3>
+      <p>42</p>
+    </div>
+
+    <div class="card">
+      <h3>Rating</h3>
+      <p>⭐ 4.6</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Scheduled Appointments</h2>
+    <table>
+      <tr>
+        <th>Patient</th>
+        <th>Time</th>
+        <th>Reason</th>
+      </tr>
+      <tr>
+        <td>Amit Patil</td>
+        <td>10:30</td>
+        <td>Chest Pain</td>
+      </tr>
+      <tr>
+        <td>Sneha Kulkarni</td>
+        <td>11:15</td>
+        <td>General Checkup</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>
