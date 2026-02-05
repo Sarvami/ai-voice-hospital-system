@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Profile</title>
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+
+<div class="card">
+  <h2>Profile</h2>
+
+  <p id="name"></p>
+  <p id="email"></p>
+
+  <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+const user = JSON.parse(localStorage.getItem("user"));
+
+if (!user) {
+  window.location.href = "login.html";
+}
+
+name.innerText = "Name: " + user.name;
+email.innerText = "Email: " + user.email;
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+</script>
+
+</body>
+</html>
