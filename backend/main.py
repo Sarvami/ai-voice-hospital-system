@@ -118,15 +118,16 @@ def get_doctors_by_department(dept):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        "SELECT name FROM doctors WHERE LOWER(department)=?",
-        (dept.lower(),)
-    )
+    cursor.execute("""
+        SELECT name FROM doctors
+        WHERE LOWER(department) = LOWER(?)
+    """, (dept,))
 
     doctors = [row[0] for row in cursor.fetchall()]
-    conn.close()
 
+    conn.close()
     return doctors
+
 
 
 def find_doctor_by_name(name):
@@ -235,14 +236,7 @@ def speech_to_text(audio_path):
 
 # ------------------ TRANSLATION ------------------
 
-def translate_to_english(text):
 
-    result = translator.translate(text, dest="en")
-
-    lang = "hi" if any(w in text.lower()
-                      for w in ["muje", "mujhe", "dard", "bukhar"]) else "en"
-
-    return result.text, lang
 
 
 def translate_back(text, lang):
@@ -396,25 +390,37 @@ def generate_reply(text, user_id="user1"):
 
 # ------------------ MAIN API ------------------
 
+from fastapi import Form
+
 @app.post("/process-audio")
-async def process_audio(audio: UploadFile = File(...)):
+async def process_audio(
+    audio: UploadFile = File(...),
+    lang: str = Form(...)
+):
 
     path = f"{TEMP_DIR}/{uuid.uuid4()}.wav"
 
     with open(path, "wb") as f:
         f.write(await audio.read())
 
+    # Speech → Text
     original = speech_to_text(path)
 
-    english, lang = translate_to_english(original)
+    # Always translate to English for logic
+    english = translator.translate(original, dest="en").text
 
+    # Get reply
     reply = generate_reply(english)
 
-    final = translate_back(reply, lang)
+    # Translate back to selected language
+    if lang != "en":
+        final = translator.translate(reply, dest=lang).text
+    else:
+        final = reply
 
+    # Text → Speech
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
-
-    gTTS(final, lang=lang).save(out)
+    gTTS(text=final, lang=lang).save(out)
 
     return FileResponse(out, media_type="audio/mpeg")
 
@@ -424,3 +430,16 @@ async def process_audio(audio: UploadFile = File(...)):
 @app.get("/")
 async def root():
     return {"status": "Running"}
+
+@app.get("/doctors")
+async def get_all_doctors():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM doctors")
+    doctors = cursor.fetchall()
+    conn.close()
+
+    return {
+        "doctors": [dict(doctor) for doctor in doctors]
+    }
+
