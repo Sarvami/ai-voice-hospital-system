@@ -6,13 +6,22 @@
 </head>
 <body>
 
-<div class="card">
-  <h2>Profile</h2>
+<div class="profile-card">
+  <h2>User Profile</h2>
 
-  <p id="name"></p>
-  <p id="email"></p>
+  <div class="label">Name</div>
+  <div class="value" id="name"></div>
 
-  <button onclick="logout()">Logout</button>
+  <div class="label">Email</div>
+  <div class="value" id="email"></div>
+
+  <div class="label">Age</div>
+  <div class="value" id="age"></div>
+
+  <div class="label">Gender</div>
+  <div class="value" id="gender"></div>
+
+  <button class="logout-btn" onclick="logout()">Logout</button>
 </div>
 
 <script>
@@ -22,8 +31,10 @@ if (!user) {
   window.location.href = "login.html";
 }
 
-name.innerText = "Name: " + user.name;
-email.innerText = "Email: " + user.email;
+name.innerText = user.name;
+email.innerText = user.email;
+age.innerText = user.age || "Not provided";
+gender.innerText = user.gender || "Not provided";
 
 function logout() {
   localStorage.clear();
