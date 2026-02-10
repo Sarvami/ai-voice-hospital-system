@@ -442,4 +442,34 @@ async def get_all_doctors():
     return {
         "doctors": [dict(doctor) for doctor in doctors]
     }
+    
+from pydantic import BaseModel
+
+
+class TextInput(BaseModel):
+    text: str
+    lang: str = "en"
+
+
+@app.post("/process-text")
+def process_text(data: TextInput):
+
+    # Always translate to English
+    english = translator.translate(data.text, dest="en").text
+
+    # Generate reply
+    reply = generate_reply(english)
+
+    # Translate back
+    if data.lang != "en":
+        final = translator.translate(reply, dest=data.lang).text
+    else:
+        final = reply
+
+    # Text → Speech
+    out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+    gTTS(text=final, lang=data.lang).save(out)
+
+    return FileResponse(out, media_type="audio/mpeg")
+
 
