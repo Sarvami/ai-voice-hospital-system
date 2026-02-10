@@ -1,44 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Login</title>
-  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="login-card">
-  <h2>User Login</h2>
+<div class="glass-card">
+
+  <div class="top-bar">
+    Welcome — Please Login
+  </div>
 
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
 
-  <button onclick="login()">Login</button>
+  <button class="mic-orb" id="loginBtn">➡️</button>
 
-  <p id="msg" class="msg"></p>
+  <p id="msg"></p>
+
 </div>
 
-<script>
-async function login() {
-  const res = await fetch("http://127.0.0.1:8000/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      email: email.value,
-      password: password.value
-    })
-  });
-
-  const data = await res.json();
-
-  if (!data.success) {
-    msg.innerText = data.message;
-    return;
-  }
-
-  localStorage.setItem("user", JSON.stringify(data.user));
-  window.location.href = "profile.html";
-}
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
