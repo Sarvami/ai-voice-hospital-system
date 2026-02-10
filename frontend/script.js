@@ -1,93 +1,85 @@
-console.log("Assistant script loaded");
+document.addEventListener("DOMContentLoaded", () => {
 
-// Elements
-const recordBtn = document.getElementById("recordBtn"); // Ensure your HTML mic button has this ID
-const statusText = document.getElementById("status");
-const audioPlayer = document.getElementById("audioPlayer");
+  /* ---------------- LOGIN ---------------- */
 
-let mediaRecorder;
-let audioChunks = [];
-let selectedLanguage = "hi"; // Default to Hindi
+  const loginBtn = document.getElementById("loginBtn");
 
-/* ---------- 1. LANGUAGE SELECTION ---------- */
-// This assumes your language buttons have the class "bubble" or "lang-btn"
-document.querySelectorAll(".lang-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    // Remove active style from others, add to clicked
-    document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    
-    // Get language code from data-lang attribute (e.g., data-lang="mr")
-    selectedLanguage = btn.dataset.lang;
-    console.log("Language switched to:", selectedLanguage);
-    statusText.innerText = `Ready for ${btn.innerText}`;
-  });
-});
+  if (loginBtn) {
+    loginBtn.addEventListener("click", async () => {
 
-/* ---------- 2. RECORD & PROCESS AUDIO ---------- */
-recordBtn.addEventListener("click", async () => {
-  if (!navigator.mediaDevices || !window.MediaRecorder) {
-    alert("Recording not supported in this browser.");
-    return;
-  }
+      const emailInput = document.getElementById("email");
+      const passwordInput = document.getElementById("password");
+      const msg = document.getElementById("msg");
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log("Microphone connected");
+      const email = emailInput?.value.trim();
+      const password = passwordInput?.value.trim();
 
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-
-    mediaRecorder.start();
-    statusText.innerText = "Listening...";
-    recordBtn.classList.add("recording-pulse"); // Add a CSS animation class if you have one
-
-    mediaRecorder.ondataavailable = event => {
-      audioChunks.push(event.data);
-    };
-
-    // Auto-stop after 5 seconds
-    setTimeout(() => {
-      if (mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
-        statusText.innerText = "Processing...";
-        recordBtn.classList.remove("recording-pulse");
+      if (!email || !password) {
+        msg.innerText = "Enter email & password";
+        return;
       }
-    }, 5000);
-
-    mediaRecorder.onstop = async () => {
-      // Create blob from chunks
-      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-
-      // Prepare data for Backend
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
-      formData.append("language", selectedLanguage);
 
       try {
-        const response = await fetch("http://127.0.0.1:8000/process-audio", {
+        const res = await fetch("http://127.0.0.1:8000/login", {
           method: "POST",
-          body: formData
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
         });
 
-        if (!response.ok) throw new Error("Backend Error");
+        // 🔴 backend not reachable
+        if (!res.ok) {
+          msg.innerText = "Backend not reachable";
+          return;
+        }
 
-        const responseAudio = await response.blob();
-        const audioUrl = URL.createObjectURL(responseAudio);
+        const data = await res.json();
 
-        // Play the response
-        audioPlayer.src = audioUrl;
-        audioPlayer.play(); 
+        if (!data.success) {
+          msg.innerText = "Invalid email or password";
+          return;
+        }
 
-        statusText.innerText = "Response received ✨";
+        // ✅ save user
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        // ✅ go to profile
+        window.location.href = "profile.html";
+
       } catch (err) {
-        console.error("Fetch error:", err);
-        statusText.innerText = "Error: Could not reach server";
+        msg.innerText = "Server not running";
+        console.error(err);
       }
-    };
-
-  } catch (err) {
-    console.error("Mic access error:", err);
-    statusText.innerText = "Mic access denied";
+    });
   }
+
+  /* ---------------- PROFILE ---------------- */
+
+  const nameEl = document.getElementById("name");
+  const emailEl = document.getElementById("emailDisplay"); // ⚠️ changed id
+
+  if (nameEl && emailEl) {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    // 🔴 not logged in → go back
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    // ✅ show user data
+    nameEl.innerText = user.name ?? "Unknown";
+    emailEl.innerText = user.email ?? "Unknown";
+  }
+
+  /* ---------------- LOGOUT ---------------- */
+
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("user");
+      window.location.href = "login.html";
+    });
+  }
+
 });

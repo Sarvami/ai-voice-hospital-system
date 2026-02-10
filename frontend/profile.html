@@ -1,46 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Profile</title>
-  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="profile-card">
-  <h2>User Profile</h2>
+<div class="glass-card">
 
-  <div class="label">Name</div>
-  <div class="value" id="name"></div>
+  <div class="top-bar">
+    Your Profile
+  </div>
 
-  <div class="label">Email</div>
-  <div class="value" id="email"></div>
+  <p><b>Name:</b> <span id="name"></span></p>
+  <p><b>Email:</b> <span id="email"></span></p>
 
-  <div class="label">Age</div>
-  <div class="value" id="age"></div>
+  <button id="logoutBtn" class="mic-orb">🚪</button>
 
-  <div class="label">Gender</div>
-  <div class="value" id="gender"></div>
-
-  <button class="logout-btn" onclick="logout()">Logout</button>
 </div>
 
-<script>
-const user = JSON.parse(localStorage.getItem("user"));
-
-if (!user) {
-  window.location.href = "login.html";
-}
-
-name.innerText = user.name;
-email.innerText = user.email;
-age.innerText = user.age || "Not provided";
-gender.innerText = user.gender || "Not provided";
-
-function logout() {
-  localStorage.clear();
-  window.location.href = "login.html";
-}
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
