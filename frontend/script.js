@@ -1,93 +1,93 @@
-console.log("Assistant script loaded");
+document.addEventListener("DOMContentLoaded", () => {
 
-// Elements
-const recordBtn = document.getElementById("recordBtn"); // Ensure your HTML mic button has this ID
-const statusText = document.getElementById("status");
-const audioPlayer = document.getElementById("audioPlayer");
+  const recordBtn = document.getElementById("recordBtn");
+  const statusText = document.getElementById("status");
+  const audioPlayer = document.getElementById("audioPlayer");
 
-let mediaRecorder;
-let audioChunks = [];
-let selectedLanguage = "hi"; // Default to Hindi
+  let mediaRecorder;
+  let audioChunks = [];
 
-/* ---------- 1. LANGUAGE SELECTION ---------- */
-// This assumes your language buttons have the class "bubble" or "lang-btn"
-document.querySelectorAll(".lang-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    // Remove active style from others, add to clicked
-    document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    
-    // Get language code from data-lang attribute (e.g., data-lang="mr")
-    selectedLanguage = btn.dataset.lang;
-    console.log("Language switched to:", selectedLanguage);
-    statusText.innerText = `Ready for ${btn.innerText}`;
+  // ❗ No default language
+  let selectedLang = null;
+
+  /* ---------------- LANGUAGE BUTTONS ---------------- */
+
+  document.querySelectorAll(".bubble").forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+      // Remove old active
+      document.querySelectorAll(".bubble")
+        .forEach(b => b.classList.remove("active"));
+
+      // Set new active
+      btn.classList.add("active");
+
+      selectedLang = btn.dataset.lang;
+
+      statusText.innerText = "Language selected ✔";
+    });
+
   });
-});
 
-/* ---------- 2. RECORD & PROCESS AUDIO ---------- */
-recordBtn.addEventListener("click", async () => {
-  if (!navigator.mediaDevices || !window.MediaRecorder) {
-    alert("Recording not supported in this browser.");
-    return;
-  }
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log("Microphone connected");
+  /* ---------------- MIC BUTTON ---------------- */
 
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
+  recordBtn.addEventListener("click", async () => {
 
-    mediaRecorder.start();
-    statusText.innerText = "Listening...";
-    recordBtn.classList.add("recording-pulse"); // Add a CSS animation class if you have one
+    // 🚨 If no language selected
+    if (!selectedLang) {
+      alert("Please select a language first!");
+      return;
+    }
 
-    mediaRecorder.ondataavailable = event => {
-      audioChunks.push(event.data);
-    };
+    try {
 
-    // Auto-stop after 5 seconds
-    setTimeout(() => {
-      if (mediaRecorder.state === "recording") {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.start();
+      statusText.innerText = "Listening... 🎙️";
+
+      mediaRecorder.ondataavailable = e => {
+        audioChunks.push(e.data);
+      };
+
+      setTimeout(() => {
         mediaRecorder.stop();
         statusText.innerText = "Processing...";
-        recordBtn.classList.remove("recording-pulse");
-      }
-    }, 5000);
+      }, 5000);
 
-    mediaRecorder.onstop = async () => {
-      // Create blob from chunks
-      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      mediaRecorder.onstop = async () => {
 
-      // Prepare data for Backend
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
-      formData.append("language", selectedLanguage);
+        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
 
-      try {
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recording.wav");
+        formData.append("lang", selectedLang);
+
         const response = await fetch("http://127.0.0.1:8000/process-audio", {
           method: "POST",
           body: formData
         });
 
-        if (!response.ok) throw new Error("Backend Error");
-
         const responseAudio = await response.blob();
+
         const audioUrl = URL.createObjectURL(responseAudio);
 
-        // Play the response
         audioPlayer.src = audioUrl;
-        audioPlayer.play(); 
+        audioPlayer.play();
 
-        statusText.innerText = "Response received ✨";
-      } catch (err) {
-        console.error("Fetch error:", err);
-        statusText.innerText = "Error: Could not reach server";
-      }
-    };
+        statusText.innerText = "Response received ✅";
+      };
 
-  } catch (err) {
-    console.error("Mic access error:", err);
-    statusText.innerText = "Mic access denied";
-  }
+    } catch (err) {
+      alert("Microphone permission denied!");
+      console.error(err);
+    }
+
+  });
+
 });
