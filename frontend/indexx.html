@@ -31,11 +31,23 @@
 
   <p id="status">Tap the mic and speak</p>
 
-  <div class="audio-box">
-    <audio id="audioPlayer" controls autoplay></audio>
+  <div class="audio-wrapper">
+  <div class="custom-player">
+
+    <button id="playBtn" class="play-btn">▶</button>
+
+    <div class="progress-container">
+      <div id="progress" class="progress"></div>
+    </div>
+
+    <span id="time">0:00</span>
+
   </div>
 
+  <audio id="audioPlayer"></audio>
 </div>
+
+
 
 <script src="script.js"></script>
 </body>

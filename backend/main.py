@@ -1,7 +1,6 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from googletrans import Translator
 from dotenv import load_dotenv
 from gtts import gTTS
 import requests
@@ -9,13 +8,12 @@ import uuid
 import os
 import time
 import difflib
-import sqlite3   # ✅ FIX 1: Added import
+import sqlite3
 import re
 
 # ------------------ SETUP ------------------
 
 load_dotenv()
-
 API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 
 app = FastAPI()
@@ -28,12 +26,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-translator = Translator()
-
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 supported = ["en", "hi", "mr"]
+
+# ------------------ TRANSLATION (PYTHON 3.13 SAFE) ------------------
+
+def translate_text(text: str, target_lang: str) -> str:
+    if target_lang == "en":
+        return text
+    try:
+        res = requests.post(
+            "https://libretranslate.de/translate",
+            data={
+                "q": text,
+                "source": "auto",
+                "target": target_lang,
+                "format": "text",
+            },
+            timeout=10,
+        )
+        return res.json().get("translatedText", text)
+    except Exception:
+        return text
 
 # ------------------ DATABASE SETUP ------------------
 
@@ -41,7 +57,6 @@ def get_db_connection():
     conn = sqlite3.connect("hospital.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
-
 
 def init_database():
     conn = get_db_connection()
@@ -88,7 +103,6 @@ def init_database():
     conn.commit()
     conn.close()
 
-
 init_database()
 
 # ------------------ MEMORY ------------------
@@ -117,36 +131,20 @@ problem_map = {
 def get_doctors_by_department(dept):
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT name FROM doctors
-        WHERE LOWER(department) = LOWER(?)
-    """, (dept,))
-
+    cursor.execute("SELECT name FROM doctors WHERE LOWER(department)=LOWER(?)", (dept,))
     doctors = [row[0] for row in cursor.fetchall()]
-
     conn.close()
     return doctors
-
-
 
 def find_doctor_by_name(name):
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    cursor.execute(
-        "SELECT * FROM doctors WHERE LOWER(name)=?",
-        (name.lower(),)
-    )
-
+    cursor.execute("SELECT * FROM doctors WHERE LOWER(name)=?", (name.lower(),))
     doctor = cursor.fetchone()
     conn.close()
-
     return dict(doctor) if doctor else None
 
-
 def get_or_create_patient(name, phone, language="en"):
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -163,18 +161,14 @@ def get_or_create_patient(name, phone, language="en"):
     """, (name, 30, "Unknown", phone, language))
 
     pid = cursor.lastrowid
-
     cursor.execute("SELECT * FROM patients WHERE id=?", (pid,))
     new_patient = cursor.fetchone()
 
     conn.commit()
     conn.close()
-
     return dict(new_patient)
 
-
 def create_appointment(pid, did, date, time, reason, language):
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -186,17 +180,13 @@ def create_appointment(pid, did, date, time, reason, language):
     """, (pid, did, date, time, "Booked", reason, "voice", language))
 
     aid = cursor.lastrowid
-
     conn.commit()
     conn.close()
-
     return aid
-
 
 # ------------------ STT ------------------
 
 def speech_to_text(audio_path):
-
     headers = {"authorization": API_KEY}
 
     with open(audio_path, "rb") as f:
@@ -217,7 +207,6 @@ def speech_to_text(audio_path):
     tid = transcript.json()["id"]
 
     while True:
-
         res = requests.get(
             f"https://api.assemblyai.com/v2/transcript/{tid}",
             headers=headers
@@ -233,37 +222,17 @@ def speech_to_text(audio_path):
 
         time.sleep(2)
 
-
-# ------------------ TRANSLATION ------------------
-
-
-
-
-def translate_back(text, lang):
-
-    if lang == "en":
-        return text
-
-    return translator.translate(text, dest=lang).text
-
-
 # ------------------ LOGIC ------------------
 
-def fuzzy_match(text, keywords):   # ✅ FIX 2: Only ONE function now
-
+def fuzzy_match(text, keywords):
     words = text.lower().split()
-
     for word in words:
         matches = difflib.get_close_matches(word, keywords, 1, 0.7)
-
         if matches:
             return matches[0]
-
     return None
 
-
 def generate_reply(text, user_id="user1"):
-
     text = text.lower().strip()
 
     if user_id not in user_state:
@@ -272,7 +241,6 @@ def generate_reply(text, user_id="user1"):
 
     state = user_state[user_id]
 
-    # Start booking
     if state == "idle" and "appointment" in text:
         user_state[user_id] = "waiting_name"
         return "May I have your name?"
@@ -283,90 +251,50 @@ def generate_reply(text, user_id="user1"):
         return "Your phone number?"
 
     if state == "waiting_phone":
-
         phone = re.sub(r"\D", "", text)
-
         if len(phone) < 10:
             return "Please say valid phone number."
 
         user_data[user_id]["phone"] = phone[:10]
         user_state[user_id] = "waiting_problem"
-
         return "What problem are you facing?"
 
     if state == "waiting_problem":
-
-        keywords = []
-
-        for k in problem_map:
-            keywords.extend(k.split())
-
-        match = fuzzy_match(text, keywords)
-
-        if match:
-
-            for k in problem_map:
-
-                if match in k:
-
-                    dept = problem_map[k]
-
-                    user_data[user_id]["dept"] = dept
-
-                    doctors = get_doctors_by_department(dept)
-
-                    user_state[user_id] = "waiting_doctor"
-
-                    return f"Doctors: {', '.join(doctors)}. Any preference?"
-
+        for key, dept in problem_map.items():
+            if key in text:
+                user_data[user_id]["dept"] = dept
+                doctors = get_doctors_by_department(dept)
+                user_state[user_id] = "waiting_doctor"
+                return f"Doctors: {', '.join(doctors)}. Any preference?"
         return "Please describe problem."
 
     if state == "waiting_doctor":
-
         dept = user_data[user_id]["dept"]
-
         doctors = get_doctors_by_department(dept)
 
         if doctors:
-
-            doctor = doctors[0]
-
-            info = find_doctor_by_name(doctor)
-
-            user_data[user_id]["doctor"] = doctor
+            info = find_doctor_by_name(doctors[0])
+            user_data[user_id]["doctor"] = doctors[0]
             user_data[user_id]["doctor_id"] = info["id"]
-
             user_state[user_id] = "waiting_date"
-
             return "On which date?"
-
         return "No doctor available."
 
     if state == "waiting_date":
-
         user_data[user_id]["date"] = text
         user_state[user_id] = "waiting_time"
-
         return "At what time?"
 
     if state == "waiting_time":
-
         user_data[user_id]["time"] = text
         user_state[user_id] = "confirming"
-
         d = user_data[user_id]
-
         return f"Confirm appointment with {d['doctor']}?"
 
     if state == "confirming":
-
         if "yes" in text:
-
             d = user_data[user_id]
-
-            patient = get_or_create_patient(
-                d["name"], d["phone"], "en"
-            )
+            patient = get_or_create_patient(d["name"], d["phone"], "en")
 
             aid = create_appointment(
                 patient["id"],
@@ -379,7 +307,6 @@ def generate_reply(text, user_id="user1"):
 
             user_state[user_id] = "idle"
             user_data[user_id] = {}
-
             return f"Appointment confirmed. ID: {aid}"
 
         user_state[user_id] = "idle"
@@ -387,43 +314,25 @@ def generate_reply(text, user_id="user1"):
 
     return "Sorry, repeat please."
 
-
 # ------------------ MAIN API ------------------
 
-from fastapi import Form
-
 @app.post("/process-audio")
-async def process_audio(
-    audio: UploadFile = File(...),
-    lang: str = Form(...)
-):
+async def process_audio(audio: UploadFile = File(...), lang: str = Form(...)):
 
     path = f"{TEMP_DIR}/{uuid.uuid4()}.wav"
 
     with open(path, "wb") as f:
         f.write(await audio.read())
 
-    # Speech → Text
     original = speech_to_text(path)
-
-    # Always translate to English for logic
-    english = translator.translate(original, dest="en").text
-
-    # Get reply
+    english = translate_text(original, "en")
     reply = generate_reply(english)
+    final = translate_text(reply, lang)
 
-    # Translate back to selected language
-    if lang != "en":
-        final = translator.translate(reply, dest=lang).text
-    else:
-        final = reply
-
-    # Text → Speech
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
     gTTS(text=final, lang=lang).save(out)
 
     return FileResponse(out, media_type="audio/mpeg")
-
 
 # ------------------ TEST APIs ------------------
 
@@ -439,12 +348,10 @@ async def get_all_doctors():
     doctors = cursor.fetchall()
     conn.close()
 
-    return {
-        "doctors": [dict(doctor) for doctor in doctors]
-    }
-    
-from pydantic import BaseModel
+    return {"doctors": [dict(doctor) for doctor in doctors]}
+# ------------------ TEXT API ------------------
 
+from pydantic import BaseModel
 
 class TextInput(BaseModel):
     text: str
@@ -454,22 +361,17 @@ class TextInput(BaseModel):
 @app.post("/process-text")
 def process_text(data: TextInput):
 
-    # Always translate to English
-    english = translator.translate(data.text, dest="en").text
+    # Translate to English for logic
+    english = translate_text(data.text, "en")
 
     # Generate reply
     reply = generate_reply(english)
 
-    # Translate back
-    if data.lang != "en":
-        final = translator.translate(reply, dest=data.lang).text
-    else:
-        final = reply
+    # Translate back to user language
+    final = translate_text(reply, data.lang)
 
-    # Text → Speech
+    # Convert to speech
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
     gTTS(text=final, lang=data.lang).save(out)
 
     return FileResponse(out, media_type="audio/mpeg")
-
-
