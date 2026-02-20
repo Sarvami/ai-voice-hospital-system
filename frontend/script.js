@@ -1,19 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-<<<<<<< HEAD
-  /* ---------------- LOGIN ---------------- */
+  /* ================= LOGIN ================= */
 
   const loginBtn = document.getElementById("loginBtn");
 
   if (loginBtn) {
     loginBtn.addEventListener("click", async () => {
 
-      const emailInput = document.getElementById("email");
-      const passwordInput = document.getElementById("password");
+      const email = document.getElementById("email")?.value.trim();
+      const password = document.getElementById("password")?.value.trim();
       const msg = document.getElementById("msg");
-
-      const email = emailInput?.value.trim();
-      const password = passwordInput?.value.trim();
 
       if (!email || !password) {
         msg.innerText = "Enter email & password";
@@ -22,88 +18,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         const res = await fetch("http://127.0.0.1:8000/login", {
-=======
-  const recordBtn = document.getElementById("recordBtn");
-  const statusText = document.getElementById("status");
-  const audioPlayer = document.getElementById("audioPlayer");
-
-  let mediaRecorder;
-  let audioChunks = [];
-
-  // ❗ No default language
-  let selectedLang = null;
-
-  /* ---------------- LANGUAGE BUTTONS ---------------- */
-
-  document.querySelectorAll(".bubble").forEach(btn => {
-
-    btn.addEventListener("click", () => {
-
-      // Remove old active
-      document.querySelectorAll(".bubble")
-        .forEach(b => b.classList.remove("active"));
-
-      // Set new active
-      btn.classList.add("active");
-
-      selectedLang = btn.dataset.lang;
-
-      statusText.innerText = "Language selected ✔";
-    });
-
-  });
-
-
-  /* ---------------- MIC BUTTON ---------------- */
-
-  recordBtn.addEventListener("click", async () => {
-
-    // 🚨 If no language selected
-    if (!selectedLang) {
-      alert("Please select a language first!");
-      return;
-    }
-
-    try {
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-
-      mediaRecorder.start();
-      statusText.innerText = "Listening... 🎙️";
-
-      mediaRecorder.ondataavailable = e => {
-        audioChunks.push(e.data);
-      };
-
-      setTimeout(() => {
-        mediaRecorder.stop();
-        statusText.innerText = "Processing...";
-      }, 5000);
-
-      mediaRecorder.onstop = async () => {
-
-        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-
-        const formData = new FormData();
-        formData.append("audio", audioBlob, "recording.wav");
-        formData.append("lang", selectedLang);
-
-        const response = await fetch("http://127.0.0.1:8000/process-audio", {
->>>>>>> 45bdcb2fe3304141c51d2bf0a38ae81845c0e14e
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password })
         });
-
-<<<<<<< HEAD
-        // 🔴 backend not reachable
-        if (!res.ok) {
-          msg.innerText = "Backend not reachable";
-          return;
-        }
 
         const data = await res.json();
 
@@ -112,39 +30,36 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        // ✅ save user
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        // ✅ go to profile
-        window.location.href = "profile.html";
+        // 🔥 go to MAIN voice page (not profile)
+        window.location.href = "index.html";
 
       } catch (err) {
-        msg.innerText = "Server not running";
+        msg.innerText = "Backend not running";
         console.error(err);
       }
     });
   }
 
-  /* ---------------- PROFILE ---------------- */
+  /* ================= PROFILE ================= */
 
   const nameEl = document.getElementById("name");
-  const emailEl = document.getElementById("emailDisplay"); // ⚠️ changed id
+  const emailEl = document.getElementById("emailDisplay");
 
   if (nameEl && emailEl) {
     const user = JSON.parse(localStorage.getItem("user"));
 
-    // 🔴 not logged in → go back
     if (!user) {
       window.location.href = "login.html";
       return;
     }
 
-    // ✅ show user data
-    nameEl.innerText = user.name ?? "Unknown";
-    emailEl.innerText = user.email ?? "Unknown";
+    nameEl.innerText = user.name;
+    emailEl.innerText = user.email;
   }
 
-  /* ---------------- LOGOUT ---------------- */
+  /* ================= LOGOUT ================= */
 
   const logoutBtn = document.getElementById("logoutBtn");
 
@@ -154,23 +69,117 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "login.html";
     });
   }
-=======
-        const responseAudio = await response.blob();
 
-        const audioUrl = URL.createObjectURL(responseAudio);
+  /* ================= VOICE ASSISTANT ================= */
 
-        audioPlayer.src = audioUrl;
-        audioPlayer.play();
+  const recordBtn = document.getElementById("recordBtn");
+  const statusText = document.getElementById("status");
+  const audioPlayer = document.getElementById("audioPlayer");
 
-        statusText.innerText = "Response received ✅";
-      };
+  let mediaRecorder;
+  let audioChunks = [];
+  let selectedLang = "hi"; // default Hindi
 
-    } catch (err) {
-      alert("Microphone permission denied!");
-      console.error(err);
-    }
+  // language buttons
+  document.querySelectorAll(".bubble").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".bubble").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedLang = btn.dataset.lang;
 
+      if (statusText) statusText.innerText = "Language selected ✔";
+    });
   });
->>>>>>> 45bdcb2fe3304141c51d2bf0a38ae81845c0e14e
 
+  // mic button
+  if (recordBtn) {
+    recordBtn.addEventListener("click", async () => {
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.start();
+        if (statusText) statusText.innerText = "Listening... 🎙️";
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+        setTimeout(() => {
+          mediaRecorder.stop();
+          if (statusText) statusText.innerText = "Processing...";
+        }, 5000);
+
+        mediaRecorder.onstop = async () => {
+
+          const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+
+          const formData = new FormData();
+          formData.append("audio", audioBlob, "recording.wav");
+          formData.append("lang", selectedLang);
+
+          try {
+            const res = await fetch("http://127.0.0.1:8000/process-audio", {
+              method: "POST",
+              body: formData
+            });
+
+            if (!res.ok) {
+              if (statusText) statusText.innerText = "Backend error ❌";
+              return;
+            }
+
+            const audioData = await res.blob();
+            const url = URL.createObjectURL(audioData);
+
+            if (audioPlayer) {
+              audioPlayer.src = url;
+              audioPlayer.play();
+            }
+
+            if (statusText) statusText.innerText = "Response received ✅";
+
+          } catch {
+            if (statusText) statusText.innerText = "Cannot reach backend ❌";
+          }
+        };
+
+      } catch {
+        alert("Microphone permission denied!");
+      }
+    });
+  }
+
+});
+const audio = document.getElementById("audioPlayer");
+const playBtn = document.getElementById("playBtn");
+const progress = document.getElementById("progress");
+const timeText = document.getElementById("time");
+
+playBtn.addEventListener("click", () => {
+  if (audio.paused) {
+    audio.play();
+    playBtn.textContent = "❚❚";
+  } else {
+    audio.pause();
+    playBtn.textContent = "▶";
+  }
+});
+
+audio.addEventListener("timeupdate", () => {
+  const percent = (audio.currentTime / audio.duration) * 100;
+  progress.style.width = percent + "%";
+
+  const mins = Math.floor(audio.currentTime / 60);
+  const secs = Math.floor(audio.currentTime % 60)
+    .toString()
+    .padStart(2, "0");
+
+  timeText.textContent = `${mins}:${secs}`;
+});
+
+audio.addEventListener("ended", () => {
+  playBtn.textContent = "▶";
+  progress.style.width = "0%";
 });
