@@ -31,6 +31,9 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 supported = ["en", "hi", "mr"]
 
+MAX_STT_WAIT = 30   # seconds
+STT_POLL_INTERVAL = 2
+
 # ------------------ TRANSLATION (PYTHON 3.13 SAFE) ------------------
 
 def translate_text(text: str, target_lang: str) -> str:
@@ -206,6 +209,8 @@ def speech_to_text(audio_path):
 
     tid = transcript.json()["id"]
 
+    start_time = time.time()
+
     while True:
         res = requests.get(
             f"https://api.assemblyai.com/v2/transcript/{tid}",
@@ -218,9 +223,13 @@ def speech_to_text(audio_path):
             return res.json()["text"]
 
         if status == "error":
-            raise Exception("STT Failed")
+            raise Exception("STT failed")
 
-        time.sleep(2)
+        # ⏱️ TIMEOUT CHECK
+        if time.time() - start_time > MAX_STT_WAIT:
+            raise TimeoutError("STT timeout")
+
+        time.sleep(STT_POLL_INTERVAL)
 
 # ------------------ LOGIC ------------------
 
@@ -324,10 +333,17 @@ async def process_audio(audio: UploadFile = File(...), lang: str = Form(...)):
     with open(path, "wb") as f:
         f.write(await audio.read())
 
-    original = speech_to_text(path)
-    english = translate_text(original, "en")
-    reply = generate_reply(english)
-    final = translate_text(reply, lang)
+    try:
+        original = speech_to_text(path)
+        english = translate_text(original, "en")
+        reply = generate_reply(english)
+        final = translate_text(reply, lang)
+
+    except TimeoutError:
+        final = "Sorry, the system is taking too long. Please try again."
+
+    except Exception:
+        final = "Sorry, something went wrong. Please try again."
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
     gTTS(text=final, lang=lang).save(out)
