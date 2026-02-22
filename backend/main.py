@@ -1,3 +1,4 @@
+from googletrans import Translator
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +13,8 @@ import sqlite3
 import re
 
 # ------------------ SETUP ------------------
+
+translator = Translator()
 
 load_dotenv()
 API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
@@ -31,25 +34,19 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 supported = ["en", "hi", "mr"]
 
-# ------------------ TRANSLATION (PYTHON 3.13 SAFE) ------------------
+MAX_STT_WAIT = 30   # seconds
+STT_POLL_INTERVAL = 2
 
-def translate_text(text: str, target_lang: str) -> str:
+    
+# ------------------ GOOGLETRANS (TEST SWITCH) ------------------
+
+def gt_to_english(text: str) -> str:
+    return translator.translate(text, dest="en").text
+
+def gt_from_english(text: str, target_lang: str) -> str:
     if target_lang == "en":
         return text
-    try:
-        res = requests.post(
-            "https://libretranslate.de/translate",
-            data={
-                "q": text,
-                "source": "auto",
-                "target": target_lang,
-                "format": "text",
-            },
-            timeout=10,
-        )
-        return res.json().get("translatedText", text)
-    except Exception:
-        return text
+    return translator.translate(text, dest=target_lang).text
 
 # ------------------ DATABASE SETUP ------------------
 
@@ -206,6 +203,8 @@ def speech_to_text(audio_path):
 
     tid = transcript.json()["id"]
 
+    start_time = time.time()
+
     while True:
         res = requests.get(
             f"https://api.assemblyai.com/v2/transcript/{tid}",
@@ -218,9 +217,13 @@ def speech_to_text(audio_path):
             return res.json()["text"]
 
         if status == "error":
-            raise Exception("STT Failed")
+            raise Exception("STT failed")
 
-        time.sleep(2)
+        # ⏱️ TIMEOUT CHECK
+        if time.time() - start_time > MAX_STT_WAIT:
+            raise TimeoutError("STT timeout")
+
+        time.sleep(STT_POLL_INTERVAL)
 
 # ------------------ LOGIC ------------------
 
@@ -324,10 +327,17 @@ async def process_audio(audio: UploadFile = File(...), lang: str = Form(...)):
     with open(path, "wb") as f:
         f.write(await audio.read())
 
-    original = speech_to_text(path)
-    english = translate_text(original, "en")
-    reply = generate_reply(english)
-    final = translate_text(reply, lang)
+    try:
+        original = speech_to_text(path)
+        english = gt_to_english(original)
+        reply = generate_reply(english)
+        final = gt_from_english(reply, lang)
+
+    except TimeoutError:
+        final = "Sorry, the system is taking too long. Please try again."
+
+    except Exception:
+        final = "Sorry, something went wrong. Please try again."
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
     gTTS(text=final, lang=lang).save(out)
@@ -361,14 +371,9 @@ class TextInput(BaseModel):
 @app.post("/process-text")
 def process_text(data: TextInput):
 
-    # Translate to English for logic
-    english = translate_text(data.text, "en")
-
-    # Generate reply
+    english = gt_to_english(data.text)
     reply = generate_reply(english)
-
-    # Translate back to user language
-    final = translate_text(reply, data.lang)
+    final = gt_from_english(reply, data.lang)
 
     # Convert to speech
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
