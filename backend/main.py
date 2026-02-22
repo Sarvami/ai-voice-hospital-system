@@ -1,3 +1,4 @@
+from database import SessionLocal, Patient
 from googletrans import Translator
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
@@ -9,8 +10,17 @@ import uuid
 import os
 import time
 import difflib
-import sqlite3
 import re
+
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password[:72])
+
+def verify_password(password: str, hashed: str) -> bool:
+    return pwd_context.verify(password[:72], hashed)
 
 # ------------------ SETUP ------------------
 
@@ -48,59 +58,6 @@ def gt_from_english(text: str, target_lang: str) -> str:
         return text
     return translator.translate(text, dest=target_lang).text
 
-# ------------------ DATABASE SETUP ------------------
-
-def get_db_connection():
-    conn = sqlite3.connect("hospital.db", check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_database():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS doctors (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        department TEXT,
-        qualification TEXT,
-        experience_years INTEGER,
-        available_days TEXT
-    )
-    """)
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS patients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        age INTEGER,
-        gender TEXT,
-        phone TEXT,
-        preferred_language TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS appointments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        patient_id INTEGER,
-        doctor_id INTEGER,
-        appointment_date TEXT,
-        appointment_time TEXT,
-        status TEXT,
-        reason TEXT,
-        booking_source TEXT,
-        language_used TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    conn.commit()
-    conn.close()
-
-init_database()
 
 # ------------------ MEMORY ------------------
 
@@ -239,8 +196,8 @@ def generate_reply(text, user_id="user1"):
     text = text.lower().strip()
 
     if user_id not in user_state:
-        user_state[user_id] = "idle"
-        user_data[user_id] = {}
+     user_state[user_id] = "waiting_problem"
+     user_data[user_id] = {"patient_id": user_id}
 
     state = user_state[user_id]
 
@@ -320,7 +277,11 @@ def generate_reply(text, user_id="user1"):
 # ------------------ MAIN API ------------------
 
 @app.post("/process-audio")
-async def process_audio(audio: UploadFile = File(...), lang: str = Form(...)):
+async def process_audio(
+    audio: UploadFile = File(...),
+    lang: str = Form(...),
+    patient_id: int = Form(...)
+):
 
     path = f"{TEMP_DIR}/{uuid.uuid4()}.wav"
 
@@ -330,7 +291,7 @@ async def process_audio(audio: UploadFile = File(...), lang: str = Form(...)):
     try:
         original = speech_to_text(path)
         english = gt_to_english(original)
-        reply = generate_reply(english)
+        reply = generate_reply(english, user_id=str(patient_id))
         final = gt_from_english(reply, lang)
 
     except TimeoutError:
@@ -372,7 +333,7 @@ class TextInput(BaseModel):
 def process_text(data: TextInput):
 
     english = gt_to_english(data.text)
-    reply = generate_reply(english)
+    reply = generate_reply(english, user_id=str(patient_id))
     final = gt_from_english(reply, data.lang)
 
     # Convert to speech
@@ -380,3 +341,64 @@ def process_text(data: TextInput):
     gTTS(text=final, lang=data.lang).save(out)
 
     return FileResponse(out, media_type="audio/mpeg")
+
+@app.post("/login")
+def login(phone: str = Form(...), password: str = Form(...)):
+    db = SessionLocal()
+    patient = db.query(Patient).filter(Patient.phone == phone).first()
+
+    if not patient:
+        db.close()
+        return {"status": "not_found"}
+
+    if not verify_password(password, patient.password_hash):
+        db.close()
+        return {"status": "invalid_password"}
+
+    db.close()
+    return {
+        "status": "success",
+        "patient": {
+            "id": patient.id,
+            "preferred_language": patient.preferred_language
+        }
+    }
+    
+from fastapi import Form
+
+
+@app.post("/register")
+def register_patient(
+    name: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form(...),
+    phone: str = Form(...),
+    password: str = Form(...),
+    language: str = Form("en")
+):
+    try:
+        db = SessionLocal()
+
+        existing = db.query(Patient).filter(Patient.phone == phone).first()
+        if existing:
+            return {"error": "Patient already exists"}
+
+        patient = Patient(
+            name=name,
+            age=age,
+            gender=gender,
+            phone=phone,
+            preferred_language=language,
+            password_hash=hash_password(password)
+        )
+
+        db.add(patient)
+        db.commit()
+        db.refresh(patient)
+        db.close()
+
+        return {"status": "created"}
+
+    except Exception as e:
+        print("REGISTER ERROR:", e)
+        return {"error": str(e)}
