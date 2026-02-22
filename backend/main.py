@@ -37,25 +37,6 @@ supported = ["en", "hi", "mr"]
 MAX_STT_WAIT = 30   # seconds
 STT_POLL_INTERVAL = 2
 
-# ------------------ TRANSLATION (PYTHON 3.13 SAFE) ------------------
-
-def translate_text(text: str, target_lang: str) -> str:
-    if target_lang == "en":
-        return text
-    try:
-        res = requests.post(
-            "https://libretranslate.de/translate",
-            data={
-                "q": text,
-                "source": "auto",
-                "target": target_lang,
-                "format": "text",
-            },
-            timeout=10,
-        )
-        return res.json().get("translatedText", text)
-    except Exception:
-        return text
     
 # ------------------ GOOGLETRANS (TEST SWITCH) ------------------
 
