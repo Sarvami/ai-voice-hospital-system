@@ -1,3 +1,4 @@
+from googletrans import Translator
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +13,8 @@ import sqlite3
 import re
 
 # ------------------ SETUP ------------------
+
+translator = Translator()
 
 load_dotenv()
 API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
@@ -53,6 +56,16 @@ def translate_text(text: str, target_lang: str) -> str:
         return res.json().get("translatedText", text)
     except Exception:
         return text
+    
+# ------------------ GOOGLETRANS (TEST SWITCH) ------------------
+
+def gt_to_english(text: str) -> str:
+    return translator.translate(text, dest="en").text
+
+def gt_from_english(text: str, target_lang: str) -> str:
+    if target_lang == "en":
+        return text
+    return translator.translate(text, dest=target_lang).text
 
 # ------------------ DATABASE SETUP ------------------
 
@@ -335,9 +348,9 @@ async def process_audio(audio: UploadFile = File(...), lang: str = Form(...)):
 
     try:
         original = speech_to_text(path)
-        english = translate_text(original, "en")
+        english = gt_to_english(original)
         reply = generate_reply(english)
-        final = translate_text(reply, lang)
+        final = gt_from_english(reply, lang)
 
     except TimeoutError:
         final = "Sorry, the system is taking too long. Please try again."
@@ -377,14 +390,9 @@ class TextInput(BaseModel):
 @app.post("/process-text")
 def process_text(data: TextInput):
 
-    # Translate to English for logic
-    english = translate_text(data.text, "en")
-
-    # Generate reply
+    english = gt_to_english(data.text)
     reply = generate_reply(english)
-
-    # Translate back to user language
-    final = translate_text(reply, data.lang)
+    final = gt_from_english(reply, data.lang)
 
     # Convert to speech
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
