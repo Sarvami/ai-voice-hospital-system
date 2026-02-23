@@ -1,22 +1,111 @@
+/* ========== LOGIN PAGE ========== */
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+
+  /* DARK SAGE BACKGROUND (ENTIRE SCREEN) */
+  background: linear-gradient(
+    135deg,
+    #2f3e3a,
+    #3f5f54
+  );
+}
+
+/* base glass card (used everywhere) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+
+  border-radius: 30px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.18);
+
+  text-align: center;
+  position: relative;
+}
+.glass-card {
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.35);
+}
+.form-group {
+  margin-bottom: 18px;
+}
+
+label {
+  display: none; /* cleaner look like the image */
+}
+
+input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+
+  color: #2f3e3a;
+  font-size: 14px;
+}
+
+input::placeholder {
+  color: #7a8f86;
+}
+
+input:focus {
+  outline: none;
+  border-color: #e6f0ea;
+}
+
+.login-title {
+  color: #2f3e3a;        /* dark sage */
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 24px;
+}
+
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 12px;
+
+  border-radius: 16px;
+  border: none;
+
+  background: #2f3e3a;
+  color: #ffffff;
+
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.login-btn:hover {
+  background: #24312d;
+}
+
+.error-msg {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: #ffd6d6;
+}
+/* login-specific card */
+.login-card {
+  width: 380px;
+  padding: 32px;
+}
 /* ===== RESET & BACKGROUND ===== */
 * {
   box-sizing: border-box;
 }
-
-body {
-  margin: 0;
-  height: 100vh;
-  font-family: "Segoe UI", system-ui, sans-serif;
-  background: linear-gradient(135deg, #e7efe9, #e3ecf5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 /* ===== GLASS CARD ===== */
 .glass-card {
-  width: 520px;
-  height: 560px;
+  width: 360px;
+  height: 420px;
   padding: 20px;
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.45);
