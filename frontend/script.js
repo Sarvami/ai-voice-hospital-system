@@ -1,4 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
+// Prevent direct access to profile page
+if (
+  window.location.pathname.includes("profile.html") &&
+  !localStorage.getItem("temp_phone")
+) {
+  window.location.href = "login.html";
+}
 
   /* ================= LOGIN ================= */
 
@@ -6,31 +13,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (loginBtn) {
     loginBtn.addEventListener("click", async () => {
+      console.log("Login button clicked");
 
-      const email = document.getElementById("email")?.value.trim();
+      const phone = document.getElementById("phone")?.value.trim();
       const password = document.getElementById("password")?.value.trim();
       const msg = document.getElementById("msg");
 
-      if (!email || !password) {
-        msg.innerText = "Enter email & password";
+      if (!phone || !password) {
+        msg.innerText = "Enter  & phone and password";
         return;
       }
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
+        
+const formData = new FormData();
+formData.append("phone", phone);
+formData.append("password", password);
+
+const res = await fetch("http://127.0.0.1:8000/login", {
+  method: "POST",
+  body: formData
+});
 
         const data = await res.json();
 
-        if (!data.success) {
-          msg.innerText = "Invalid email or password";
-          return;
-        }
+        if (data.status === "not_found") {
+  // user does not exist → go to profile creation
+  localStorage.setItem("temp_phone", phone);
+  window.location.href = "profile.html";
+  return;
+}
 
-        localStorage.setItem("user", JSON.stringify(data.user));
+if (data.status === "invalid_password") {
+  msg.innerText = "Incorrect password";
+  return;
+}
+
+if (data.status !== "success") {
+  msg.innerText = "Login failed";
+  return;
+}
+
+        localStorage.setItem("patient_id", data.patient.id);
+localStorage.setItem("lang", data.patient.preferred_language);
 
         // 🔥 go to MAIN voice page (not profile)
         window.location.href = "index.html";
@@ -118,6 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const formData = new FormData();
           formData.append("audio", audioBlob, "recording.wav");
           formData.append("lang", selectedLang);
+          formData.append("patient_id", localStorage.getItem("patient_id"));
 
           try {
             const res = await fetch("http://127.0.0.1:8000/process-audio", {
@@ -157,29 +183,96 @@ const playBtn = document.getElementById("playBtn");
 const progress = document.getElementById("progress");
 const timeText = document.getElementById("time");
 
-playBtn.addEventListener("click", () => {
-  if (audio.paused) {
-    audio.play();
-    playBtn.textContent = "❚❚";
-  } else {
-    audio.pause();
+if (audio && playBtn && progress && timeText) {
+
+  playBtn.addEventListener("click", () => {
+    if (audio.paused) {
+      audio.play();
+      playBtn.textContent = "❚❚";
+    } else {
+      audio.pause();
+      playBtn.textContent = "▶";
+    }
+  });
+
+  audio.addEventListener("timeupdate", () => {
+    const percent = (audio.currentTime / audio.duration) * 100;
+    progress.style.width = percent + "%";
+
+    const mins = Math.floor(audio.currentTime / 60);
+    const secs = Math.floor(audio.currentTime % 60)
+      .toString()
+      .padStart(2, "0");
+
+    timeText.textContent = `${mins}:${secs}`;
+  });
+
+  audio.addEventListener("ended", () => {
     playBtn.textContent = "▶";
-  }
-});
+    progress.style.width = "0%";
+  });
 
-audio.addEventListener("timeupdate", () => {
-  const percent = (audio.currentTime / audio.duration) * 100;
-  progress.style.width = percent + "%";
+}
 
-  const mins = Math.floor(audio.currentTime / 60);
-  const secs = Math.floor(audio.currentTime % 60)
-    .toString()
-    .padStart(2, "0");
+/* ================= REGISTER (PROFILE PAGE) ================= */
 
-  timeText.textContent = `${mins}:${secs}`;
-});
+const registerBtn = document.getElementById("registerBtn");
 
-audio.addEventListener("ended", () => {
-  playBtn.textContent = "▶";
-  progress.style.width = "0%";
-});
+if (registerBtn) {
+  registerBtn.addEventListener("click", async () => {
+    console.log("Register button clicked");
+
+    const name = document.getElementById("name")?.value.trim();
+    const age = document.getElementById("age")?.value.trim();
+    const gender = document.getElementById("gender")?.value;
+    const password = document.getElementById("password")?.value.trim();
+    const language = document.getElementById("language")?.value || "en";
+    const phone = localStorage.getItem("temp_phone");
+    const msg = document.getElementById("msg");
+
+    if (!name || !age || !gender || !password || !phone) {
+      msg.innerText = "Please fill all fields";
+      msg.style.color = "red";
+      return;
+    }
+
+    msg.innerText = "Creating account...";
+    msg.style.color = "black";
+
+    try {
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("age", age);
+      formData.append("gender", gender);
+      formData.append("phone", phone);
+      formData.append("password", password);
+      formData.append("language", language);
+
+      const res = await fetch("http://127.0.0.1:8000/register", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      console.log("Register response:", data);
+
+      if (data.status === "created") {
+        msg.style.color = "green";
+        msg.innerText = "Profile created successfully! Redirecting...";
+        localStorage.removeItem("temp_phone");
+
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1000);
+      } else {
+        msg.style.color = "red";
+        msg.innerText = data.error || "Registration failed";
+      }
+
+    } catch (err) {
+      console.error(err);
+      msg.style.color = "red";
+      msg.innerText = "Cannot reach backend";
+    }
+  });
+}

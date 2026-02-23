@@ -2,21 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Profile</title>
+  <title>Create Patient Profile</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="glass-card">
 
-  <div class="top-bar">
-    Your Profile
+  <h2>Create Your Profile</h2>
+
+  <div class="form-group">
+    <label>Full Name</label>
+    <input id="name" type="text" placeholder="Enter full name">
   </div>
 
-  <p><b>Name:</b> <span id="name"></span></p>
-  <p><b>Email:</b> <span id="email"></span></p>
+  <div class="form-group">
+    <label>Age</label>
+    <input id="age" type="number" placeholder="Enter age">
+  </div>
 
-  <button id="logoutBtn" class="mic-orb">🚪</button>
+  <div class="form-group">
+    <label>Gender</label>
+    <select id="gender">
+      <option value="">Select gender</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+      <option value="Other">Other</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Preferred Language</label>
+    <select id="language">
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="mr">Marathi</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Create Password</label>
+    <input id="password" type="password" placeholder="Create password">
+  </div>
+
+  <button id="registerBtn" class="login-btn">Create Account</button>
+
+  <p id="msg" class="error-msg"></p>
 
 </div>
 

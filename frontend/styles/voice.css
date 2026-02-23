@@ -1,0 +1,19 @@
+body {
+  height: 100vh;
+  background: linear-gradient(135deg, #e7efe9, #e3ecf5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.voice-card {
+  width: 520px;
+  height: 560px;
+  padding: 20px;
+
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(22px);
+
+  box-shadow: 0 30px 60px rgba(0,0,0,0.18);
+}
