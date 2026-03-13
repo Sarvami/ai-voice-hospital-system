@@ -11,8 +11,10 @@ import os
 import time
 import difflib
 import re
+import sqlite3
 
 from passlib.context import CryptContext
+from pydantic import BaseModel
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -44,19 +46,34 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 supported = ["en", "hi", "mr"]
 
-MAX_STT_WAIT = 30   # seconds
+MAX_STT_WAIT = 30
 STT_POLL_INTERVAL = 2
 
-    
-# ------------------ GOOGLETRANS (TEST SWITCH) ------------------
+# ------------------ DB CONNECTION ------------------
+# FIX 1: get_db_connection was never defined — added here
+
+DB_PATH = "../database/hospital.db"
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# ------------------ GOOGLETRANS ------------------
 
 def gt_to_english(text: str) -> str:
-    return translator.translate(text, dest="en").text
+    try:
+        return translator.translate(text, dest="en").text
+    except Exception:
+        return text  # fallback: return original if translation fails
 
 def gt_from_english(text: str, target_lang: str) -> str:
     if target_lang == "en":
         return text
-    return translator.translate(text, dest=target_lang).text
+    try:
+        return translator.translate(text, dest=target_lang).text
+    except Exception:
+        return text  # fallback: return English if translation fails
 
 
 # ------------------ MEMORY ------------------
@@ -122,7 +139,7 @@ def get_or_create_patient(name, phone, language="en"):
     conn.close()
     return dict(new_patient)
 
-def create_appointment(pid, did, date, time, reason, language):
+def create_appointment(pid, did, date, time_str, reason, language):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -131,7 +148,7 @@ def create_appointment(pid, did, date, time, reason, language):
         (patient_id, doctor_id, appointment_date, appointment_time,
          status, reason, booking_source, language_used)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (pid, did, date, time, "Booked", reason, "voice", language))
+    """, (pid, did, date, time_str, "Booked", reason, "voice", language))
 
     aid = cursor.lastrowid
     conn.commit()
@@ -159,7 +176,6 @@ def speech_to_text(audio_path):
     )
 
     tid = transcript.json()["id"]
-
     start_time = time.time()
 
     while True:
@@ -176,7 +192,6 @@ def speech_to_text(audio_path):
         if status == "error":
             raise Exception("STT failed")
 
-        # ⏱️ TIMEOUT CHECK
         if time.time() - start_time > MAX_STT_WAIT:
             raise TimeoutError("STT timeout")
 
@@ -192,18 +207,22 @@ def fuzzy_match(text, keywords):
             return matches[0]
     return None
 
-def generate_reply(text, user_id="user1"):
+def generate_reply(text, user_id="user1", lang="en"):
     text = text.lower().strip()
 
+    # FIX 2: State machine now starts at "idle" so the full flow triggers correctly
     if user_id not in user_state:
-     user_state[user_id] = "waiting_problem"
-     user_data[user_id] = {"patient_id": user_id}
+        user_state[user_id] = "idle"
+        user_data[user_id] = {}
 
     state = user_state[user_id]
 
-    if state == "idle" and "appointment" in text:
-        user_state[user_id] = "waiting_name"
-        return "May I have your name?"
+    # IDLE — waiting for user to say "appointment"
+    if state == "idle":
+        if "appointment" in text or "book" in text:
+            user_state[user_id] = "waiting_name"
+            return "May I have your name?"
+        return "Say 'book appointment' to get started."
 
     if state == "waiting_name":
         user_data[user_id]["name"] = text.title()
@@ -213,32 +232,56 @@ def generate_reply(text, user_id="user1"):
     if state == "waiting_phone":
         phone = re.sub(r"\D", "", text)
         if len(phone) < 10:
-            return "Please say valid phone number."
-
+            return "Please say a valid 10-digit phone number."
         user_data[user_id]["phone"] = phone[:10]
         user_state[user_id] = "waiting_problem"
         return "What problem are you facing?"
 
     if state == "waiting_problem":
+        matched_dept = None
         for key, dept in problem_map.items():
             if key in text:
-                user_data[user_id]["dept"] = dept
-                doctors = get_doctors_by_department(dept)
-                user_state[user_id] = "waiting_doctor"
-                return f"Doctors: {', '.join(doctors)}. Any preference?"
-        return "Please describe problem."
+                matched_dept = dept
+                break
+        if not matched_dept:
+            # try fuzzy match as fallback
+            match = fuzzy_match(text, list(problem_map.keys()))
+            if match:
+                matched_dept = problem_map[match]
+
+        if matched_dept:
+            user_data[user_id]["dept"] = matched_dept
+            doctors = get_doctors_by_department(matched_dept)
+            if not doctors:
+                return "Sorry, no doctors available for that department right now."
+            user_data[user_id]["available_doctors"] = doctors
+            user_state[user_id] = "waiting_doctor"
+            return f"Available doctors: {', '.join(doctors)}. Any preference?"
+
+        return "Sorry, I didn't catch that. Please describe your problem."
 
     if state == "waiting_doctor":
-        dept = user_data[user_id]["dept"]
-        doctors = get_doctors_by_department(dept)
+        # FIX 3: Actually try to match what the user said to a doctor name
+        available = user_data[user_id].get("available_doctors", [])
+        chosen = None
 
-        if doctors:
-            info = find_doctor_by_name(doctors[0])
-            user_data[user_id]["doctor"] = doctors[0]
-            user_data[user_id]["doctor_id"] = info["id"]
-            user_state[user_id] = "waiting_date"
-            return "On which date?"
-        return "No doctor available."
+        for doc in available:
+            if doc.lower() in text or any(part in text for part in doc.lower().split()):
+                chosen = doc
+                break
+
+        # fallback: pick first doctor if no match
+        if not chosen and available:
+            chosen = available[0]
+
+        info = find_doctor_by_name(chosen)
+        if not info:
+            return "Could not find that doctor. Please try again."
+
+        user_data[user_id]["doctor"] = chosen
+        user_data[user_id]["doctor_id"] = info["doctor_id"]
+        user_state[user_id] = "waiting_date"
+        return f"Okay, {chosen}. On which date would you like the appointment?"
 
     if state == "waiting_date":
         user_data[user_id]["date"] = text
@@ -249,12 +292,13 @@ def generate_reply(text, user_id="user1"):
         user_data[user_id]["time"] = text
         user_state[user_id] = "confirming"
         d = user_data[user_id]
-        return f"Confirm appointment with {d['doctor']}?"
+        return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
 
     if state == "confirming":
-        if "yes" in text:
+        if "yes" in text or "confirm" in text or "ok" in text:
             d = user_data[user_id]
-            patient = get_or_create_patient(d["name"], d["phone"], "en")
+            # FIX 4: Pass actual language instead of hardcoded "en"
+            patient = get_or_create_patient(d["name"], d["phone"], lang)
 
             aid = create_appointment(
                 patient["id"],
@@ -262,17 +306,21 @@ def generate_reply(text, user_id="user1"):
                 d["date"],
                 d["time"],
                 d["dept"],
-                "en"
+                lang  # ← actual language now used
             )
 
             user_state[user_id] = "idle"
             user_data[user_id] = {}
-            return f"Appointment confirmed. ID: {aid}"
+            return f"Appointment confirmed. Your booking ID is {aid}."
 
-        user_state[user_id] = "idle"
-        return "Cancelled."
+        elif "no" in text or "cancel" in text:
+            user_state[user_id] = "idle"
+            user_data[user_id] = {}
+            return "Appointment cancelled. Say 'book appointment' to start again."
 
-    return "Sorry, repeat please."
+        return "Please say yes to confirm or no to cancel."
+
+    return "Sorry, I didn't understand. Please try again."
 
 # ------------------ MAIN API ------------------
 
@@ -282,7 +330,6 @@ async def process_audio(
     lang: str = Form(...),
     patient_id: int = Form(...)
 ):
-
     path = f"{TEMP_DIR}/{uuid.uuid4()}.wav"
 
     with open(path, "wb") as f:
@@ -291,17 +338,42 @@ async def process_audio(
     try:
         original = speech_to_text(path)
         english = gt_to_english(original)
-        reply = generate_reply(english, user_id=str(patient_id))
+        reply = generate_reply(english, user_id=str(patient_id), lang=lang)
         final = gt_from_english(reply, lang)
 
     except TimeoutError:
         final = "Sorry, the system is taking too long. Please try again."
 
-    except Exception:
+    except Exception as e:
+        print("ERROR in process_audio:", e)
         final = "Sorry, something went wrong. Please try again."
+
+    finally:
+        # clean up temp audio file
+        if os.path.exists(path):
+            os.remove(path)
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
     gTTS(text=final, lang=lang).save(out)
+
+    return FileResponse(out, media_type="audio/mpeg")
+
+# ------------------ TEXT API ------------------
+
+class TextInput(BaseModel):
+    text: str
+    lang: str = "en"
+    patient_id: int = 0   # FIX 5: added missing patient_id field
+
+
+@app.post("/process-text")
+def process_text(data: TextInput):
+    english = gt_to_english(data.text)
+    reply = generate_reply(english, user_id=str(data.patient_id), lang=data.lang)  # FIX 5
+    final = gt_from_english(reply, data.lang)
+
+    out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+    gTTS(text=final, lang=data.lang).save(out)
 
     return FileResponse(out, media_type="audio/mpeg")
 
@@ -318,29 +390,9 @@ async def get_all_doctors():
     cursor.execute("SELECT * FROM doctors")
     doctors = cursor.fetchall()
     conn.close()
+    return {"doctors": [dict(d) for d in doctors]}
 
-    return {"doctors": [dict(doctor) for doctor in doctors]}
-# ------------------ TEXT API ------------------
-
-from pydantic import BaseModel
-
-class TextInput(BaseModel):
-    text: str
-    lang: str = "en"
-
-
-@app.post("/process-text")
-def process_text(data: TextInput):
-
-    english = gt_to_english(data.text)
-    reply = generate_reply(english, user_id=str(patient_id))
-    final = gt_from_english(reply, data.lang)
-
-    # Convert to speech
-    out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
-    gTTS(text=final, lang=data.lang).save(out)
-
-    return FileResponse(out, media_type="audio/mpeg")
+# ------------------ AUTH ------------------
 
 @app.post("/login")
 def login(phone: str = Form(...), password: str = Form(...)):
@@ -359,13 +411,10 @@ def login(phone: str = Form(...), password: str = Form(...)):
     return {
         "status": "success",
         "patient": {
-            "id": patient.id,
+            "id": patient.patient_id,
             "preferred_language": patient.preferred_language
         }
     }
-    
-from fastapi import Form
-
 
 @app.post("/register")
 def register_patient(
@@ -381,6 +430,7 @@ def register_patient(
 
         existing = db.query(Patient).filter(Patient.phone == phone).first()
         if existing:
+            db.close()
             return {"error": "Patient already exists"}
 
         patient = Patient(
