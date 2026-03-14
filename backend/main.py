@@ -212,27 +212,18 @@ def generate_reply(text, user_id="user1", lang="en"):
 
     # FIX 2: State machine now starts at "idle" so the full flow triggers correctly
     if user_id not in user_state:
-        user_state[user_id] = "idle"
-        user_data[user_id] = {}
+    # fetch patient info on first interaction
+     conn = get_db_connection()
+     patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
+     conn.close()
+     user_data[user_id] = {}
+     if patient:
+        user_data[user_id]["name"] = patient["name"]
+        user_data[user_id]["phone"] = patient["phone"]
+        user_data[user_id]["patient_id"] = patient["patient_id"]
+     user_state[user_id] = "waiting_problem"
 
-    state = user_state[user_id]
-
-    # IDLE — waiting for user to say "appointment"
-    if state == "idle":
-     if "appointment" in text or "book" in text:
-        conn = get_db_connection()
-        patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
-        conn.close()
-        if patient:
-            user_data[user_id]["name"] = patient["name"]
-            user_data[user_id]["phone"] = patient["phone"]
-            user_data[user_id]["patient_id"] = patient["patient_id"]
-        user_state[user_id] = "waiting_problem"
-        return "What problem are you facing?"
-    else:
-        return "Say 'book appointment' to get started."
-
-    
+    state = user_state[user_id]      
 
     if state == "waiting_problem":
         matched_dept = None
