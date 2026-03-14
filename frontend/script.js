@@ -9,6 +9,36 @@ let mediaRecorder;
 let audioChunks = [];
 let selectedLanguage = "hi"; // Default to Hindi
 
+
+/* ---------- PROFILE SECTION (STEP 3) ---------- */
+
+const nameEl = document.getElementById("name");
+const phoneEl = document.getElementById("phone");
+const langEl = document.getElementById("language");
+
+if (nameEl && phoneEl && langEl) {
+  const name = localStorage.getItem("name");
+  const phone = localStorage.getItem("phone");
+  const lang = localStorage.getItem("lang");
+
+  nameEl.innerText = name || "Unknown";
+  phoneEl.innerText = phone || "Not available";
+  langEl.innerText = lang || "Not set";
+}
+
+
+/* ---------- LOGOUT (STEP 4) ---------- */
+
+const logoutBtn = document.getElementById("logoutBtn");
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.clear();
+    window.location.href = "login.html";
+  });
+}
+
+
 /* ---------- 1. LANGUAGE SELECTION ---------- */
 // This assumes your language buttons have the class "bubble" or "lang-btn"
 document.querySelectorAll(".lang-btn").forEach(btn => {
@@ -20,11 +50,13 @@ document.querySelectorAll(".lang-btn").forEach(btn => {
     // Get language code from data-lang attribute (e.g., data-lang="mr")
     selectedLanguage = btn.dataset.lang;
     console.log("Language switched to:", selectedLanguage);
-    statusText.innerText = `Ready for ${btn.innerText}`;
+    statusText.innerText = Ready for ${btn.innerText};
   });
 });
 
+
 /* ---------- 2. RECORD & PROCESS AUDIO ---------- */
+
 recordBtn.addEventListener("click", async () => {
   if (!navigator.mediaDevices || !window.MediaRecorder) {
     alert("Recording not supported in this browser.");
@@ -40,7 +72,7 @@ recordBtn.addEventListener("click", async () => {
 
     mediaRecorder.start();
     statusText.innerText = "Listening...";
-    recordBtn.classList.add("recording-pulse"); // Add a CSS animation class if you have one
+    recordBtn.classList.add("recording-pulse");
 
     mediaRecorder.ondataavailable = event => {
       audioChunks.push(event.data);
@@ -56,10 +88,9 @@ recordBtn.addEventListener("click", async () => {
     }, 5000);
 
     mediaRecorder.onstop = async () => {
-      // Create blob from chunks
+
       const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
 
-      // Prepare data for Backend
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
       formData.append("language", selectedLanguage);
@@ -75,11 +106,11 @@ recordBtn.addEventListener("click", async () => {
         const responseAudio = await response.blob();
         const audioUrl = URL.createObjectURL(responseAudio);
 
-        // Play the response
         audioPlayer.src = audioUrl;
         audioPlayer.play(); 
 
         statusText.innerText = "Response received ✨";
+
       } catch (err) {
         console.error("Fetch error:", err);
         statusText.innerText = "Error: Could not reach server";
