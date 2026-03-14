@@ -396,23 +396,21 @@ async def get_all_doctors():
 
 @app.post("/login")
 def login(phone: str = Form(...), password: str = Form(...)):
-    db = SessionLocal()
-    patient = db.query(Patient).filter(Patient.phone == phone).first()
+    conn = get_db_connection()
+    patient = conn.execute("SELECT * FROM patients WHERE phone=?", (phone,)).fetchone()
+    conn.close()
 
     if not patient:
-        db.close()
         return {"status": "not_found"}
 
-    if not verify_password(password, patient.password_hash):
-        db.close()
+    if not patient["password_hash"] or not verify_password(password, patient["password_hash"]):
         return {"status": "invalid_password"}
 
-    db.close()
     return {
         "status": "success",
         "patient": {
-            "id": patient.patient_id,
-            "preferred_language": patient.preferred_language
+            "id": patient["patient_id"],
+            "preferred_language": patient["preferred_language"] or "en"
         }
     }
 
@@ -426,27 +424,19 @@ def register_patient(
     language: str = Form("en")
 ):
     try:
-        db = SessionLocal()
-
-        existing = db.query(Patient).filter(Patient.phone == phone).first()
+        conn = get_db_connection()
+        existing = conn.execute("SELECT * FROM patients WHERE phone=?", (phone,)).fetchone()
         if existing:
-            db.close()
+            conn.close()
             return {"error": "Patient already exists"}
 
-        patient = Patient(
-            name=name,
-            age=age,
-            gender=gender,
-            phone=phone,
-            preferred_language=language,
-            password_hash=hash_password(password)
-        )
+        conn.execute("""
+            INSERT INTO patients (name, age, gender, phone, preferred_language, password_hash)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (name, age, gender, phone, language, hash_password(password)))
 
-        db.add(patient)
-        db.commit()
-        db.refresh(patient)
-        db.close()
-
+        conn.commit()
+        conn.close()
         return {"status": "created"}
 
     except Exception as e:
