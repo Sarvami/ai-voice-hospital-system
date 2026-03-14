@@ -41,14 +41,16 @@ class Doctor(Base):
 
 class Patient(Base):
     __tablename__ = "patients"
-    
-    id = Column(Integer, primary_key=True, index=True)
+
+    patient_id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     age = Column(Integer)
     gender = Column(String)
-    phone = Column(String)
+    phone = Column(String, unique=True, index=True)
     preferred_language = Column(String, default="en")
+    password_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
     appointments = relationship("Appointment", back_populates="patient")
     
     def __repr__(self):
@@ -58,7 +60,7 @@ class Appointment(Base):
     __tablename__ = "appointments"
     
     id = Column(Integer, primary_key=True, index=True)
-    patient_id = Column(Integer, ForeignKey("patients.id"))
+    patient_id = Column(Integer, ForeignKey("patients.patient_id"))
     doctor_id = Column(Integer, ForeignKey("doctors.id"))
     appointment_date = Column(String, nullable=False)
     appointment_time = Column(String, nullable=False)
