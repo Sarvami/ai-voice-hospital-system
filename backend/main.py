@@ -219,23 +219,20 @@ def generate_reply(text, user_id="user1", lang="en"):
 
     # IDLE — waiting for user to say "appointment"
     if state == "idle":
-        if "appointment" in text or "book" in text:
-            user_state[user_id] = "waiting_name"
-            return "May I have your name?"
-        return "Say 'book appointment' to get started."
-
-    if state == "waiting_name":
-        user_data[user_id]["name"] = text.title()
-        user_state[user_id] = "waiting_phone"
-        return "Your phone number?"
-
-    if state == "waiting_phone":
-        phone = re.sub(r"\D", "", text)
-        if len(phone) < 10:
-            return "Please say a valid 10-digit phone number."
-        user_data[user_id]["phone"] = phone[:10]
+     if "appointment" in text or "book" in text:
+        conn = get_db_connection()
+        patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
+        conn.close()
+        if patient:
+            user_data[user_id]["name"] = patient["name"]
+            user_data[user_id]["phone"] = patient["phone"]
+            user_data[user_id]["patient_id"] = patient["patient_id"]
         user_state[user_id] = "waiting_problem"
         return "What problem are you facing?"
+    else:
+        return "Say 'book appointment' to get started."
+
+    
 
     if state == "waiting_problem":
         matched_dept = None
