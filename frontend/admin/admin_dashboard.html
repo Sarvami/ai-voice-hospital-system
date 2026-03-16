@@ -1,52 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="admin.css">
+<title>Patient Dashboard</title>
+<link rel="stylesheet" href="admin.css">
 </head>
+
 <body>
 
-<div class="dashboard">
-  <h1>Admin Dashboard</h1>
+<nav class="navbar">
 
-  <div class="cards">
-    <div class="card yellow">
-      <h3>Total Doctors</h3>
-      <p id="doctorCount">12</p>
-    </div>
+<div class="logo">AI Voice Hospital</div>
 
-    <div class="card yellow">
-      <h3>Total Patients</h3>
-      <p id="patientCount">58</p>
-    </div>
+<div class="nav-right">
+<button onclick="location.href='../indexx.html'">Home</button>
+<button onclick="logout()">Logout</button>
+</div>
 
-    <div class="card yellow">
-      <h3>Appointments</h3>
-      <p id="appointmentCount">34</p>
-    </div>
+</nav>
 
-    <div class="card yellow">
-      <h3>Today</h3>
-      <p>8 Appointments</p>
-    </div>
-  </div>
+<div class="container">
 
-  <div class="section">
-    <h2>Appointments</h2>
-    <table>
-      <tr>
-        <th>Doctor</th>
-        <th>Patient</th>
-        <th>Date</th>
-        <th>Time</th>
-        <th>Status</th>
-      </tr>
-      <!-- filled from JS -->
-    </table>
-  </div>
+<h1>Patient Dashboard</h1>
+
+<div class="cards">
+
+<div class="card">
+<h3>Your Doctors</h3>
+<p id="doctorCount">0</p>
+</div>
+
+<div class="card">
+<h3>Appointments</h3>
+<p id="appointmentCount">0</p>
+</div>
+
+<div class="card">
+<h3>Reports</h3>
+<p id="reportCount">0</p>
+</div>
+
+</div>
+
+
+<div class="section">
+
+<h2>Appointments</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>Doctor</th>
+<th>Date</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody id="appointments"></tbody>
+
+</table>
+
+</div>
 
 </div>
 
 <script src="admin.js"></script>
+
 </body>
 </html>
