@@ -94,7 +94,10 @@ problem_map = {
     "pain": "general",
     "ache": "general",
     "ear pain": "ent",
-    "tooth pain": "dentist"
+    "tooth pain": "dentist",
+    "checkup": "general",       
+    "regular": "general",       
+    "routine": "general",
 }
 
 # ------------------ DATABASE FUNCTIONS ------------------
@@ -210,9 +213,7 @@ def fuzzy_match(text, keywords):
 def generate_reply(text, user_id="user1", lang="en"):
     text = text.lower().strip()
 
-    # FIX 2: State machine now starts at "idle" so the full flow triggers correctly
     if user_id not in user_state:
-    # fetch patient info on first interaction
      conn = get_db_connection()
      patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
      conn.close()
@@ -221,9 +222,18 @@ def generate_reply(text, user_id="user1", lang="en"):
         user_data[user_id]["name"] = patient["name"]
         user_data[user_id]["phone"] = patient["phone"]
         user_data[user_id]["patient_id"] = patient["patient_id"]
-     user_state[user_id] = "waiting_problem"
+    user_state[user_id] = "idle"
 
-    state = user_state[user_id]      
+    state = user_state[user_id]   # ← must come BEFORE the if state checks
+
+    if state == "idle":
+     if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
+        user_state[user_id] = "waiting_problem"
+        return "What problem are you facing? You can also say regular checkup."
+    else:
+        return "Say 'book appointment' to get started."
+
+         
 
     if state == "waiting_problem":
         matched_dept = None

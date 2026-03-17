@@ -250,6 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (audioPlayer) {
               audioPlayer.src = url;
+              audioPlayer.load();
               audioPlayer.play();
             }
 
