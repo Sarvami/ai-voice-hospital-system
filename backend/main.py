@@ -214,26 +214,24 @@ def generate_reply(text, user_id="user1", lang="en"):
     text = text.lower().strip()
 
     if user_id not in user_state:
-     conn = get_db_connection()
-     patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
-     conn.close()
-     user_data[user_id] = {}
-     if patient:
-        user_data[user_id]["name"] = patient["name"]
-        user_data[user_id]["phone"] = patient["phone"]
-        user_data[user_id]["patient_id"] = patient["patient_id"]
-    user_state[user_id] = "idle"
+        conn = get_db_connection()
+        patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
+        conn.close()
+        user_data[user_id] = {}
+        if patient:
+            user_data[user_id]["name"] = patient["name"]
+            user_data[user_id]["phone"] = patient["phone"]
+            user_data[user_id]["patient_id"] = patient["patient_id"]
+        user_state[user_id] = "idle"  # ← inside the if block now
 
-    state = user_state[user_id]   # ← must come BEFORE the if state checks
+    state = user_state[user_id]
 
     if state == "idle":
-     if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
-        user_state[user_id] = "waiting_problem"
-        return "What problem are you facing? You can also say regular checkup."
-    else:
-        return "Say 'book appointment' to get started."
-
-         
+        if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
+            user_state[user_id] = "waiting_problem"
+            return "What problem are you facing? You can also say regular checkup."
+        else:
+            return "Say 'book appointment' to get started."
 
     if state == "waiting_problem":
         matched_dept = None
@@ -299,7 +297,7 @@ def generate_reply(text, user_id="user1", lang="en"):
             patient = get_or_create_patient(d["name"], d["phone"], lang)
 
             aid = create_appointment(
-                patient["id"],
+                patient["patient_id"],
                 d["doctor_id"],
                 d["date"],
                 d["time"],
@@ -336,7 +334,11 @@ async def process_audio(
     try:
         original = speech_to_text(path)
         english = gt_to_english(original)
+        print(f"ORIGINAL: {original}")
+        print(f"TRANSLATED: {english}")
+        print(f"USER STATE: {user_state.get(str(patient_id), 'NOT FOUND')}")
         reply = generate_reply(english, user_id=str(patient_id), lang=lang)
+        print(f"REPLY: {reply}")
         final = gt_from_english(reply, lang)
 
     except TimeoutError:
