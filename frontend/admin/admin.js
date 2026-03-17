@@ -9,10 +9,8 @@ return r.json();
 
 
 async function loadAppointments(){
-
-const data = await fetchJSON(`${API}/admin/appointments`);
-
-const table = document.getElementById("appointments");
+    const patientId = localStorage.getItem("patient_id");
+    const data = await fetchJSON(`${API}/admin/appointments?patient_id=${patientId}`);
 
 table.innerHTML="";
 

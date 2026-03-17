@@ -430,3 +430,30 @@ def register_patient(
     except Exception as e:
         print("REGISTER ERROR:", e)
         return {"error": str(e)}
+    
+@app.get("/admin/appointments")
+def get_admin_appointments(patient_id: int = None):
+    conn = get_db_connection()
+    if patient_id:
+        rows = conn.execute("""
+            SELECT a.appointment_id, p.name AS patient,
+                   d.name AS doctor, a.appointment_date AS date,
+                   a.appointment_time AS time, a.status, a.reason
+            FROM appointments a
+            JOIN patients p ON a.patient_id = p.patient_id
+            JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.patient_id = ?
+            ORDER BY a.appointment_date DESC
+        """, (patient_id,)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT a.appointment_id, p.name AS patient,
+                   d.name AS doctor, a.appointment_date AS date,
+                   a.appointment_time AS time, a.status, a.reason
+            FROM appointments a
+            JOIN patients p ON a.patient_id = p.patient_id
+            JOIN doctors d ON a.doctor_id = d.doctor_id
+            ORDER BY a.appointment_date DESC
+        """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
