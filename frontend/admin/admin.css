@@ -1,63 +1,142 @@
 body{
-font-family:Segoe UI;
 margin:0;
-background:#0f172a;
+font-family:Segoe UI;
+background:linear-gradient(135deg,#071a3d,#0b2a66,#061a3a);
 color:white;
 }
 
-.navbar{
+/* layout */
+
+.dashboard{
 display:flex;
-justify-content:space-between;
-padding:15px 30px;
-background:#111827;
-border-bottom:1px solid rgba(255,255,255,0.1);
+height:100vh;
 }
 
-.navbar button{
-background:linear-gradient(135deg,#4facfe,#6c63ff);
-border:none;
-color:white;
-padding:8px 16px;
+/* sidebar */
+
+.sidebar{
+width:230px;
+background:rgba(0,0,0,0.25);
+padding:25px;
+backdrop-filter:blur(10px);
+}
+
+.logo{
+margin-bottom:30px;
+}
+
+.sidebar ul{
+list-style:none;
+padding:0;
+}
+
+.sidebar li{
+padding:12px;
+margin-bottom:10px;
 border-radius:6px;
 cursor:pointer;
+transition:0.3s;
 }
 
-.container{
+.sidebar li:hover{
+background:rgba(255,255,255,0.15);
+}
+
+.sidebar i{
+margin-right:10px;
+}
+
+/* main */
+
+.main{
+flex:1;
 padding:40px;
 }
 
-.cards{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:20px;
+/* sections */
+
+.hidden{
+display:none;
+}
+
+/* stat cards */
+
+.stats{
+display:flex;
+gap:25px;
 margin-bottom:40px;
 }
 
-.card{
-background:#1f2937;
-padding:20px;
-border-radius:10px;
+.statCard{
+background:rgba(255,255,255,0.08);
+padding:25px;
+border-radius:12px;
+width:220px;
 text-align:center;
+box-shadow:0 0 20px rgba(0,0,0,0.4);
 }
 
-.card p{
+.statCard p{
 font-size:28px;
 margin-top:10px;
 }
 
-.section{
-background:#1f2937;
-padding:20px;
-border-radius:10px;
-margin-top:20px;
+/* cards */
+
+.card{
+background:rgba(255,255,255,0.08);
+padding:25px;
+border-radius:12px;
+width:350px;
+box-shadow:0 0 20px rgba(0,0,0,0.4);
 }
+
+.card input,
+.card select{
+width:100%;
+padding:8px;
+margin:8px 0;
+border:none;
+border-radius:6px;
+}
+
+.card button{
+margin-top:10px;
+padding:10px;
+border:none;
+border-radius:8px;
+background:linear-gradient(135deg,#4facfe,#6c63ff);
+color:white;
+cursor:pointer;
+}
+
+/* table */
 
 table{
 width:100%;
 border-collapse:collapse;
 }
 
-th,td{
+th{
+background:#0f3d8c;
 padding:12px;
-border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+td{
+background:#082a63;
+padding:12px;
+text-align:center;
+}
+
+tr:hover td{
+background:#104a9c;
+}
+
+/* stars */
+
+.stars{
+font-size:26px;
+color:gold;
+margin:15px 0;
+cursor:pointer;
 }

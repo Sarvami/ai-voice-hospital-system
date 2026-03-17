@@ -1,70 +1,86 @@
 const API = "http://127.0.0.1:8000";
 
-const params = new URLSearchParams(window.location.search);
-const doctor_id = params.get("doctor_id");
+/* ================= LOAD DOCTORS ================= */
 
+async function loadDoctors(){
 
-async function fetchJSON(url, opts={}){
-const r = await fetch(url,opts);
-return r.json();
-}
+try{
 
+const res = await fetch(`${API}/doctors`);
+const data = await res.json();
 
-async function loadAppointments(){
+const table = document.getElementById("doctorTable");
 
-const data = await fetchJSON(`${API}/doctor/${doctor_id}/appointments`);
+table.innerHTML = ""; // clear table
 
-const table = document.getElementById("appointments");
-table.innerHTML="";
-
-data.forEach(a=>{
+data.forEach(doc => {
 
 table.innerHTML += `
 <tr>
-<td>${a.patient_name}</td>
-<td>${a.time}</td>
-<td>${a.reason}</td>
+<td>${doc.name}</td>
+<td>${doc.appointments}</td>
+<td>${doc.patients}</td>
+<td>
+<div class="stars" onclick="rateDoctor(this)">
+<i class="fa fa-star"></i>
+<i class="fa fa-star"></i>
+<i class="fa fa-star"></i>
+<i class="fa fa-star"></i>
+<i class="fa fa-star"></i>
+</div>
+</td>
 </tr>
 `;
 
 });
 
-document.getElementById("todayAppointments").innerText=data.length;
+}catch(err){
+console.error("Error loading doctors:", err);
+}
 
 }
 
+/* ================= RATING ================= */
 
-async function loadPatients(){
+function rateDoctor(container){
 
-const data = await fetchJSON(`${API}/doctor/${doctor_id}/patients`);
+const stars = container.querySelectorAll("i");
 
-const table = document.getElementById("patients");
-table.innerHTML="";
+stars.forEach((star,index)=>{
 
-data.forEach(p=>{
+star.onclick = () => {
 
-table.innerHTML += `
-<tr>
-<td>${p.name}</td>
-<td>${p.age}</td>
-<td>${p.condition}</td>
-</tr>
-`;
+stars.forEach(s => s.style.color = "gray");
+
+for(let i=0;i<=index;i++){
+stars[i].style.color = "gold";
+}
+
+};
 
 });
 
-document.getElementById("totalPatients").innerText=data.length;
+}
+
+/* ================= SECTION SWITCH ================= */
+
+function showSection(section){
+
+document.querySelectorAll(".section").forEach(sec=>{
+sec.classList.add("hidden");
+});
+
+document.getElementById(section).classList.remove("hidden");
 
 }
 
+/* ================= LOGOUT ================= */
 
 function logout(){
-
 localStorage.clear();
 window.location.href="../login.html";
-
 }
 
+/* ================= INIT ================= */
 
-loadAppointments();
-loadPatients();
+loadDoctors();
