@@ -94,7 +94,10 @@ problem_map = {
     "pain": "general",
     "ache": "general",
     "ear pain": "ent",
-    "tooth pain": "dentist"
+    "tooth pain": "dentist",
+    "checkup": "general",       
+    "regular": "general",       
+    "routine": "general",
 }
 
 # ------------------ DATABASE FUNCTIONS ------------------
@@ -210,20 +213,25 @@ def fuzzy_match(text, keywords):
 def generate_reply(text, user_id="user1", lang="en"):
     text = text.lower().strip()
 
-    # FIX 2: State machine now starts at "idle" so the full flow triggers correctly
     if user_id not in user_state:
-    # fetch patient info on first interaction
-     conn = get_db_connection()
-     patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
-     conn.close()
-     user_data[user_id] = {}
-     if patient:
-        user_data[user_id]["name"] = patient["name"]
-        user_data[user_id]["phone"] = patient["phone"]
-        user_data[user_id]["patient_id"] = patient["patient_id"]
-     user_state[user_id] = "waiting_problem"
+        conn = get_db_connection()
+        patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
+        conn.close()
+        user_data[user_id] = {}
+        if patient:
+            user_data[user_id]["name"] = patient["name"]
+            user_data[user_id]["phone"] = patient["phone"]
+            user_data[user_id]["patient_id"] = patient["patient_id"]
+        user_state[user_id] = "idle"  # ← inside the if block now
 
-    state = user_state[user_id]      
+    state = user_state[user_id]
+
+    if state == "idle":
+        if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
+            user_state[user_id] = "waiting_problem"
+            return "What problem are you facing? You can also say regular checkup."
+        else:
+            return "Say 'book appointment' to get started."
 
     if state == "waiting_problem":
         matched_dept = None
@@ -289,7 +297,7 @@ def generate_reply(text, user_id="user1", lang="en"):
             patient = get_or_create_patient(d["name"], d["phone"], lang)
 
             aid = create_appointment(
-                patient["id"],
+                patient["patient_id"],
                 d["doctor_id"],
                 d["date"],
                 d["time"],
@@ -326,7 +334,11 @@ async def process_audio(
     try:
         original = speech_to_text(path)
         english = gt_to_english(original)
+        print(f"ORIGINAL: {original}")
+        print(f"TRANSLATED: {english}")
+        print(f"USER STATE: {user_state.get(str(patient_id), 'NOT FOUND')}")
         reply = generate_reply(english, user_id=str(patient_id), lang=lang)
+        print(f"REPLY: {reply}")
         final = gt_from_english(reply, lang)
 
     except TimeoutError:
@@ -430,3 +442,30 @@ def register_patient(
     except Exception as e:
         print("REGISTER ERROR:", e)
         return {"error": str(e)}
+    
+@app.get("/admin/appointments")
+def get_admin_appointments(patient_id: int = None):
+    conn = get_db_connection()
+    if patient_id:
+        rows = conn.execute("""
+            SELECT a.appointment_id, p.name AS patient,
+                   d.name AS doctor, a.appointment_date AS date,
+                   a.appointment_time AS time, a.status, a.reason
+            FROM appointments a
+            JOIN patients p ON a.patient_id = p.patient_id
+            JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.patient_id = ?
+            ORDER BY a.appointment_date DESC
+        """, (patient_id,)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT a.appointment_id, p.name AS patient,
+                   d.name AS doctor, a.appointment_date AS date,
+                   a.appointment_time AS time, a.status, a.reason
+            FROM appointments a
+            JOIN patients p ON a.patient_id = p.patient_id
+            JOIN doctors d ON a.doctor_id = d.doctor_id
+            ORDER BY a.appointment_date DESC
+        """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
