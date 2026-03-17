@@ -1,69 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <title>Doctor Dashboard</title>
+
 <link rel="stylesheet" href="doctor.css">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 </head>
 
 <body>
 
-<nav class="navbar">
-<div class="logo">AI Voice Hospital</div>
+<div class="dashboard">
 
-<div class="nav-right">
-<button onclick="location.href='../indexx.html'">Home</button>
-<button onclick="logout()">Logout</button>
-</div>
-</nav>
+<!-- SIDEBAR -->
 
-<div class="container">
+<div class="sidebar">
 
-<h1>Doctor Dashboard</h1>
+<h2 class="logo">
+<i class="fa fa-microphone"></i> AI Voice Hospital
+</h2>
 
-<div class="cards">
+<ul>
 
-<div class="card">
-<h3>Appointments Today</h3>
-<p id="todayAppointments">0</p>
-</div>
+<li class="active">
+<i class="fa fa-home"></i> Dashboard
+</li>
 
-<div class="card">
-<h3>Total Patients</h3>
-<p id="totalPatients">0</p>
-</div>
+<li onclick="showSection('records')">
+<i class="fa fa-file"></i> View Records
+</li>
 
-<div class="card">
-<h3>Prescriptions</h3>
-<p id="prescriptionCount">0</p>
-</div>
+<li onclick="logout()">
+<i class="fa fa-sign-out"></i> Logout
+</li>
+
+</ul>
 
 </div>
 
+<!-- MAIN AREA -->
 
-<div class="section">
+<div class="main">
 
-<h2>Appointments</h2>
+<div id="dashboard" class="section">
 
-<table>
+<h1>Doctor Statistics</h1>
+
+<table class="stats">
 
 <thead>
 <tr>
-<th>Patient</th>
-<th>Time</th>
-<th>Reason</th>
+<th>Doctor Name</th>
+<th>Appointments Today</th>
+<th>Total Patients</th>
+<th>Give Rating</th>
 </tr>
 </thead>
 
-<tbody id="appointments"></tbody>
+<tbody id="doctorTable">
+<!-- DATA WILL COME FROM BACKEND -->
+</tbody>
 
 </table>
 
 </div>
 
+<!-- VIEW RECORDS -->
 
-<div class="section">
+<div id="records" class="section hidden">
 
-<h2>Patients</h2>
+<div class="card">
+
+<h3>View Records</h3>
 
 <table>
 
@@ -75,9 +86,14 @@
 </tr>
 </thead>
 
-<tbody id="patients"></tbody>
+<tbody id="recordsTable">
+</tbody>
 
 </table>
+
+</div>
+
+</div>
 
 </div>
 

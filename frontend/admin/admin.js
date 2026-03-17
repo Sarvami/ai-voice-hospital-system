@@ -1,45 +1,40 @@
-const API="http://127.0.0.1:8000";
 
-async function fetchJSON(url,opts={}){
+function showSection(section){
 
-const r = await fetch(url,opts);
-return r.json();
+const sections=document.querySelectorAll(".section")
 
-}
+sections.forEach(sec=>{
+sec.classList.add("hidden")
+})
 
-
-async function loadAppointments(){
-
-const data = await fetchJSON(`${API}/admin/appointments`);
-
-const table = document.getElementById("appointments");
-
-table.innerHTML="";
-
-data.forEach(a=>{
-
-table.innerHTML+=`
-
-<tr>
-<td>${a.doctor}</td>
-<td>${a.date}</td>
-<td>${a.time}</td>
-</tr>
-
-`;
-
-});
-
-document.getElementById("appointmentCount").innerText=data.length;
+document.getElementById(section).classList.remove("hidden")
 
 }
 
+/* logout */
 
 function logout(){
 
-localStorage.clear();
-window.location.href="../login.html";
+localStorage.clear()
+
+window.location.href="../login.html"
 
 }
 
-loadAppointments();
+/* star rating */
+
+const stars=document.querySelectorAll(".stars i")
+
+stars.forEach((star,index)=>{
+
+star.addEventListener("click",()=>{
+
+stars.forEach(s=>s.style.color="gray")
+
+for(let i=0;i<=index;i++){
+stars[i].style.color="gold"
+}
+
+})
+
+})
