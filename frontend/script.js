@@ -5,17 +5,13 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ================= PROFILE SECTION ================= */
 
   const nameEl = document.getElementById("name");
-  const phoneEl = document.getElementById("phone");
+  const phoneEl = document.getElementById("phone-display");
   const langEl = document.getElementById("language");
 
   if (nameEl && phoneEl && langEl) {
-    const name = localStorage.getItem("name");
-    const phone = localStorage.getItem("phone");
-    const lang = localStorage.getItem("lang");
-
-    nameEl.innerText = name || "Unknown";
-    phoneEl.innerText = phone || "Not available";
-    langEl.innerText = lang || "Not set";
+    nameEl.innerText = localStorage.getItem("name") || "Unknown";
+    phoneEl.innerText = localStorage.getItem("phone") || "Not available";
+    langEl.innerText = localStorage.getItem("lang") || "Not set";
   }
 
   /* ================= LOGIN ================= */
@@ -35,32 +31,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-
         const formData = new FormData();
         formData.append("phone", phone);
         formData.append("password", password);
 
-        const res = await fetch(`${BACKEND}/login`, {
-          method: "POST",
-          body: formData
-        });
-
+        const res = await fetch(`${BACKEND}/login`, { method: "POST", body: formData });
         const data = await res.json();
 
-        if (data.status === "not_found") {
-          msg.innerText = "User not found. Register first.";
-          return;
-        }
-
-        if (data.status === "invalid_password") {
-          msg.innerText = "Incorrect password";
-          return;
-        }
-
-        if (data.status !== "success") {
-          msg.innerText = "Login failed";
-          return;
-        }
+        if (data.status === "not_found")        { msg.innerText = "User not found. Register first."; return; }
+        if (data.status === "invalid_password") { msg.innerText = "Incorrect password"; return; }
+        if (data.status !== "success")          { msg.innerText = "Login failed"; return; }
 
         localStorage.setItem("patient_id", data.patient.id);
         localStorage.setItem("lang", data.patient.preferred_language || "en");
@@ -71,7 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
         msg.innerText = "Cannot reach backend";
         console.error(err);
       }
-
     });
   }
 
@@ -82,13 +61,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (registerBtn) {
     registerBtn.addEventListener("click", async () => {
 
-      const name = document.getElementById("reg-name")?.value.trim();
-      const age = document.getElementById("reg-age")?.value.trim();
-      const gender = document.getElementById("reg-gender")?.value;
-      const phone = document.getElementById("reg-phone")?.value.trim();
+      const name     = document.getElementById("reg-name")?.value.trim();
+      const age      = document.getElementById("reg-age")?.value.trim();
+      const gender   = document.getElementById("reg-gender")?.value;
+      const phone    = document.getElementById("reg-phone")?.value.trim();
       const password = document.getElementById("reg-password")?.value.trim();
       const language = document.getElementById("reg-language")?.value;
-      const msg = document.getElementById("reg-msg");
+      const msg      = document.getElementById("reg-msg");
 
       if (!name || !age || !gender || !phone || !password) {
         msg.className = "msg error";
@@ -103,7 +82,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-
         const formData = new FormData();
         formData.append("name", name);
         formData.append("age", age);
@@ -112,11 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("password", password);
         formData.append("language", language);
 
-        const res = await fetch(`${BACKEND}/register`, {
-          method: "POST",
-          body: formData
-        });
-
+        const res = await fetch(`${BACKEND}/register`, { method: "POST", body: formData });
         const data = await res.json();
 
         if (data.error) {
@@ -134,14 +108,12 @@ document.addEventListener("DOMContentLoaded", () => {
         msg.innerText = "Cannot reach backend";
         console.error(err);
       }
-
     });
   }
 
   /* ================= LOGOUT ================= */
 
   const logoutBtn = document.getElementById("logoutBtn");
-
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       localStorage.clear();
@@ -149,11 +121,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  /* ================= DASHBOARD BUTTON ================= */
+
+  const dashboardBtn = document.getElementById("dashboardBtn");
+  if (dashboardBtn) {
+    dashboardBtn.addEventListener("click", () => {
+      window.location.href = "admin/admin_dashboard.html";
+    });
+  }
+
   /* ================= AUTH GUARD ================= */
 
   if (document.getElementById("recordBtn")) {
     const patientId = localStorage.getItem("patient_id");
-
     if (!patientId) {
       window.location.href = "login.html";
       return;
@@ -165,48 +145,37 @@ document.addEventListener("DOMContentLoaded", () => {
   let selectedLang = localStorage.getItem("lang") || "hi";
 
   document.querySelectorAll(".bubble").forEach(btn => {
-
-    if (btn.dataset.lang === selectedLang) {
-      btn.classList.add("active");
-    }
+    if (btn.dataset.lang === selectedLang) btn.classList.add("active");
 
     btn.addEventListener("click", () => {
-
       document.querySelectorAll(".bubble").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-
       selectedLang = btn.dataset.lang;
       localStorage.setItem("lang", selectedLang);
-
       const statusText = document.getElementById("status");
-      if (statusText) {
-        statusText.innerText = "Language selected ✔";
-      }
-
+      if (statusText) statusText.innerText = "Language selected ✔";
     });
-
   });
 
   /* ================= VOICE ASSISTANT ================= */
 
-  const recordBtn = document.getElementById("recordBtn");
-  const statusText = document.getElementById("status");
+  const recordBtn   = document.getElementById("recordBtn");
+  const statusText  = document.getElementById("status");
   const audioPlayer = document.getElementById("audioPlayer");
+  const playBtn     = document.getElementById("playBtn");
+  const progress    = document.getElementById("progress");
+  const timeText    = document.getElementById("time");
 
   let mediaRecorder;
   let audioChunks = [];
 
   if (recordBtn) {
-
     recordBtn.addEventListener("click", async () => {
-
       try {
-
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
-
         mediaRecorder.start();
 
         if (statusText) statusText.innerText = "Listening... 🎙️";
@@ -215,17 +184,13 @@ document.addEventListener("DOMContentLoaded", () => {
         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
         setTimeout(() => {
-
           mediaRecorder.stop();
           stream.getTracks().forEach(t => t.stop());
-
           if (statusText) statusText.innerText = "Processing...";
           recordBtn.style.background = "";
-
         }, 5000);
 
         mediaRecorder.onstop = async () => {
-
           const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
 
           const formData = new FormData();
@@ -234,11 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
           formData.append("patient_id", localStorage.getItem("patient_id"));
 
           try {
-
-            const res = await fetch(`${BACKEND}/process-audio`, {
-              method: "POST",
-              body: formData
-            });
+            const res = await fetch(`${BACKEND}/process-audio`, { method: "POST", body: formData });
 
             if (!res.ok) {
               if (statusText) statusText.innerText = "Backend error ❌";
@@ -252,56 +213,50 @@ document.addEventListener("DOMContentLoaded", () => {
               audioPlayer.src = url;
               audioPlayer.load();
               audioPlayer.play();
+              if (playBtn) playBtn.textContent = "❚❚";
             }
 
             if (statusText) statusText.innerText = "Response received ✅";
 
           } catch {
-
             if (statusText) statusText.innerText = "Cannot reach backend ❌";
-
           }
-
         };
 
       } catch {
-
         alert("Microphone permission denied!");
-
       }
+    });
+  }
 
+  /* ================= AUDIO PLAYER ================= */
+
+  if (audioPlayer && playBtn) {
+    playBtn.addEventListener("click", () => {
+      if (audioPlayer.paused) {
+        audioPlayer.play();
+        playBtn.textContent = "❚❚";
+      } else {
+        audioPlayer.pause();
+        playBtn.textContent = "▶";
+      }
     });
 
+    audioPlayer.addEventListener("timeupdate", () => {
+      if (!audioPlayer.duration) return;
+      const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+      if (progress) progress.style.width = percent + "%";
+      if (timeText) {
+        const mins = Math.floor(audioPlayer.currentTime / 60);
+        const secs = Math.floor(audioPlayer.currentTime % 60).toString().padStart(2, "0");
+        timeText.textContent = `${mins}:${secs}`;
+      }
+    });
+
+    audioPlayer.addEventListener("ended", () => {
+      playBtn.textContent = "▶";
+      if (progress) progress.style.width = "0%";
+    });
   }
 
 });
-const dashboardBtn = document.getElementById("dashboardBtn");
-
-if(dashboardBtn){
-
-dashboardBtn.addEventListener("click",()=>{
-
-const role = localStorage.getItem("role");
-
-if(role === "doctor"){
-window.location.href="doctor/doctor_dashboard.html";
-}
-else{
-window.location.href="admin/admin_dashboard.html";
-}
-
-});
-
-}
-function logout(){
-localStorage.clear();
-window.location.href="login.html";
-}
-localStorage.setItem("role",data.user.role)
-
-if(data.user.role === "doctor"){
-window.location.href="doctor/doctor_dashboard.html?doctor_id="+data.user.id
-}
-else{
-window.location.href="admin/admin_dashboard.html"
-}
