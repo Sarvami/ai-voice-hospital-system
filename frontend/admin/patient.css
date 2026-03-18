@@ -1,0 +1,136 @@
+/* ===== BODY BACKGROUND (MATCH IMAGE EXACTLY) ===== */
+
+body{
+margin:0;
+font-family:'Inter','Segoe UI',sans-serif;
+background: linear-gradient(
+    90deg,
+    #020617 0%,
+    #04112a 30%,
+    #08204a 70%,
+    #0b2a5c 100%
+);
+color:#cbd5f5;
+}
+
+/* ===== DASHBOARD LAYOUT ===== */
+
+.dashboard{
+display:flex;
+height:100vh;
+}
+
+/* ===== SIDEBAR ===== */
+
+.sidebar{
+width:240px;
+background:#020617;
+padding:25px;
+}
+
+.logo{
+color:#e2e8f0;
+font-weight:600;
+margin-bottom:30px;
+}
+
+/* SIDEBAR LIST */
+
+.sidebar ul{
+list-style:none;
+padding:0;
+}
+
+.sidebar li{
+padding:12px;
+margin-bottom:10px;
+cursor:pointer;
+color:#cbd5f5;
+transition:0.3s;
+border-radius:6px;
+}
+
+.sidebar li:hover{
+color:#38bdf8;
+background: rgba(255,255,255,0.05);
+}
+
+/* ===== MAIN AREA ===== */
+
+.main{
+flex:1;
+padding:40px;
+}
+
+/* ===== HEADINGS ===== */
+
+h1{
+color:#e2e8f0;
+font-size:32px;
+font-weight:700;
+}
+
+h2{
+color:#cbd5f5;
+}
+
+/* ===== STATS CARDS ===== */
+
+.stats{
+display:flex;
+gap:25px;
+}
+
+.statCard{
+background:#1e3a6d;
+padding:25px;
+border-radius:12px;
+width:220px;
+text-align:center;
+color:white;
+transition:0.3s;
+}
+
+.statCard:hover{
+transform:translateY(-5px);
+}
+
+/* ===== TABLE ===== */
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+border-radius:10px;
+overflow:hidden;
+}
+
+th{
+background:#1e3a6d;
+padding:14px;
+color:white;
+font-weight:600;
+}
+
+td{
+background:#0f2a5c;
+padding:12px;
+text-align:center;
+color:#cbd5f5;
+}
+
+tr:hover td{
+background:#1e3a6d;
+}
+
+/* ===== SECTIONS ===== */
+
+.section{
+margin-top:20px;
+}
+
+/* ===== HIDDEN ===== */
+
+.hidden{
+display:none;
+}
