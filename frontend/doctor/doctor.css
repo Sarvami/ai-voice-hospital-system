@@ -1,28 +1,31 @@
 body{
 margin:0;
-font-family:Segoe UI;
-background:linear-gradient(135deg,#071a3d,#0b2a66,#061a3a);
-color:white;
+font-family:'Inter', sans-serif;
+background: linear-gradient(90deg,#020617,#04112a,#08204a,#0b2a5c);
+color:#cbd5f5;
 }
 
-/* layout */
+/* HEADINGS */
+h1,h2,h3{
+font-family:'Sora', sans-serif;
+}
 
+/* LAYOUT */
 .dashboard{
 display:flex;
 height:100vh;
 }
 
-/* sidebar */
-
+/* SIDEBAR */
 .sidebar{
 width:220px;
-background:rgba(0,0,0,0.25);
+background:#020617;
 padding:20px;
-backdrop-filter:blur(10px);
 }
 
 .logo{
 margin-bottom:30px;
+color:#e2e8f0;
 }
 
 .sidebar ul{
@@ -35,147 +38,113 @@ padding:12px;
 margin-bottom:10px;
 border-radius:6px;
 cursor:pointer;
-transition:0.3s;
+color:#cbd5f5;
 }
 
 .sidebar li:hover{
-background:rgba(255,255,255,0.15);
+background:rgba(255,255,255,0.05);
+color:#38bdf8;
 }
 
-.sidebar i{
-margin-right:10px;
-}
-
-/* main */
-
+/* MAIN */
 .main{
 flex:1;
 padding:40px;
 }
 
-/* cards */
-
-.cards{
-display:flex;
-gap:25px;
-margin-bottom:40px;
-}
-
-.card{
-background:rgba(255,255,255,0.08);
-padding:20px;
-border-radius:12px;
-width:300px;
-box-shadow:0 0 20px rgba(0,0,0,0.4);
-}
-
-.card h3{
-margin-top:0;
-}
-
-.card input,
-.card select{
-width:100%;
-padding:8px;
-margin:8px 0;
-border:none;
-border-radius:6px;
-}
-
-.card button{
-margin-top:10px;
-padding:10px;
-border:none;
-border-radius:8px;
-background:linear-gradient(135deg,#4facfe,#6c63ff);
-color:white;
-cursor:pointer;
-}
-
-.card button:hover{
-opacity:0.85;
-}
-
-/* stars */
-
-.stars{
-font-size:24px;
-color:gold;
-margin:15px 0;
-}
-
-/* records table */
-
-.card table{
-width:100%;
-border-collapse:collapse;
-}
-
-.card th,
-.card td{
-padding:6px;
-text-align:center;
-}
-
-/* doctor stats */
-
-.statsTitle{
-margin-top:30px;
-}
-
+/* DOCTOR TABLE */
 .stats{
-width:100%;
+width:70%;
 border-collapse:collapse;
-margin-top:15px;
-}
-
-.stats th{
-background:#0f3d8c;
-padding:12px;
-}
-
-.stats td{
-background:#082a63;
-padding:15px;
-text-align:center;
-font-size:18px;
-}
-.section{
 margin-top:20px;
 }
 
-.hidden{
-display:none;
+.stats th{
+background:#1e3a6d;
+padding:12px;
+color:white;
 }
 
-.card{
-background:rgba(255,255,255,0.08);
-padding:25px;
-border-radius:12px;
-width:350px;
-box-shadow:0 0 15px rgba(0,0,0,0.4);
+.stats td{
+background:#0f2a5c;
+padding:15px;
+text-align:center;
 }
 
-.card input,
-.card select{
+/* ===== APPOINTMENTS (IMPROVED DESIGN) ===== */
+
+.appointments-card{
+background: linear-gradient(145deg,#1e2f5c,#243b6b);
+padding:30px;
+border-radius:16px;
+width:700px;
+box-shadow:0 15px 50px rgba(0,0,0,0.6);
+}
+
+/* TABLE */
+.appointment-table{
 width:100%;
-padding:8px;
-margin:8px 0;
+border-collapse:collapse;
+margin-top:20px;
+overflow:hidden;
+border-radius:12px;
+}
+
+/* HEADER */
+.appointment-table th{
+background:linear-gradient(135deg,#1e3a6d,#274a8a);
+padding:14px;
+color:white;
+font-size:14px;
+}
+
+/* DATA */
+.appointment-table td{
+background:rgba(255,255,255,0.05);
+padding:14px;
+text-align:center;
+transition:0.3s;
+}
+
+/* HOVER */
+.appointment-table tr:hover td{
+background:rgba(56,189,248,0.15);
+color:white;
+}
+
+/* STRIPES */
+.appointment-table tr:nth-child(even) td{
+background:rgba(255,255,255,0.03);
+}
+
+/* CARD (PRESCRIPTION) */
+.card{
+background: linear-gradient(145deg,#1e2f5c,#243b6b);
+padding:30px;
+border-radius:16px;
+width:350px;
+}
+
+.card input{
+width:100%;
+padding:12px;
+margin:10px 0;
 border:none;
-border-radius:6px;
+border-radius:10px;
+background:rgba(255,255,255,0.1);
+color:white;
 }
 
 .card button{
-margin-top:10px;
-padding:10px;
+padding:12px;
 border:none;
-border-radius:8px;
-background:linear-gradient(135deg,#4facfe,#6c63ff);
+border-radius:10px;
+background:linear-gradient(135deg,#38bdf8,#818cf8);
 color:white;
 cursor:pointer;
 }
 
-.stats{
-margin-top:10px;
-width:70%;
+/* SECTION */
+.hidden{
+display:none;
 }

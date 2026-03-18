@@ -4,6 +4,8 @@
 
 <title>Doctor Dashboard</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="doctor.css">
 
 <link rel="stylesheet"
@@ -16,7 +18,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <div class="dashboard">
 
 <!-- SIDEBAR -->
-
 <div class="sidebar">
 
 <h2 class="logo">
@@ -24,72 +25,88 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 </h2>
 
 <ul>
-
 <li class="active">
 <i class="fa fa-home"></i> Dashboard
 </li>
 
-<li onclick="showSection('records')">
-<i class="fa fa-file"></i> View Records
+<li onclick="showSection('appointments')">
+<i class="fa fa-calendar"></i> Appointments
+</li>
+
+<li onclick="showSection('prescription')">
+<i class="fa fa-file-medical"></i> Prescription
 </li>
 
 <li onclick="logout()">
 <i class="fa fa-sign-out"></i> Logout
 </li>
-
 </ul>
 
 </div>
 
-<!-- MAIN AREA -->
-
+<!-- MAIN -->
 <div class="main">
 
+<!-- DASHBOARD -->
 <div id="dashboard" class="section">
 
-<h1>Doctor Statistics</h1>
+<h1>Doctor Dashboard</h1>
 
 <table class="stats">
-
 <thead>
 <tr>
 <th>Doctor Name</th>
+<th>Specialization</th>
 <th>Appointments Today</th>
 <th>Total Patients</th>
-<th>Give Rating</th>
+<th>Rating</th>
 </tr>
 </thead>
 
-<tbody id="doctorTable">
-<!-- DATA WILL COME FROM BACKEND -->
-</tbody>
+<tbody id="doctorTable"></tbody>
 
 </table>
 
 </div>
 
-<!-- VIEW RECORDS -->
+<!-- APPOINTMENTS -->
+<div id="appointments" class="section hidden">
 
-<div id="records" class="section hidden">
+<div class="appointments-card">
 
-<div class="card">
+<h2>Appointments</h2>
 
-<h3>View Records</h3>
-
-<table>
+<table class="appointment-table">
 
 <thead>
 <tr>
-<th>Name</th>
-<th>Age</th>
-<th>Condition</th>
+<th>ID</th>
+<th>Patient</th>
+<th>Date</th>
+<th>Time</th>
 </tr>
 </thead>
 
-<tbody id="recordsTable">
-</tbody>
+<tbody id="appointmentTable"></tbody>
 
 </table>
+
+</div>
+
+</div>
+
+<!-- PRESCRIPTION -->
+<div id="prescription" class="section hidden">
+
+<div class="card">
+
+<h3>Generate Prescription</h3>
+
+<input type="text" id="pname" placeholder="Patient Name">
+<input type="text" id="medicine" placeholder="Medicine">
+<input type="text" id="dosage" placeholder="Dosage">
+
+<button onclick="savePrescription()">Generate</button>
 
 </div>
 
