@@ -12,6 +12,7 @@ import time
 import difflib
 import re
 import sqlite3
+import dateparser
 
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -296,15 +297,23 @@ def generate_reply(text, user_id="user1", lang="en"):
         return f"Okay, {chosen}. On which date would you like the appointment?"
 
     if state == "waiting_date":
-        user_data[user_id]["date"] = text
+     parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
+     if parsed:
+        user_data[user_id]["date"] = parsed.strftime("%d %B %Y")  # e.g. "21 March 2026"
         user_state[user_id] = "waiting_time"
-        return "At what time?"
+        return f"Got it, {user_data[user_id]['date']}. At what time?"
+     else:
+        return "Sorry, I didn't catch the date. Please say it again, like 'March 21st' or 'tomorrow'."
 
     if state == "waiting_time":
-        user_data[user_id]["time"] = text
+     parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
+     if parsed:
+        user_data[user_id]["time"] = parsed.strftime("%I:%M %p")  # e.g. "11:00 AM"
         user_state[user_id] = "confirming"
         d = user_data[user_id]
         return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
+    else:
+        return "Sorry, I didn't catch the time. Please say it again, like '11 AM' or '3 in the afternoon'."
 
     if state == "confirming":
         if "yes" in text or "confirm" in text or "ok" in text:
