@@ -297,13 +297,22 @@ def generate_reply(text, user_id="user1", lang="en"):
         return f"Okay, {chosen}. On which date would you like the appointment?"
 
     if state == "waiting_date":
-     parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
+     parsed = dateparser.parse(text, settings={
+        "PREFER_DATES_FROM": "future",
+        "RELATIVE_BASE": __import__("datetime").datetime.now()
+     })
+     if not parsed:
+        # try extracting just numbers and month names
+        import re
+        cleaned = re.sub(r"(i would like|an appointment on|appointment|please|book|schedule|chahungi|chahta|chahiye|mujhe|ko)", "", text).strip()
+        parsed = dateparser.parse(cleaned, settings={"PREFER_DATES_FROM": "future"})
+    
      if parsed:
-        user_data[user_id]["date"] = parsed.strftime("%d %B %Y")  # e.g. "21 March 2026"
+        user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
         user_state[user_id] = "waiting_time"
         return f"Got it, {user_data[user_id]['date']}. At what time?"
      else:
-        return "Sorry, I didn't catch the date. Please say it again, like 'March 21st' or 'tomorrow'."
+        return "Sorry, I didn't catch the date. Please say just the date, like 'March 23rd' or 'tomorrow'."
 
     if state == "waiting_time":
      parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
