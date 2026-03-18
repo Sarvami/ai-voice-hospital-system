@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const dashboardBtn = document.getElementById("dashboardBtn");
   if (dashboardBtn) {
     dashboardBtn.addEventListener("click", () => {
-      window.location.href = "admin/admin_dashboard.html";
+      window.location.href = "admin/patient_dashboard.html";
     });
   }
 
