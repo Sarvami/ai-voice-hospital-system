@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Admin Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="admin.css">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+
+<body>
+
+<div class="dashboard">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+
+<h2 class="logo">
+<i class="fa fa-microphone"></i> AI Voice Hospital
+</h2>
+
+<ul>
+<li onclick="showSection('overview')" class="active">
+<i class="fa fa-home"></i> Overview
+</li>
+
+<li onclick="showSection('patients')">
+<i class="fa fa-user"></i> Patients
+</li>
+
+<li onclick="showSection('doctors')">
+<i class="fa fa-user-md"></i> Doctors
+</li>
+
+<li onclick="showSection('appointments')">
+<i class="fa fa-calendar"></i> Appointments
+</li>
+
+<li onclick="showSection('nurses')">
+<i class="fa fa-user-nurse"></i> Assign Nurses
+</li>
+
+<li onclick="showSection('leaves')">
+<i class="fa fa-bed"></i> Staff Leaves
+</li>
+
+<li onclick="showSection('voice')">
+<i class="fa fa-microphone"></i> Voice Notes
+</li>
+
+<li onclick="logout()">
+<i class="fa fa-sign-out"></i> Logout
+</li>
+</ul>
+
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<h1>Admin Dashboard</h1>
+
+<!-- OVERVIEW -->
+<div id="overview" class="section">
+
+<div class="cards">
+
+<div class="card">
+<h3>Total Patients</h3>
+<p id="totalPatients">0</p>
+</div>
+
+<div class="card">
+<h3>Total Doctors</h3>
+<p id="totalDoctors">0</p>
+</div>
+
+<div class="card">
+<h3>Total Appointments</h3>
+<p id="totalAppointments">0</p>
+</div>
+
+</div>
+
+</div>
+
+<!-- PATIENTS -->
+<div id="patients" class="section hidden">
+<h2>Patients</h2>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Age</th>
+<th>Condition</th>
+</tr>
+</thead>
+
+<tbody id="patientsTable"></tbody>
+</table>
+
+</div>
+
+<!-- DOCTORS -->
+<div id="doctors" class="section hidden">
+<h2>Doctors</h2>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Specialization</th>
+<th>Patients</th>
+</tr>
+</thead>
+
+<tbody id="doctorsTable"></tbody>
+</table>
+
+</div>
+
+<!-- APPOINTMENTS -->
+<div id="appointments" class="section hidden">
+<h2>Appointments</h2>
+
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Patient</th>
+<th>Doctor</th>
+<th>Date</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody id="appointmentsTable"></tbody>
+</table>
+
+</div>
+
+<!-- NURSES -->
+<div id="nurses" class="section hidden">
+
+<div class="card">
+<h3>Assign Nurse</h3>
+
+<input type="text" id="doctorName" placeholder="Doctor Name">
+<input type="text" id="nurseName" placeholder="Nurse Name">
+
+<button onclick="assignNurse()">Assign</button>
+
+</div>
+
+</div>
+
+<!-- LEAVES -->
+<div id="leaves" class="section hidden">
+
+<div class="card">
+<h3>Manage Leaves</h3>
+
+<input type="text" id="staffName" placeholder="Staff Name">
+<input type="date" id="leaveDate">
+
+<button onclick="addLeave()">Add Leave</button>
+
+</div>
+
+</div>
+
+<!-- VOICE -->
+<div id="voice" class="section hidden">
+
+<h2>Voice Notes</h2>
+
+<ul id="voiceList"></ul>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="admin.js"></script>
+
+</body>
+</html>
