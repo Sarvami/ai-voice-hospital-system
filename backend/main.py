@@ -84,20 +84,20 @@ user_data = {}
 # ------------------ DATA ------------------
 
 problem_map = {
-    "chest pain": "cardiology",
-    "heart pain": "cardiology",
-    "chest": "cardiology",
-    "headache": "general",
-    "fever": "general",
-    "cold": "general",
-    "cough": "general",
-    "pain": "general",
-    "ache": "general",
-    "ear pain": "ent",
-    "tooth pain": "dentist",
-    "checkup": "general",       
-    "regular": "general",       
-    "routine": "general",
+    "chest pain": "cardiology", "heart pain": "cardiology",
+    "heart": "cardiology", "chest": "cardiology",
+    "headache": "neurology", "migraine": "neurology", "seizure": "neurology",
+    "fever": "general", "cold": "general", "cough": "general",
+    "pain": "general", "ache": "general", "checkup": "general",
+    "regular": "general", "routine": "general",
+    "ear pain": "ent", "ear": "ent", "hearing": "ent",
+    "tooth pain": "dentist", "tooth": "dentist", "teeth": "dentist", "dental": "dentist",
+    "bone": "orthopedics", "joint": "orthopedics", "knee": "orthopedics",
+    "back pain": "orthopedics", "fracture": "orthopedics",
+    "pregnancy": "gynecology", "periods": "gynecology",
+    "skin": "dermatology", "rash": "dermatology", "acne": "dermatology",
+    "child": "pediatrics", "baby": "pediatrics", "kids": "pediatrics",
+    "eye": "ophthalmology", "vision": "ophthalmology", "sight": "ophthalmology",
 }
 
 # ------------------ DATABASE FUNCTIONS ------------------
@@ -135,7 +135,7 @@ def get_or_create_patient(name, phone, language="en"):
     """, (name, 30, "Unknown", phone, language))
 
     pid = cursor.lastrowid
-    cursor.execute("SELECT * FROM patients WHERE id=?", (pid,))
+    cursor.execute("SELECT * FROM patients WHERE patient_id=?", (pid,))
     new_patient = cursor.fetchone()
 
     conn.commit()
@@ -212,6 +212,22 @@ def fuzzy_match(text, keywords):
 
 def generate_reply(text, user_id="user1", lang="en"):
     text = text.lower().strip()
+    if "department" in text and ("which" in text or "what" in text or "belong" in text):
+     for doc in ["mehta", "sharma", "rao", "shah",
+                "desai", "gupta", "iyer", "malhotra",
+                "bose", "chandra", "murthy", "menon",
+                "sinha", "pandey", "hegde", "reddy"]:
+        if doc in text:
+            conn = get_db_connection()
+            result = conn.execute(
+                "SELECT name, department FROM doctors WHERE LOWER(name) LIKE ?",
+                (f"%{doc}%",)
+            ).fetchone()
+            conn.close()
+            if result:
+                return f"{result['name']} belongs to the {result['department']} department."
+     return "Sorry, I couldn't find that doctor."
+
 
     if user_id not in user_state:
         conn = get_db_connection()
