@@ -8,27 +8,54 @@ s.classList.add("hidden");
 document.getElementById(section).classList.remove("hidden");
 }
 
-/* LOAD DOCTOR */
 async function loadDoctor(){
-try{
-const res = await fetch(`${API}/doctor/dashboard`);
-const data = await res.json();
+    try {
+        const doctorId = localStorage.getItem("doctor_id");
+        const res = await fetch(`${API}/doctor/dashboard?doctor_id=${doctorId}`);
+        const data = await res.json();
 
-const table = document.getElementById("doctorTable");
-
-table.innerHTML = `
-<tr>
-<td>${data.name}</td>
-<td>${data.specialization}</td>
-<td>${data.appointments_today}</td>
-<td>${data.total_patients}</td>
-<td>${renderStars(data.rating)}</td>
-</tr>
-`;
-
-}catch(e){
-console.log("No backend yet");
+        const table = document.getElementById("doctorTable");
+        table.innerHTML = `
+            <tr>
+                <td>${data.name}</td>
+                <td>${data.specialization}</td>
+                <td>${data.appointments_today}</td>
+                <td>${data.total_patients}</td>
+                <td>${renderStars(data.rating)}</td>
+            </tr>
+        `;
+    } catch(e) {
+        console.log("Error loading doctor:", e);
+    }
 }
+
+async function loadAppointments(){
+    try {
+        const doctorId = localStorage.getItem("doctor_id");
+        const res = await fetch(`${API}/doctor/appointments?doctor_id=${doctorId}`);
+        const data = await res.json();
+
+        const table = document.getElementById("appointmentTable");
+        table.innerHTML = "";
+
+        if (data.length === 0) {
+            table.innerHTML = "<tr><td colspan='4'>No appointments yet.</td></tr>";
+            return;
+        }
+
+        data.forEach(a => {
+            table.innerHTML += `
+                <tr>
+                    <td>${a.id}</td>
+                    <td>${a.patient_name}</td>
+                    <td>${a.date}</td>
+                    <td>${a.time}</td>
+                </tr>
+            `;
+        });
+    } catch(e) {
+        console.log("Error loading appointments:", e);
+    }
 }
 
 /* STARS */
@@ -38,31 +65,6 @@ for(let i=1;i<=5;i++){
 stars += `<i class="fa fa-star" style="color:${i<=rating?'gold':'gray'}"></i>`;
 }
 return stars;
-}
-
-/* LOAD APPOINTMENTS */
-async function loadAppointments(){
-try{
-const res = await fetch(`${API}/doctor/appointments`);
-const data = await res.json();
-
-const table = document.getElementById("appointmentTable");
-table.innerHTML = "";
-
-data.forEach(a=>{
-table.innerHTML += `
-<tr>
-<td>${a.id}</td>
-<td>${a.patient_name}</td>
-<td>${a.date}</td>
-<td>${a.time}</td>
-</tr>
-`;
-});
-
-}catch(e){
-console.log("No backend yet");
-}
 }
 
 /* PRESCRIPTION */
