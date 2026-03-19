@@ -376,12 +376,19 @@
       localStorage.setItem("phone", data.user.phone || phone);
       localStorage.setItem("lang",  data.user.preferred_language || "hi");
 
+     if (role === "patient") {
+     localStorage.setItem("patient_id", data.user.id);
+     }
+     if (role === "doctor") {
+     localStorage.setItem("doctor_id", data.user.id);
+     }
+
       /* Redirect based on role */
       const redirectMap = {
-        patient: "patient-dashboard.html",
-        doctor:  "doctor-dashboard.html",
-        admin:   "admin-dashboard.html",
-      };
+    patient: "indexx.html",
+    doctor:  "doctor/doctor_dashboard.html",
+    admin:   "admin/admin_dashboard.html",
+    };
 
       window.location.href = redirectMap[role];
 

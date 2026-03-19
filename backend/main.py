@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from gtts import gTTS
+from fastapi import Request
 import requests
 import uuid
 import os
@@ -429,24 +430,54 @@ async def get_all_doctors():
 # ------------------ AUTH ------------------
 
 @app.post("/login")
-def login(phone: str = Form(...), password: str = Form(...)):
+async def login(request: Request):
+    data = await request.json()
+    phone    = data.get("phone", "").strip()
+    password = data.get("password", "")
+    role     = data.get("role", "patient")
+
+    if not phone or not password:
+        return {"success": False, "message": "Missing fields"}
+
     conn = get_db_connection()
-    patient = conn.execute("SELECT * FROM patients WHERE phone=?", (phone,)).fetchone()
-    conn.close()
 
-    if not patient:
-        return {"status": "not_found"}
-
-    if not patient["password_hash"] or not verify_password(password, patient["password_hash"]):
-        return {"status": "invalid_password"}
-
-    return {
-        "status": "success",
-        "patient": {
-            "id": patient["patient_id"],
-            "preferred_language": patient["preferred_language"] or "en"
+    if role == "patient":
+        user = conn.execute("SELECT * FROM patients WHERE phone=?", (phone,)).fetchone()
+        conn.close()
+        if not user:
+            return {"success": False, "message": "User not found"}
+        if not user["password_hash"] or not verify_password(password, user["password_hash"]):
+            return {"success": False, "message": "Incorrect password"}
+        localStorage_id = "patient_id"
+        return {
+            "success": True,
+            "user": {
+                "id": user["patient_id"],
+                "name": user["name"],
+                "phone": user["phone"],
+                "preferred_language": user["preferred_language"] or "en"
+            }
         }
-    }
+
+    elif role == "doctor":
+        user = conn.execute("SELECT * FROM doctors WHERE phone=?", (phone,)).fetchone()
+        conn.close()
+        if not user:
+            return {"success": False, "message": "Doctor ID not found"}
+        if not user["password_hash"] or not verify_password(password, user["password_hash"]):
+            return {"success": False, "message": "Incorrect password"}
+        return {
+            "success": True,
+            "user": {
+                "id": user["doctor_id"],
+                "name": user["name"],
+                "phone": user["phone"],
+                "preferred_language": "en"
+            }
+        }
+
+    conn.close()
+    return {"success": False, "message": "Invalid role"}
 
 @app.post("/register")
 def register_patient(
@@ -501,5 +532,76 @@ def get_admin_appointments(patient_id: int = None):
             JOIN doctors d ON a.doctor_id = d.doctor_id
             ORDER BY a.appointment_date DESC
         """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+# ------------------ DOCTOR AUTH + DASHBOARD ------------------
+
+@app.post("/doctor/login")
+def doctor_login(phone: str = Form(...), password: str = Form(...)):
+    conn = get_db_connection()
+    doctor = conn.execute("SELECT * FROM doctors WHERE phone=?", (phone,)).fetchone()
+    conn.close()
+
+    if not doctor:
+        return {"status": "not_found"}
+
+    if not doctor["password_hash"] or not verify_password(password, doctor["password_hash"]):
+        return {"status": "invalid_password"}
+
+    return {
+        "status": "success",
+        "doctor": {
+            "id": doctor["doctor_id"],
+            "name": doctor["name"],
+            "department": doctor["department"]
+        }
+    }
+
+@app.get("/doctor/dashboard")
+def doctor_dashboard(doctor_id: int):
+    conn = get_db_connection()
+    doctor = conn.execute("SELECT * FROM doctors WHERE doctor_id=?", (doctor_id,)).fetchone()
+    if not doctor:
+        conn.close()
+        return {"error": "Doctor not found"}
+
+    from datetime import date
+    today = date.today().strftime("%Y-%m-%d")
+
+    appointments_today = conn.execute("""
+        SELECT COUNT(*) FROM appointments 
+        WHERE doctor_id=? AND appointment_date=?
+    """, (doctor_id, today)).fetchone()[0]
+
+    total_patients = conn.execute("""
+        SELECT COUNT(DISTINCT patient_id) FROM appointments WHERE doctor_id=?
+    """, (doctor_id,)).fetchone()[0]
+
+    conn.close()
+    return {
+        "name": doctor["name"],
+        "specialization": doctor["department"],
+        "appointments_today": appointments_today,
+        "total_patients": total_patients,
+        "rating": 4
+    }
+
+@app.get("/doctor/appointments")
+def doctor_appointments(doctor_id: int):
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT 
+            a.appointment_id AS id,
+            p.name AS patient_name,
+            a.appointment_date AS date,
+            a.appointment_time AS time,
+            a.status,
+            a.reason
+        FROM appointments a
+        JOIN patients p ON a.patient_id = p.patient_id
+        WHERE a.doctor_id=?
+        ORDER BY a.appointment_date DESC
+    """, (doctor_id,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
