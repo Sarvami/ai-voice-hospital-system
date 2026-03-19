@@ -19,8 +19,6 @@
       --error: #ef9a9a;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: 'Sora', sans-serif;
       background: var(--bg);
@@ -50,7 +48,7 @@
       animation: drift 10s ease-in-out infinite alternate-reverse;
       pointer-events: none;
     }
-    @keyframes drift { from { transform: translate(0,0); } to { transform: translate(40px, 40px); } }
+    @keyframes drift { from { transform: translate(0,0); } to { transform: translate(40px,40px); } }
 
     .card {
       background: var(--card);
@@ -63,7 +61,7 @@
       position: relative;
       animation: fadeUp 0.6s ease both;
     }
-    @keyframes fadeUp { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
 
     .logo {
       font-family: 'Space Mono', monospace;
@@ -96,18 +94,14 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
 
-    .role-card {
-      position: relative;
-      cursor: pointer;
-    }
+    .role-card { position: relative; cursor: pointer; }
 
     .role-card input[type="radio"] {
       position: absolute;
-      opacity: 0;
-      width: 0; height: 0;
+      opacity: 0; width: 0; height: 0;
     }
 
     .role-card-inner {
@@ -123,10 +117,7 @@
       user-select: none;
     }
 
-    .role-card-inner .icon {
-      font-size: 22px;
-      line-height: 1;
-    }
+    .role-card-inner .icon { font-size: 22px; line-height: 1; }
 
     .role-card-inner .role-name {
       font-size: 12px;
@@ -136,35 +127,24 @@
       transition: color 0.2s;
     }
 
-    /* Hover */
     .role-card:hover .role-card-inner {
       border-color: rgba(79,195,247,0.4);
       background: rgba(79,195,247,0.05);
       transform: translateY(-2px);
     }
 
-    /* Selected state per role */
-    .role-card input[value="patient"]:checked ~ .role-card-inner {
-      border-color: var(--accent);
-      background: rgba(79,195,247,0.1);
-    }
-    .role-card input[value="doctor"]:checked ~ .role-card-inner {
-      border-color: #69f0ae;
-      background: rgba(105,240,174,0.08);
-    }
-    .role-card input[value="admin"]:checked ~ .role-card-inner {
-      border-color: var(--accent2);
-      background: rgba(124,131,253,0.1);
-    }
+    .role-card input[value="patient"]:checked ~ .role-card-inner { border-color: var(--accent);  background: rgba(79,195,247,0.1); }
+    .role-card input[value="doctor"]:checked  ~ .role-card-inner { border-color: #69f0ae;        background: rgba(105,240,174,0.08); }
+    .role-card input[value="admin"]:checked   ~ .role-card-inner { border-color: var(--accent2); background: rgba(124,131,253,0.1); }
 
     .role-card input[value="patient"]:checked ~ .role-card-inner .role-name { color: var(--accent); }
-    .role-card input[value="doctor"]:checked ~ .role-card-inner .role-name { color: #69f0ae; }
-    .role-card input[value="admin"]:checked ~ .role-card-inner .role-name { color: var(--accent2); }
+    .role-card input[value="doctor"]:checked  ~ .role-card-inner .role-name { color: #69f0ae; }
+    .role-card input[value="admin"]:checked   ~ .role-card-inner .role-name { color: var(--accent2); }
 
     /* ── FIELDS ── */
     .field { margin-bottom: 20px; }
 
-    label {
+    .field label {
       display: block;
       font-size: 12px;
       letter-spacing: 1px;
@@ -173,9 +153,16 @@
       margin-bottom: 8px;
     }
 
+    .field-enter { animation: fieldIn 0.28s ease both; }
+    @keyframes fieldIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     input[type="tel"],
     input[type="password"],
-    input[type="text"] {
+    input[type="text"],
+    input[type="email"] {
       width: 100%;
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--border);
@@ -187,11 +174,15 @@
       outline: none;
       transition: border-color 0.2s, background 0.2s;
     }
-    input[type="tel"]:focus,
-    input[type="password"]:focus,
-    input[type="text"]:focus {
-      border-color: var(--accent);
-      background: rgba(79,195,247,0.05);
+
+    body.role-patient input:focus { border-color: var(--accent);  background: rgba(79,195,247,0.05); }
+    body.role-doctor  input:focus { border-color: #69f0ae;        background: rgba(105,240,174,0.05); }
+    body.role-admin   input:focus { border-color: var(--accent2); background: rgba(124,131,253,0.05); }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
     }
 
     .btn {
@@ -208,16 +199,11 @@
       margin-top: 8px;
       transition: opacity 0.2s, transform 0.1s;
     }
-    .btn:hover { opacity: 0.9; }
+    .btn:hover  { opacity: 0.9; }
     .btn:active { transform: scale(0.98); }
 
-    /* Role-tinted button */
-    body.role-doctor .btn {
-      background: linear-gradient(135deg, #69f0ae, #00bcd4);
-    }
-    body.role-admin .btn {
-      background: linear-gradient(135deg, var(--accent2), #ce93d8);
-    }
+    body.role-doctor .btn { background: linear-gradient(135deg, #69f0ae, #00bcd4); }
+    body.role-admin  .btn { background: linear-gradient(135deg, var(--accent2), #ce93d8); }
 
     .msg {
       margin-top: 14px;
@@ -233,14 +219,9 @@
       font-size: 13px;
       color: var(--muted);
     }
-    .register-link a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 600;
-    }
+    .register-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
     .register-link a:hover { text-decoration: underline; }
 
-    /* ── BADGE shown after role select ── */
     .role-badge {
       display: inline-block;
       font-size: 11px;
@@ -255,12 +236,12 @@
       transition: opacity 0.3s;
     }
     .role-badge.visible { opacity: 1; }
-    .role-badge.patient { background: rgba(79,195,247,0.15); color: var(--accent); }
+    .role-badge.patient { background: rgba(79,195,247,0.15);  color: var(--accent); }
     .role-badge.doctor  { background: rgba(105,240,174,0.15); color: #69f0ae; }
     .role-badge.admin   { background: rgba(124,131,253,0.15); color: var(--accent2); }
   </style>
 </head>
-<body>
+<body class="role-patient">
 
 <div class="card">
   <div class="logo">AI Voice Hospital</div>
@@ -296,70 +277,102 @@
 
   </div>
 
-  <!-- FIELDS -->
-  <div class="field">
-    <label>Phone Number</label>
-    <input id="phone" type="tel" placeholder="Enter your phone number">
-  </div>
+  <!-- DYNAMIC FIELDS injected by JS -->
+  <div id="dynamicFields"></div>
 
-  <div class="field">
-    <label>Password</label>
-    <input id="password" type="password" placeholder="Enter your password">
-  </div>
-
-  <button class="btn" id="loginBtn" onclick="login()">Login</button>
+  <button class="btn" onclick="login()">Login</button>
   <p class="msg" id="msg"></p>
 
-  <div class="register-link">
+  <div class="register-link" id="registerLink">
     New patient? <a href="register.html">Create an account</a>
   </div>
 </div>
 
-
 <script>
-  /* ── Role badge + body class update ── */
-  const radios = document.querySelectorAll('input[name="role"]');
-  const badge  = document.getElementById('roleBadge');
+  const badge        = document.getElementById('roleBadge');
+  const fieldsWrap   = document.getElementById('dynamicFields');
+  const registerLink = document.getElementById('registerLink');
 
+  /* ── Per-role field config ── */
   const roleConfig = {
-    patient: { label: 'Patient',  cls: 'patient', bodyCls: 'role-patient' },
-    doctor:  { label: 'Doctor',   cls: 'doctor',  bodyCls: 'role-doctor'  },
-    admin:   { label: 'Admin',    cls: 'admin',   bodyCls: 'role-admin'   },
+    patient: {
+      label: 'Patient', cls: 'patient', bodyCls: 'role-patient',
+      showRegister: true,
+      fields: [
+        { id: 'identifier', type: 'tel',      label: 'Phone Number', placeholder: 'Enter your phone number', hint: '' },
+        { id: 'password',   type: 'password', label: 'Password',     placeholder: 'Enter your password',     hint: '' },
+      ],
+    },
+    doctor: {
+      label: 'Doctor', cls: 'doctor', bodyCls: 'role-doctor',
+      showRegister: false,
+      fields: [
+        { id: 'identifier', type: 'text',     label: 'Doctor ID', placeholder: 'e.g. DOC-2024-001', hint: 'Your hospital-issued doctor ID' },
+        { id: 'password',   type: 'password', label: 'Password',  placeholder: 'Enter your password', hint: '' },
+      ],
+    },
+    admin: {
+      label: 'Admin', cls: 'admin', bodyCls: 'role-admin',
+      showRegister: false,
+      fields: [
+        { id: 'identifier', type: 'email',    label: 'Admin Email', placeholder: 'admin@hospital.gov.in', hint: '' },
+        { id: 'password',   type: 'password', label: 'Password',    placeholder: 'Enter your password',   hint: '' },
+      ],
+    },
   };
 
-  function updateRole(val) {
-    const cfg = roleConfig[val];
+  function renderFields(role) {
+    const cfg = roleConfig[role];
+
     badge.textContent = cfg.label;
-    badge.className = 'role-badge visible ' + cfg.cls;
+    badge.className   = `role-badge visible ${cfg.cls}`;
     document.body.className = cfg.bodyCls;
+    registerLink.style.display = cfg.showRegister ? 'block' : 'none';
+
+    fieldsWrap.innerHTML = '';
+    cfg.fields.forEach((f, i) => {
+      const div = document.createElement('div');
+      div.className = 'field field-enter';
+      div.style.animationDelay = `${i * 0.07}s`;
+      div.innerHTML = `
+        <label for="${f.id}">${f.label}</label>
+        <input id="${f.id}" type="${f.type}" placeholder="${f.placeholder}" autocomplete="off">
+        ${f.hint ? `<p class="field-hint">${f.hint}</p>` : ''}
+      `;
+      fieldsWrap.appendChild(div);
+    });
   }
 
-  // Set default on load
-  updateRole('patient');
+  renderFields('patient');
 
-  radios.forEach(r => {
-    r.addEventListener('change', () => updateRole(r.value));
+  document.querySelectorAll('input[name="role"]').forEach(r => {
+    r.addEventListener('change', () => renderFields(r.value));
   });
 
-  /* ── Login function ── */
+  /* ── LOGIN ── */
   async function login() {
-    const role     = document.querySelector('input[name="role"]:checked').value;
-    const phone    = document.getElementById('phone').value.trim();
-    const password = document.getElementById('password').value;
-    const msgEl    = document.getElementById('msg');
+    const role       = document.querySelector('input[name="role"]:checked').value;
+    const identifier = document.getElementById('identifier')?.value.trim();
+    const password   = document.getElementById('password')?.value;
+    const msgEl      = document.getElementById('msg');
 
     msgEl.textContent = '';
 
-    if (!phone || !password) {
+    if (!identifier || !password) {
       msgEl.textContent = 'Please fill in all fields.';
       return;
     }
 
+    /* Key sent to backend differs per role */
+    const payloadKey = { patient: 'phone', doctor: 'doctor_id', admin: 'email' }[role];
+
+    const payload = { role, password, [payloadKey]: identifier };
+
     try {
-      const res = await fetch("http://127.0.0.1:8000/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password, role })
+      const res  = await fetch('http://127.0.0.1:8000/login', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -369,20 +382,19 @@
         return;
       }
 
-      /* Store user data */
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("role", role);
-      localStorage.setItem("name",  data.user.name  || "User");
-      localStorage.setItem("phone", data.user.phone || phone);
-      localStorage.setItem("lang",  data.user.preferred_language || "hi");
+      /* Store session */
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('role', role);
+      localStorage.setItem('name',  data.user.name  || 'User');
+      localStorage.setItem('phone', data.user.phone || '');
+      localStorage.setItem('lang',  data.user.preferred_language || 'hi');
 
-      /* Redirect based on role */
+      /* Redirect to correct dashboard */
       const redirectMap = {
-        patient: "patient-dashboard.html",
-        doctor:  "doctor-dashboard.html",
-        admin:   "admin-dashboard.html",
+        patient: 'patient/patient_dashboard.html',
+        doctor:  'doctor/doctor_dashboard.html',
+        admin:   'admin/admin_dashboard.html',
       };
-
       window.location.href = redirectMap[role];
 
     } catch (err) {

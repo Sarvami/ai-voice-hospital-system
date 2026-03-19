@@ -17,7 +17,7 @@
       --text: #e8eaf6;
       --muted: #7986cb;
       --error: #ef9a9a;
-      --success: #a5d6a7;
+      --success: #69f0ae;
     }
 
     body {
@@ -28,20 +28,28 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 40px 16px;
-      overflow-x: hidden;
+      overflow: hidden;
     }
 
     body::before {
       content: '';
       position: fixed;
       width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(124,131,253,0.08) 0%, transparent 70%);
-      top: -100px; right: -100px;
-      animation: drift 9s ease-in-out infinite alternate;
+      background: radial-gradient(circle, rgba(76,195,247,0.08) 0%, transparent 70%);
+      top: -100px; left: -100px;
+      animation: drift 8s ease-in-out infinite alternate;
       pointer-events: none;
     }
-    @keyframes drift { from { transform: translate(0,0); } to { transform: translate(30px, 30px); } }
+    body::after {
+      content: '';
+      position: fixed;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(124,131,253,0.08) 0%, transparent 70%);
+      bottom: -100px; right: -100px;
+      animation: drift 10s ease-in-out infinite alternate-reverse;
+      pointer-events: none;
+    }
+    @keyframes drift { from { transform: translate(0,0); } to { transform: translate(40px,40px); } }
 
     .card {
       background: var(--card);
@@ -50,10 +58,11 @@
       border-radius: 24px;
       padding: 48px 40px;
       width: 100%;
-      max-width: 440px;
+      max-width: 420px;
+      position: relative;
       animation: fadeUp 0.6s ease both;
     }
-    @keyframes fadeUp { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
 
     .logo {
       font-family: 'Space Mono', monospace;
@@ -64,48 +73,84 @@
       margin-bottom: 8px;
     }
 
+    /* Patient-only notice */
+    .patient-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(79,195,247,0.12);
+      color: var(--accent);
+      border: 1px solid rgba(79,195,247,0.25);
+      margin-bottom: 16px;
+    }
+
     h1 {
       font-size: 26px;
       font-weight: 600;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
       line-height: 1.2;
     }
-    h1 span { color: var(--accent2); }
+    h1 span { color: var(--accent); }
 
-    .field { margin-bottom: 18px; }
+    .field { margin-bottom: 20px; }
 
-    label {
+    .field label {
       display: block;
-      font-size: 11px;
+      font-size: 12px;
       letter-spacing: 1px;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 7px;
+      margin-bottom: 8px;
     }
 
-    input, select {
+    input[type="text"],
+    input[type="tel"],
+    input[type="password"],
+    select {
       width: 100%;
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 13px 16px;
+      padding: 14px 16px;
       color: var(--text);
       font-family: 'Sora', sans-serif;
-      font-size: 14px;
+      font-size: 15px;
       outline: none;
       transition: border-color 0.2s, background 0.2s;
-      appearance: none;
     }
-    input:focus, select:focus {
-      border-color: var(--accent2);
-      background: rgba(124,131,253,0.05);
-    }
-    select option { background: #1a1f35; }
 
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+    select option { background: #1a2035; color: var(--text); }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      background: rgba(79,195,247,0.05);
+    }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* Password strength bar */
+    .strength-bar {
+      height: 3px;
+      border-radius: 4px;
+      margin-top: 8px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.3s, background 0.3s;
     }
 
     .btn {
@@ -113,7 +158,7 @@
       padding: 15px;
       border-radius: 12px;
       border: none;
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
       color: #0a0f1e;
       font-family: 'Sora', sans-serif;
       font-size: 15px;
@@ -122,8 +167,9 @@
       margin-top: 8px;
       transition: opacity 0.2s, transform 0.1s;
     }
-    .btn:hover { opacity: 0.9; }
+    .btn:hover  { opacity: 0.9; }
     .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .msg {
       margin-top: 14px;
@@ -131,7 +177,7 @@
       min-height: 20px;
       text-align: center;
     }
-    .msg.error { color: var(--error); }
+    .msg.error   { color: var(--error); }
     .msg.success { color: var(--success); }
 
     .login-link {
@@ -140,67 +186,193 @@
       font-size: 13px;
       color: var(--muted);
     }
-    .login-link a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 600;
-    }
+    .login-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
     .login-link a:hover { text-decoration: underline; }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 4px 0 20px;
+    }
+
+    /* Note for doctors/admins */
+    .staff-note {
+      margin-top: 20px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(124,131,253,0.2);
+      background: rgba(124,131,253,0.05);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .staff-note strong { color: var(--accent2); }
   </style>
 </head>
 <body>
 
 <div class="card">
   <div class="logo">AI Voice Hospital</div>
+  <div class="patient-badge">🧑‍⚕️ Patient Registration</div>
   <h1>Create your<br><span>account.</span></h1>
 
+  <!-- Full Name -->
   <div class="field">
-    <label>Full Name</label>
-    <input id="reg-name" type="text" placeholder="Your full name">
+    <label for="name">Full Name</label>
+    <input id="name" type="text" placeholder="e.g. Rohan Sharma">
   </div>
 
-  <div class="row">
-    <div class="field">
-      <label>Age</label>
-      <input id="reg-age" type="number" placeholder="Age" min="1" max="120">
-    </div>
-    <div class="field">
-      <label>Gender</label>
-      <select id="reg-gender">
-        <option value="">Select</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
+  <!-- Phone -->
+  <div class="field">
+    <label for="phone">Phone Number</label>
+    <input id="phone" type="tel" placeholder="10-digit mobile number">
+    <p class="field-hint">Used to login and receive appointment reminders</p>
   </div>
 
+  <!-- Age -->
   <div class="field">
-    <label>Phone Number</label>
-    <input id="reg-phone" type="tel" placeholder="10-digit phone number">
+    <label for="age">Age</label>
+    <input id="age" type="text" placeholder="e.g. 34">
   </div>
 
+  <!-- Preferred Language -->
   <div class="field">
-    <label>Password</label>
-    <input id="reg-password" type="password" placeholder="Create a password">
-  </div>
-
-  <div class="field">
-    <label>Preferred Language</label>
-    <select id="reg-language">
+    <label for="lang">Preferred Language</label>
+    <select id="lang">
+      <option value="hi">हिंदी (Hindi)</option>
       <option value="en">English</option>
-      <option value="hi">Hindi</option>
-      <option value="mr">Marathi</option>
+      <option value="mr">मराठी (Marathi)</option>
+      <option value="ta">தமிழ் (Tamil)</option>
+      <option value="te">తెలుగు (Telugu)</option>
+      <option value="bn">বাংলা (Bengali)</option>
+      <option value="gu">ગુજરાતી (Gujarati)</option>
+      <option value="kn">ಕನ್ನಡ (Kannada)</option>
+      <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
     </select>
+    <p class="field-hint">The AI voice assistant will speak in this language</p>
   </div>
 
-  <button class="btn" id="registerBtn">Create Account</button>
-  <p class="msg" id="reg-msg"></p>
+  <hr class="divider">
+
+  <!-- Password -->
+  <div class="field">
+    <label for="password">Password</label>
+    <input id="password" type="password" placeholder="Create a strong password" oninput="checkStrength(this.value)">
+    <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+  </div>
+
+  <!-- Confirm Password -->
+  <div class="field">
+    <label for="confirm">Confirm Password</label>
+    <input id="confirm" type="password" placeholder="Re-enter your password">
+  </div>
+
+  <button class="btn" id="registerBtn" onclick="register()">Create Account</button>
+  <p class="msg" id="msg"></p>
 
   <div class="login-link">
-    Already have an account? <a href="login.html">Login</a>
+    Already have an account? <a href="login.html">Login here</a>
+  </div>
+
+  <div class="staff-note">
+    <strong>Doctors &amp; Admins:</strong> Staff accounts are created by the hospital administration. Please contact your system administrator for login credentials.
   </div>
 </div>
+
+<script>
+  /* ── Password strength ── */
+  function checkStrength(val) {
+    const fill = document.getElementById('strengthFill');
+    let score = 0;
+    if (val.length >= 6)  score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const pct   = (score / 5) * 100;
+    const color = score <= 1 ? '#ef9a9a' : score <= 3 ? '#ffcc80' : '#69f0ae';
+    fill.style.width      = pct + '%';
+    fill.style.background = color;
+  }
+
+  /* ── Register ── */
+  async function register() {
+    const name     = document.getElementById('name').value.trim();
+    const phone    = document.getElementById('phone').value.trim();
+    const age      = document.getElementById('age').value.trim();
+    const lang     = document.getElementById('lang').value;
+    const password = document.getElementById('password').value;
+    const confirm  = document.getElementById('confirm').value;
+    const msgEl    = document.getElementById('msg');
+
+    msgEl.className = 'msg';
+    msgEl.textContent = '';
+
+    if (!name || !phone || !age || !password || !confirm) {
+      msgEl.className = 'msg error';
+      msgEl.textContent = 'Please fill in all fields.';
+      return;
+    }
+
+    if (!/^\d{10}$/.test(phone)) {
+      msgEl.className = 'msg error';
+      msgEl.textContent = 'Enter a valid 10-digit phone number.';
+      return;
+    }
+
+    if (password !== confirm) {
+      msgEl.className = 'msg error';
+      msgEl.textContent = 'Passwords do not match.';
+      return;
+    }
+
+    if (password.length < 6) {
+      msgEl.className = 'msg error';
+      msgEl.textContent = 'Password must be at least 6 characters.';
+      return;
+    }
+
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true;
+    btn.textContent = 'Creating account…';
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/register', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, phone, age: parseInt(age),
+          preferred_language: lang,
+          password,
+          role: 'patient',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        msgEl.className = 'msg error';
+        msgEl.textContent = data.message || 'Registration failed.';
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+        return;
+      }
+
+      msgEl.className = 'msg success';
+      msgEl.textContent = '✓ Account created! Redirecting to login…';
+
+      setTimeout(() => { window.location.href = 'login.html'; }, 1800);
+
+    } catch (err) {
+      msgEl.className = 'msg error';
+      msgEl.textContent = 'Could not connect to server. Please try again.';
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+    }
+  }
+</script>
 
 <script src="script.js"></script>
 </body>
