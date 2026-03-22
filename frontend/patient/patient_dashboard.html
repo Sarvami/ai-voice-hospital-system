@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Patient Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="patient.css">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<link rel="stylesheet" href="../dark-toggle.css">
+
+</head>
+
+<body>
+
+<div class="dashboard">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+
+<h2 class="logo">
+<i class="fa fa-microphone"></i> AI Voice Hospital
+</h2>
+
+<ul>
+
+<li onclick="showSection('dashboard', this)" class="active">
+<i class="fa fa-home"></i> Dashboard
+</li>
+
+<li onclick="showSection('appointments', this)">
+<i class="fa fa-calendar"></i> My Appointments
+</li>
+
+<li onclick="showSection('records', this)">
+<i class="fa fa-file"></i> Medical Records
+</li>
+
+<li onclick="window.location.href='../indexx.html'">
+<i class="fa fa-microphone-lines"></i> Book Appointment
+</li>
+
+<li onclick="logout()">
+<i class="fa fa-sign-out"></i> Logout
+</li>
+
+</ul>
+
+</div>
+
+<!-- MAIN AREA -->
+<div class="main">
+
+<!-- DASHBOARD STATS -->
+<div id="dashboard" class="section">
+
+<h1>Patient Dashboard</h1>
+
+<div class="stats">
+
+<div class="statCard">
+<h3>Your Doctors</h3>
+<p id="doctorCount">0</p>
+</div>
+
+<div class="statCard">
+<h3>Appointments</h3>
+<p id="appointmentCount">0</p>
+</div>
+
+<div class="statCard">
+<h3>Reports</h3>
+<p id="reportCount">0</p>
+</div>
+
+</div>
+</div>
+
+<!-- APPOINTMENTS -->
+<div id="appointments" class="section hidden">
+
+<h2>My Appointments</h2>
+
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Doctor</th>
+<th>Date</th>
+<th>Time</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="appointmentsTable"></tbody>
+</table>
+
+</div>
+
+<!-- MEDICAL RECORDS -->
+<div id="records" class="section hidden">
+
+<h2>Medical Records</h2>
+
+<table>
+<thead>
+<tr>
+<th>Doctor</th>
+<th>Diagnosis</th>
+<th>Date</th>
+</tr>
+</thead>
+<tbody id="recordsTable"></tbody>
+</table>
+
+</div>
+
+</div><!-- /main -->
+</div><!-- /dashboard -->
+
+<script src="patient.js"></script>
+<script src="../dark-toggle.js"></script>
+
+</body>
+</html>
