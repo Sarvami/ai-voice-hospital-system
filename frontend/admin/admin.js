@@ -1,56 +1,132 @@
-const BACKEND = "http://127.0.0.1:8000";
+const API = "http://127.0.0.1:8000";
 
-function showSection(section) {
-    document.querySelectorAll(".section").forEach(sec => {
-        sec.classList.add("hidden");
-    });
-    document.getElementById(section).classList.remove("hidden");
+/* SWITCH */
+function showSection(section){
+document.querySelectorAll(".section").forEach(s=>{
+s.classList.add("hidden");
+});
+document.getElementById(section).classList.remove("hidden");
 }
 
-async function loadAppointments() {
-    const patientId = localStorage.getItem("patient_id");
-    if (!patientId) return;
+/* LOAD OVERVIEW */
+async function loadOverview(){
+try{
+const res = await fetch(`${API}/admin/overview`);
+const data = await res.json();
 
-    try {
-        const res = await fetch(`${BACKEND}/admin/appointments?patient_id=${patientId}`);
-        const data = await res.json();
+document.getElementById("totalPatients").innerText = data.patients;
+document.getElementById("totalDoctors").innerText = data.doctors;
+document.getElementById("totalAppointments").innerText = data.appointments;
 
-        const table = document.getElementById("appointmentsTable");
-        table.innerHTML = "";
-
-        if (data.length === 0) {
-            table.innerHTML = "<tr><td colspan='5'>No appointments found.</td></tr>";
-            return;
-        }
-
-        data.forEach(a => {
-            table.innerHTML += `
-                <tr>
-                    <td>${a.appointment_id}</td>
-                    <td>${a.doctor}</td>
-                    <td>${a.date}</td>
-                    <td>${a.time}</td>
-                    <td>${a.status}</td>
-                </tr>
-            `;
-        });
-
-        document.getElementById("appointmentCount").innerText = data.length;
-
-    } catch (err) {
-        console.error("Failed to load appointments:", err);
-    }
+}catch(e){
+console.log("No backend");
+}
 }
 
-function loadRecords() {
-    const table = document.getElementById("recordsTable");
-    if (table) table.innerHTML = "<tr><td>No records available.</td></tr>";
+/* LOAD PATIENTS */
+async function loadPatients(){
+try{
+const res = await fetch(`${API}/admin/patients`);
+const data = await res.json();
+
+const table = document.getElementById("patientsTable");
+table.innerHTML="";
+
+data.forEach(p=>{
+table.innerHTML += `
+<tr>
+<td>${p.name}</td>
+<td>${p.age}</td>
+<td>${p.condition}</td>
+</tr>
+`;
+});
+
+}catch(e){}
 }
 
-function logout() {
-    localStorage.clear();
-    window.location.href = "../login.html";
+/* LOAD DOCTORS */
+async function loadDoctors(){
+try{
+const res = await fetch(`${API}/admin/doctors`);
+const data = await res.json();
+
+const table = document.getElementById("doctorsTable");
+table.innerHTML="";
+
+data.forEach(d=>{
+table.innerHTML += `
+<tr>
+<td>${d.name}</td>
+<td>${d.specialization}</td>
+<td>${d.patients}</td>
+</tr>
+`;
+});
+
+}catch(e){}
 }
 
+/* LOAD APPOINTMENTS */
+async function loadAppointments(){
+try{
+const res = await fetch(`${API}/admin/appointments`);
+const data = await res.json();
+
+const table = document.getElementById("appointmentsTable");
+table.innerHTML="";
+
+data.forEach(a=>{
+table.innerHTML += `
+<tr>
+<td>${a.id}</td>
+<td>${a.patient}</td>
+<td>${a.doctor}</td>
+<td>${a.date}</td>
+<td>${a.time}</td>
+</tr>
+`;
+});
+
+}catch(e){}
+}
+
+/* ASSIGN NURSE */
+function assignNurse(){
+const doctor = document.getElementById("doctorName").value;
+const nurse = document.getElementById("nurseName").value;
+
+fetch(`${API}/admin/assign-nurse`,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({doctor,nurse})
+});
+
+alert("Nurse Assigned");
+}
+
+/* LEAVE */
+function addLeave(){
+const name = document.getElementById("staffName").value;
+const date = document.getElementById("leaveDate").value;
+
+fetch(`${API}/admin/leave`,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({name,date})
+});
+
+alert("Leave Added");
+}
+
+/* LOGOUT */
+function logout(){
+localStorage.clear();
+window.location.href="../login.html";
+}
+
+/* INIT */
+loadOverview();
+loadPatients();
+loadDoctors();
 loadAppointments();
-loadRecords();

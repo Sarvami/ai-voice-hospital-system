@@ -14,46 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
     langEl.innerText = localStorage.getItem("lang") || "Not set";
   }
 
-  /* ================= LOGIN ================= */
-
-  const loginBtn = document.getElementById("loginBtn");
-
-  if (loginBtn) {
-    loginBtn.addEventListener("click", async () => {
-
-      const phone = document.getElementById("phone")?.value.trim();
-      const password = document.getElementById("password")?.value.trim();
-      const msg = document.getElementById("msg");
-
-      if (!phone || !password) {
-        msg.innerText = "Enter phone number & password";
-        return;
-      }
-
-      try {
-        const formData = new FormData();
-        formData.append("phone", phone);
-        formData.append("password", password);
-
-        const res = await fetch(`${BACKEND}/login`, { method: "POST", body: formData });
-        const data = await res.json();
-
-        if (data.status === "not_found")        { msg.innerText = "User not found. Register first."; return; }
-        if (data.status === "invalid_password") { msg.innerText = "Incorrect password"; return; }
-        if (data.status !== "success")          { msg.innerText = "Login failed"; return; }
-
-        localStorage.setItem("patient_id", data.patient.id);
-        localStorage.setItem("lang", data.patient.preferred_language || "en");
-
-        window.location.href = "indexx.html";
-
-      } catch (err) {
-        msg.innerText = "Cannot reach backend";
-        console.error(err);
-      }
-    });
-  }
-
   /* ================= REGISTER ================= */
 
   const registerBtn = document.getElementById("registerBtn");
@@ -126,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const dashboardBtn = document.getElementById("dashboardBtn");
   if (dashboardBtn) {
     dashboardBtn.addEventListener("click", () => {
-      window.location.href = "admin/patient_dashboard.html";
+      window.location.href = "patient/patient_dashboard.html";
     });
   }
 

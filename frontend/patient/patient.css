@@ -1,29 +1,40 @@
+/* ===== BODY BACKGROUND (MATCH IMAGE EXACTLY) ===== */
+
 body{
 margin:0;
-font-family:Segoe UI;
-background:linear-gradient(135deg,#071a3d,#0b2a66,#061a3a);
-color:white;
+font-family:'Inter','Segoe UI',sans-serif;
+background: linear-gradient(
+    90deg,
+    #020617 0%,
+    #04112a 30%,
+    #08204a 70%,
+    #0b2a5c 100%
+);
+color:#cbd5f5;
 }
 
-/* layout */
+/* ===== DASHBOARD LAYOUT ===== */
 
 .dashboard{
 display:flex;
 height:100vh;
 }
 
-/* sidebar */
+/* ===== SIDEBAR ===== */
 
 .sidebar{
-width:230px;
-background:rgba(0,0,0,0.25);
+width:240px;
+background:#020617;
 padding:25px;
-backdrop-filter:blur(10px);
 }
 
 .logo{
+color:#e2e8f0;
+font-weight:600;
 margin-bottom:30px;
 }
+
+/* SIDEBAR LIST */
 
 .sidebar ul{
 list-style:none;
@@ -33,110 +44,229 @@ padding:0;
 .sidebar li{
 padding:12px;
 margin-bottom:10px;
-border-radius:6px;
 cursor:pointer;
+color:#cbd5f5;
 transition:0.3s;
+border-radius:6px;
 }
 
 .sidebar li:hover{
-background:rgba(255,255,255,0.15);
+color:#38bdf8;
+background: rgba(255,255,255,0.05);
 }
 
-.sidebar i{
-margin-right:10px;
-}
-
-/* main */
+/* ===== MAIN AREA ===== */
 
 .main{
 flex:1;
 padding:40px;
 }
 
-/* sections */
+/* ===== HEADINGS ===== */
 
-.hidden{
-display:none;
+h1{
+color:#e2e8f0;
+font-size:32px;
+font-weight:700;
 }
 
-/* stat cards */
+h2{
+color:#cbd5f5;
+}
+
+/* ===== STATS CARDS ===== */
 
 .stats{
 display:flex;
 gap:25px;
-margin-bottom:40px;
 }
 
 .statCard{
-background:rgba(255,255,255,0.08);
+background:#1e3a6d;
 padding:25px;
 border-radius:12px;
 width:220px;
 text-align:center;
-box-shadow:0 0 20px rgba(0,0,0,0.4);
-}
-
-.statCard p{
-font-size:28px;
-margin-top:10px;
-}
-
-/* cards */
-
-.card{
-background:rgba(255,255,255,0.08);
-padding:25px;
-border-radius:12px;
-width:350px;
-box-shadow:0 0 20px rgba(0,0,0,0.4);
-}
-
-.card input,
-.card select{
-width:100%;
-padding:8px;
-margin:8px 0;
-border:none;
-border-radius:6px;
-}
-
-.card button{
-margin-top:10px;
-padding:10px;
-border:none;
-border-radius:8px;
-background:linear-gradient(135deg,#4facfe,#6c63ff);
 color:white;
-cursor:pointer;
+transition:0.3s;
 }
 
-/* table */
+.statCard:hover{
+transform:translateY(-5px);
+}
+
+/* ===== TABLE ===== */
 
 table{
 width:100%;
 border-collapse:collapse;
+margin-top:20px;
+border-radius:10px;
+overflow:hidden;
 }
 
 th{
-background:#0f3d8c;
-padding:12px;
+background:#1e3a6d;
+padding:14px;
+color:white;
+font-weight:600;
 }
 
 td{
-background:#082a63;
+background:#0f2a5c;
 padding:12px;
 text-align:center;
+color:#cbd5f5;
 }
 
 tr:hover td{
-background:#104a9c;
+background:#1e3a6d;
 }
 
-/* stars */
+/* ===== SECTIONS ===== */
 
-.stars{
-font-size:26px;
-color:gold;
-margin:15px 0;
+.section{
+margin-top:20px;
+}
+
+/* ===== HIDDEN ===== */
+
+.hidden{
+display:none;
+}
+/* ===== BODY BACKGROUND (MATCH IMAGE EXACTLY) ===== */
+
+body{
+margin:0;
+font-family:'Inter','Segoe UI',sans-serif;
+background: linear-gradient(
+    90deg,
+    #020617 0%,
+    #04112a 30%,
+    #08204a 70%,
+    #0b2a5c 100%
+);
+color:#cbd5f5;
+}
+
+/* ===== DASHBOARD LAYOUT ===== */
+
+.dashboard{
+display:flex;
+height:100vh;
+}
+
+/* ===== SIDEBAR ===== */
+
+.sidebar{
+width:240px;
+background:#020617;
+padding:25px;
+}
+
+.logo{
+color:#e2e8f0;
+font-weight:600;
+margin-bottom:30px;
+}
+
+/* SIDEBAR LIST */
+
+.sidebar ul{
+list-style:none;
+padding:0;
+}
+
+.sidebar li{
+padding:12px;
+margin-bottom:10px;
 cursor:pointer;
+color:#cbd5f5;
+transition:0.3s;
+border-radius:6px;
+}
+
+.sidebar li:hover{
+color:#38bdf8;
+background: rgba(255,255,255,0.05);
+}
+
+/* ===== MAIN AREA ===== */
+
+.main{
+flex:1;
+padding:40px;
+}
+
+/* ===== HEADINGS ===== */
+
+h1{
+color:#e2e8f0;
+font-size:32px;
+font-weight:700;
+}
+
+h2{
+color:#cbd5f5;
+}
+
+/* ===== STATS CARDS ===== */
+
+.stats{
+display:flex;
+gap:25px;
+}
+
+.statCard{
+background:#1e3a6d;
+padding:25px;
+border-radius:12px;
+width:220px;
+text-align:center;
+color:white;
+transition:0.3s;
+}
+
+.statCard:hover{
+transform:translateY(-5px);
+}
+
+/* ===== TABLE ===== */
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+border-radius:10px;
+overflow:hidden;
+}
+
+th{
+background:#1e3a6d;
+padding:14px;
+color:white;
+font-weight:600;
+}
+
+td{
+background:#0f2a5c;
+padding:12px;
+text-align:center;
+color:#cbd5f5;
+}
+
+tr:hover td{
+background:#1e3a6d;
+}
+
+/* ===== SECTIONS ===== */
+
+.section{
+margin-top:20px;
+}
+
+/* ===== HIDDEN ===== */
+
+.hidden{
+display:none;
 }
