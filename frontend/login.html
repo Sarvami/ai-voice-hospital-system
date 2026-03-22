@@ -390,12 +390,18 @@
       localStorage.setItem('phone', data.user.phone || '');
       localStorage.setItem('lang',  data.user.preferred_language || 'hi');
 
-      /* Redirect to correct dashboard */
-      const redirectMap = {
-        patient: 'patient/patient_dashboard.html',
-        doctor:  'doctor/doctor_dashboard.html',
-        admin:   'admin/admin_dashboard.html',
-      };
+    if (role === "patient") {
+    localStorage.setItem("patient_id", data.user.id);
+}
+if (role === "doctor") {
+    localStorage.setItem("doctor_id", data.user.id);
+}
+
+const redirectMap = {
+    patient: "indexx.html",
+    doctor:  "doctor/doctor_dashboard.html",
+    admin:   "admin/admin_dashboard.html",
+};
       window.location.href = redirectMap[role];
 
     } catch (err) {
