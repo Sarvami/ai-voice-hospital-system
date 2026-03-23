@@ -445,13 +445,16 @@ async def get_all_doctors():
 
 @app.post("/login")
 async def login(request: Request):
-    data = await request.json()
-    phone    = data.get("phone", "").strip()
     password = data.get("password", "")
     role     = data.get("role", "patient")
 
+    if role == "doctor":
+     phone = data.get("doctor_id", "").strip()
+    else:
+     phone = data.get("phone", "").strip()
+
     if not phone or not password:
-        return {"success": False, "message": "Missing fields"}
+     return {"success": False, "message": "Missing fields"}
 
     conn = get_db_connection()
 
