@@ -2,73 +2,312 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Voice Hospital Assistant</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Profile icon styles */
+    .profile-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .profile-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-size: 1.2rem;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      margin-left: 12px;
+    }
+
+    .profile-icon:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(79,195,247,0.4);
+    }
+
+    /* Dropdown menu */
+    .profile-dropdown {
+      position: absolute;
+      top: 50px;
+      right: 0;
+      background: rgba(30, 30, 40, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      min-width: 240px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.2s ease;
+      z-index: 1000;
+    }
+
+    .profile-dropdown.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .dropdown-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dropdown-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .dropdown-info {
+      flex: 1;
+    }
+
+    .dropdown-name {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .dropdown-email {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .dropdown-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 8px 0;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Ensure existing styles remain intact */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 32px;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-left .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .nav-btn, .logout-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: var(--accent);
+    }
+
+    .logout-btn:hover {
+      background: rgba(239,68,68,0.1);
+      border-color: var(--error);
+      color: var(--error);
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar">
-
     <div class="nav-left">
-        <span class="logo">AI Voice Hospital</span>
+      <span class="logo">AI Voice Hospital</span>
     </div>
-
     <div class="nav-right">
+      <button id="dashboardBtn" class="nav-btn" onclick="window.location.href='indexx.html'">
+        Dashboard
+      </button>
+      
+      <!-- Profile Icon with Dropdown -->
+      <div class="profile-container">
+        <div class="profile-icon" id="profileIcon">
+          👤
+        </div>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="dropdown-header">
+            <div class="dropdown-avatar" id="dropdownAvatar">👤</div>
+            <div class="dropdown-info">
+              <div class="dropdown-name" id="dropdownName">Guest User</div>
+              <div class="dropdown-email" id="dropdownEmail">Not signed in</div>
+            </div>
+          </div>
+          <div class="dropdown-item" onclick="window.location.href='profile.html'">
+            👤 View Profile
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item" onclick="logout()">
+            🚪 Logout
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
 
-        <button id="dashboardBtn" class="nav-btn">
-            Dashboard
-        </button>
-
-        <button class="nav-btn" onclick="window.location.href='profile.html'">
-            Profile
-        </button>
-
-        <button class="logout-btn" onclick="logout()">
-            Logout
-        </button>
-
+  <div class="glass-card">
+    <div class="top-bar">
+      Namaste, I'm listening…
     </div>
 
-</nav>
+    <div class="orbital">
+      <!-- Language bubbles -->
+      <button class="bubble top active" data-lang="hi">🌸<span>Hindi</span></button>
+      <button class="bubble left" data-lang="mr">📜<span>Marathi</span></button>
+      <button class="bubble right" data-lang="en">☁️<span>English</span></button>
+      <button class="bubble bottom-left" data-lang="ta">🏺<span>Tamil</span></button>
+      <button class="bubble bottom-right" data-lang="te">🌿<span>Telugu</span></button>
+      <button class="bubble bottom" data-lang="gu">🪔<span>Gujarati</span></button>
 
-<div class="glass-card">
-
-  <div class="top-bar">
-    Namaste, I’m listening…
-  </div>
-
-  <div class="orbital">
-
-    <!-- Language bubbles -->
-    <button class="bubble top active" data-lang="hi">🌸<span>Hindi</span></button>
-    <button class="bubble left" data-lang="mr">📜<span>Marathi</span></button>
-    <button class="bubble right" data-lang="en">☁️<span>English</span></button>
-    <button class="bubble bottom-left" data-lang="ta">🏺<span>Tamil</span></button>
-    <button class="bubble bottom-right" data-lang="te">🌿<span>Telugu</span></button>
-    <button class="bubble bottom" data-lang="gu">🪔<span>Gujarati</span></button>
-
-    <!-- Center microphone -->
-    <button id="recordBtn" class="mic-orb">🎤</button>
-
-  </div>
-
-  <p id="status">Tap the mic and speak</p>
-
-  <div class="audio-wrapper">
-  <div class="custom-player">
-
-    <button id="playBtn" class="play-btn">▶</button>
-
-    <div class="progress-container">
-      <div id="progress" class="progress"></div>
+      <!-- Center microphone -->
+      <button id="recordBtn" class="mic-orb">🎤</button>
     </div>
 
-    <span id="time">0:00</span>
+    <p id="status">Tap the mic and speak</p>
 
+    <div class="audio-wrapper">
+      <div class="custom-player">
+        <button id="playBtn" class="play-btn">▶</button>
+        <div class="progress-container">
+          <div id="progress" class="progress"></div>
+        </div>
+        <span id="time">0:00</span>
+      </div>
+      <audio id="audioPlayer"></audio>
+    </div>
   </div>
 
-  <audio id="audioPlayer"></audio>
-</div>
+  <script src="script.js"></script>
+  <script>
+    // Toggle dropdown
+    const profileIcon = document.getElementById('profileIcon');
+    const profileDropdown = document.getElementById('profileDropdown');
 
-<script src="script.js"></script>
+    if (profileIcon && profileDropdown) {
+      profileIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.classList.toggle('show');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!profileIcon.contains(e.target) && !profileDropdown.contains(e.target)) {
+          profileDropdown.classList.remove('show');
+        }
+      });
+    }
+
+    // Update profile info based on logged-in user
+    function updateProfileInfo() {
+      const patient = JSON.parse(localStorage.getItem("patient") || "{}");
+      const profileIconEl = document.getElementById("profileIcon");
+      const dropdownAvatar = document.getElementById("dropdownAvatar");
+      const dropdownName = document.getElementById("dropdownName");
+      const dropdownEmail = document.getElementById("dropdownEmail");
+      
+      if (patient && patient.name) {
+        const firstLetter = patient.name.charAt(0).toUpperCase();
+        const gender = patient.gender ? patient.gender.toLowerCase() : '';
+        
+        // Set avatar icon
+        if (gender === "female") {
+          profileIconEl.innerHTML = "👩";
+          if (dropdownAvatar) dropdownAvatar.innerHTML = "👩";
+        } else if (gender === "male") {
+          profileIconEl.innerHTML = "👨";
+          if (dropdownAvatar) dropdownAvatar.innerHTML = "👨";
+        } else {
+          profileIconEl.innerHTML = firstLetter;
+          if (dropdownAvatar) dropdownAvatar.innerHTML = firstLetter;
+        }
+        
+        // Update dropdown info
+        if (dropdownName) dropdownName.textContent = patient.name;
+        if (dropdownEmail) dropdownEmail.textContent = patient.phone || "No phone number";
+        
+        // Style based on gender
+        if (gender === "female") {
+          const gradient = "linear-gradient(135deg, #FF6B6B, #FF8E8E)";
+          profileIconEl.style.background = gradient;
+          if (dropdownAvatar) dropdownAvatar.style.background = gradient;
+        } else if (gender === "male") {
+          const gradient = "linear-gradient(135deg, #4A90E2, #6BA5F0)";
+          profileIconEl.style.background = gradient;
+          if (dropdownAvatar) dropdownAvatar.style.background = gradient;
+        }
+      } else {
+        profileIconEl.innerHTML = "👤";
+        if (dropdownAvatar) dropdownAvatar.innerHTML = "👤";
+        if (dropdownName) dropdownName.textContent = "Guest User";
+        if (dropdownEmail) dropdownEmail.textContent = "Not signed in";
+      }
+    }
+
+    // Logout function
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem("patient");
+        localStorage.removeItem("patient_id");
+        window.location.href = "login.html";
+      }
+    }
+
+    // Initialize
+    document.addEventListener("DOMContentLoaded", updateProfileInfo);
+  </script>
 </body>
 </html>

@@ -6,7 +6,9 @@
   <title>My Profile – AI Voice Hospital</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* ── Avatar sits above the card content ── */
+    /* Profile specific styles - maintains theme consistency */
+    
+    /* Avatar wrapper */
     .avatar-wrap {
       display: flex;
       flex-direction: column;
@@ -25,6 +27,11 @@
       font-size: 2.2rem;
       margin-bottom: 14px;
       box-shadow: 0 0 0 4px rgba(79,195,247,0.2), 0 12px 30px rgba(0,0,0,0.4);
+      transition: transform 0.2s;
+    }
+
+    .avatar-circle:hover {
+      transform: scale(1.05);
     }
 
     .avatar-name {
@@ -38,7 +45,7 @@
       color: var(--accent);
     }
 
-    /* ── Info rows ── */
+    /* Info rows - consistent with glass card theme */
     .info-row {
       display: flex;
       justify-content: space-between;
@@ -48,6 +55,12 @@
       border-radius: 12px;
       padding: 13px 16px;
       margin-bottom: 10px;
+      transition: all 0.2s;
+    }
+
+    .info-row:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--accent);
     }
 
     .info-label {
@@ -64,28 +77,28 @@
       color: var(--accent);
     }
 
-    /* ── Buttons ── */
-    .btn-ghost {
+    /* Consistent button styles with main page */
+    .btn-primary {
       width: 100%;
       padding: 14px;
       border-radius: 12px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
       font-family: 'Sora', 'Segoe UI', sans-serif;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
+      transition: all 0.2s;
       margin-top: 8px;
+      border: none;
     }
 
-    .btn-ghost:hover {
-      background: rgba(255,255,255,0.05);
-      color: var(--text);
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79,195,247,0.3);
     }
 
-    .btn-red {
+    .btn-danger {
       width: 100%;
       padding: 14px;
       border-radius: 12px;
@@ -96,30 +109,75 @@
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
       margin-top: 8px;
     }
 
-    .btn-red:hover {
+    .btn-danger:hover {
       background: rgba(239,68,68,0.08);
+      border-color: var(--error);
+    }
+
+    /* Profile icon in navbar */
+    .profile-icon-nav {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .profile-icon-nav:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(79,195,247,0.4);
+    }
+
+    /* Navbar right alignment */
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Ensure glass card has consistent padding */
+    .glass-card {
+      max-width: 460px;
+      padding: 36px 30px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
+  <!-- Navbar - Matches main page exactly -->
   <nav class="navbar">
     <div class="nav-left">
       <span class="logo">AI Voice Hospital</span>
     </div>
     <div class="nav-right">
-      <button class="nav-btn" onclick="window.location.href='indexx.html'">Dashboard</button>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <button class="nav-btn" onclick="window.location.href='indexx.html'">
+        Dashboard
+      </button>
+      
+      <!-- Profile Icon - same as main page -->
+      <div class="profile-icon-nav" id="profileIconNav" onclick="window.location.href='profile.html'">
+        👤
+      </div>
+      
+      <button class="logout-btn" onclick="logout()">
+        Logout
+      </button>
     </div>
   </nav>
 
-  <!-- Glass Card -->
-  <div class="glass-card" style="max-width:460px; min-height:auto; padding:36px 30px;">
+  <!-- Glass Card - consistent with main page -->
+  <div class="glass-card">
 
     <div class="top-bar">AI VOICE HOSPITAL</div>
 
@@ -155,18 +213,20 @@
       <span class="info-value" id="profileLang">—</span>
     </div>
 
-    <!-- Actions -->
-    <button class="btn" onclick="window.location.href='indexx.html'">
+    <!-- Actions - using consistent button classes -->
+    <button class="btn-primary" onclick="window.location.href='indexx.html'">
       🎤 &nbsp; Go to Dashboard
     </button>
-    <button class="btn-red" onclick="logout()">Logout</button>
+    <button class="btn-danger" onclick="logout()">
+      🚪 &nbsp; Logout
+    </button>
 
   </div>
 
   <script>
     const langMap = {
       en: "English", hi: "Hindi", mr: "Marathi",
-      ta: "Tamil",   te: "Telugu", gu: "Gujarati"
+      ta: "Tamil", te: "Telugu", gu: "Gujarati"
     };
 
     function loadProfile() {
@@ -178,26 +238,58 @@
       }
 
       const gender = (patient.gender || "").toLowerCase();
-      document.getElementById("avatarEmoji").textContent =
-        gender === "female" ? "👩" : gender === "male" ? "👨" : "👤";
+      const avatarEmoji = document.getElementById("avatarEmoji");
+      const profileIconNav = document.getElementById("profileIconNav");
+      
+      // Set avatar emoji based on gender
+      if (gender === "female") {
+        avatarEmoji.textContent = "👩";
+        if (profileIconNav) profileIconNav.textContent = "👩";
+      } else if (gender === "male") {
+        avatarEmoji.textContent = "👨";
+        if (profileIconNav) profileIconNav.textContent = "👨";
+      } else {
+        const firstLetter = (patient.name || "U").charAt(0).toUpperCase();
+        avatarEmoji.textContent = firstLetter;
+        if (profileIconNav) profileIconNav.textContent = firstLetter;
+      }
 
-      document.getElementById("profileName").textContent   = patient.name   || "—";
-      document.getElementById("profilePhone").textContent  = patient.phone  || "—";
-      document.getElementById("profileAge").textContent    = patient.age    || "—";
+      // Set gradient colors based on gender
+      if (gender === "female") {
+        const gradient = "linear-gradient(135deg, #FF6B6B, #FF8E8E)";
+        avatarEmoji.style.background = gradient;
+        if (profileIconNav) profileIconNav.style.background = gradient;
+      } else if (gender === "male") {
+        const gradient = "linear-gradient(135deg, #4A90E2, #6BA5F0)";
+        avatarEmoji.style.background = gradient;
+        if (profileIconNav) profileIconNav.style.background = gradient;
+      } else {
+        const gradient = "linear-gradient(135deg, var(--accent), var(--accent2))";
+        avatarEmoji.style.background = gradient;
+        if (profileIconNav) profileIconNav.style.background = gradient;
+      }
+
+      // Populate profile information
+      document.getElementById("profileName").textContent = patient.name || "—";
+      document.getElementById("profilePhone").textContent = patient.phone || "—";
+      document.getElementById("profileAge").textContent = patient.age || "—";
       document.getElementById("profileGender").textContent = patient.gender || "—";
-      document.getElementById("profileId").textContent     = "#" + patient.id;
+      document.getElementById("profileId").textContent = "#" + patient.id;
 
       const lang = patient.preferred_language || patient.language || "en";
-      document.getElementById("profileLang").textContent  = langMap[lang] || lang;
+      document.getElementById("profileLang").textContent = langMap[lang] || lang;
     }
 
     function logout() {
-      localStorage.removeItem("patient");
-      localStorage.removeItem("patient_id");
-      window.location.href = "login.html";
+      if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem("patient");
+        localStorage.removeItem("patient_id");
+        window.location.href = "login.html";
+      }
     }
 
-    loadProfile();
+    // Load profile when page loads
+    document.addEventListener("DOMContentLoaded", loadProfile);
   </script>
 
 </body>
