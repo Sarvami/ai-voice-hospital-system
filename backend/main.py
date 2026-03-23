@@ -113,11 +113,18 @@ def get_doctors_by_department(dept):
     return doctors
 
 def find_doctor_by_name(name):
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM doctors WHERE LOWER(name)=?", (name.lower(),))
+
+    cursor.execute(
+        "SELECT * FROM doctors WHERE LOWER(phone) = LOWER(?)",
+        (name.strip(),)
+    )
+
     doctor = cursor.fetchone()
     conn.close()
+
     return dict(doctor) if doctor else None
 
 def get_or_create_patient(name, phone, language="en"):
