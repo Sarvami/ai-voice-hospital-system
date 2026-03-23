@@ -445,6 +445,8 @@ async def get_all_doctors():
 
 @app.post("/login")
 async def login(request: Request):
+     
+    data=await request.json()
     password = data.get("password", "")
     role     = data.get("role", "patient")
 
