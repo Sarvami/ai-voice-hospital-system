@@ -107,9 +107,12 @@
 <table>
 <thead>
 <tr>
+<th>ID</th>
 <th>Doctor</th>
-<th>Diagnosis</th>
 <th>Date</th>
+<th>Time</th>
+<th>Status</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody id="recordsTable"></tbody>
@@ -122,6 +125,22 @@
 
 <script src="patient.js"></script>
 <script src="../dark-toggle.js"></script>
-
+<div id="ratingModal">
+  <div id="ratingBox">
+    <h3>Rate Dr. <span id="ratingDoctorName"></span></h3>
+    <div id="stars">
+      <span onclick="setRating(1)">★</span>
+      <span onclick="setRating(2)">★</span>
+      <span onclick="setRating(3)">★</span>
+      <span onclick="setRating(4)">★</span>
+      <span onclick="setRating(5)">★</span>
+    </div>
+    <textarea id="reviewText" placeholder="Write a review (optional)"></textarea>
+    <div class="rating-btns">
+      <button onclick="submitRating()">Submit</button>
+      <button onclick="closeRating()" class="skip">Skip</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -166,3 +166,77 @@ tbody tr:last-child td { border-bottom: none; }
 /* ===== SECTIONS ===== */
 .section { margin-top: 8px; }
 .hidden  { display: none; }
+/* Rating modal */
+#ratingModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+#ratingBox {
+  background: #0d1b2e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 32px;
+  width: 360px;
+  text-align: center;
+}
+
+#ratingBox h3 {
+  color: #e2e8f0;
+  margin-bottom: 20px;
+}
+
+#stars span {
+  font-size: 32px;
+  cursor: pointer;
+  color: #555;
+  transition: color 0.2s;
+}
+
+#stars span:hover { color: #f5a623; }
+
+#reviewText {
+  width: 100%;
+  margin: 16px 0;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  resize: none;
+  height: 80px;
+}
+
+.rating-btns { display: flex; gap: 12px; justify-content: center; }
+
+.rating-btns button {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #38bdf8;
+  color: #0a0f1e;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rating-btns button.skip {
+  background: rgba(255,255,255,0.08);
+  color: #a0aec0;
+}
+
+.btn-rate {
+  background: rgba(245,166,35,0.15);
+  border: 1px solid rgba(245,166,35,0.3);
+  color: #f5a623;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}

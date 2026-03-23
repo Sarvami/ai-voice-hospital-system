@@ -33,13 +33,18 @@ async function loadAppointments() {
 
     list.forEach(a => {
       table.innerHTML += `
-        <tr>
-          <td>${a.appointment_id || a.id || "—"}</td>
-          <td>${a.doctor || a.doctor_name || "—"}</td>
-          <td>${a.date || "—"}</td>
-          <td>${a.time || "—"}</td>
-          <td>${a.status || "—"}</td>
-        </tr>`;
+        table.innerHTML += `
+  table.innerHTML += `
+  <tr>
+    <td>${a.appointment_id || a.id || "—"}</td>
+    <td>${a.doctor || a.doctor_name || "—"}</td>
+    <td>${a.date || "—"}</td>
+    <td>${a.time || "—"}</td>
+    <td>${a.status || "—"}</td>
+    <td>${a.status === 'Completed' ?
+      `<button onclick="openRating('${a.appointment_id || a.id}', '${a.doctor || a.doctor_name}')" class="btn-rate">⭐ Rate</button>`
+      : '—'}</td>
+  </tr>`;
     });
 
     document.getElementById("appointmentCount").innerText = list.length;
@@ -97,3 +102,49 @@ function logout() {
 /* ── Init ── */
 loadAppointments();
 loadRecords();
+let currentRatingApptId = null;
+let currentRating = 0;
+
+function openRating(apptId, doctorName) {
+  currentRatingApptId = apptId;
+  currentRating = 0;
+  document.getElementById('ratingDoctorName').textContent = doctorName;
+  document.getElementById('reviewText').value = '';
+  highlightStars(0);
+  document.getElementById('ratingModal').style.display = 'flex';
+}
+
+function closeRating() {
+  document.getElementById('ratingModal').style.display = 'none';
+}
+
+function setRating(val) {
+  currentRating = val;
+  highlightStars(val);
+}
+
+function highlightStars(val) {
+  document.querySelectorAll('#stars span').forEach((s, i) => {
+    s.style.color = i < val ? '#f5a623' : '#555';
+  });
+}
+
+async function submitRating() {
+  if (currentRating === 0) {
+    alert('Please select a star rating.');
+    return;
+  }
+  const review = document.getElementById('reviewText').value;
+  try {
+    await fetch(`${BACKEND}/patient/rate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        appointment_id: currentRatingApptId,
+        rating: currentRating,
+        review: review
+      })
+    });
+  } catch(e) {}
+  closeRating();
+}
