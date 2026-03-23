@@ -632,3 +632,4 @@ def doctor_appointments(doctor_id: int):
     """, (doctor_id,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
