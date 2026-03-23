@@ -460,7 +460,8 @@ async def login(request: Request):
         }
 
     elif role == "doctor":
-        user = conn.execute("SELECT * FROM doctors WHERE phone=?", (phone,)).fetchone()
+        doctor_id_val = data.get("doctor_id", "").strip()
+        user = conn.execute("SELECT * FROM doctors WHERE phone=?", (doctor_id_val,)).fetchone()
         conn.close()
         if not user:
             return {"success": False, "message": "Doctor ID not found"}
