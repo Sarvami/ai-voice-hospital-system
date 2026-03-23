@@ -147,14 +147,24 @@ def get_or_create_patient(name, phone, language="en"):
 def create_appointment(pid, did, date, time_str, reason, language):
     conn = get_db_connection()
     cursor = conn.cursor()
-
+    
+    # Check for double booking
+    existing = cursor.execute("""
+        SELECT appointment_id FROM appointments 
+        WHERE patient_id=? AND doctor_id=? AND appointment_date=?
+    """, (pid, did, date)).fetchone()
+    
+    if existing:
+        conn.close()
+        return None  # signals double booking
+    
     cursor.execute("""
         INSERT INTO appointments
         (patient_id, doctor_id, appointment_date, appointment_time,
          status, reason, booking_source, language_used)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (pid, did, date, time_str, "Booked", reason, "voice", language))
-
+    
     aid = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -339,10 +349,14 @@ def generate_reply(text, user_id="user1", lang="en"):
                 d["dept"],
                 lang  # ← actual language now used
             )
+            
+            if aid is None:
+             user_state[user_id] = "idle"
+             user_data[user_id] = {}
+             return "You already have an appointment with this doctor on that date. Please choose a different date."
 
-            user_state[user_id] = "idle"
-            user_data[user_id] = {}
             return f"Appointment confirmed. Your booking ID is {aid}."
+
 
         elif "no" in text or "cancel" in text:
             user_state[user_id] = "idle"
