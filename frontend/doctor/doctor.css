@@ -148,3 +148,32 @@ cursor:pointer;
 .hidden{
 display:none;
 }
+.rating-summary {
+  margin-bottom: 24px;
+}
+
+.avg-rating {
+  background: #1e3a6d;
+  border-radius: 12px;
+  padding: 20px 28px;
+  display: inline-block;
+  text-align: center;
+  min-width: 160px;
+}
+
+#avgStars {
+  font-size: 24px;
+  color: #f5a623;
+}
+
+#avgScore {
+  font-size: 22px;
+  font-weight: 700;
+  color: #38bdf8;
+  margin: 6px 0 2px;
+}
+
+#totalReviews {
+  font-size: 12px;
+  color: #a0aec0;
+}
