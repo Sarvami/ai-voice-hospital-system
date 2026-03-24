@@ -220,3 +220,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
+// Logout function
+function logout() {
+    // Clear user session data (if using localStorage/sessionStorage)
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+    
+    // Optional: Clear any cookies
+    document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
+    
+    // Redirect to login page
+    window.location.href = 'login.html'; // or 'index.html' depending on your login page
+    
+    // Alternative: If you're using a backend API
+    // fetch('/api/logout', { method: 'POST' })
+    //     .then(() => {
+    //         window.location.href = 'login.html';
+    //     });
+}
