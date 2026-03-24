@@ -113,11 +113,18 @@ def get_doctors_by_department(dept):
     return doctors
 
 def find_doctor_by_name(name):
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM doctors WHERE LOWER(name)=?", (name.lower(),))
+
+    cursor.execute(
+        "SELECT * FROM doctors WHERE LOWER(phone) = LOWER(?)",
+        (name.strip(),)
+    )
+
     doctor = cursor.fetchone()
     conn.close()
+
     return dict(doctor) if doctor else None
 
 def get_or_create_patient(name, phone, language="en"):
@@ -147,14 +154,24 @@ def get_or_create_patient(name, phone, language="en"):
 def create_appointment(pid, did, date, time_str, reason, language):
     conn = get_db_connection()
     cursor = conn.cursor()
-
+    
+    # Check for double booking
+    existing = cursor.execute("""
+        SELECT appointment_id FROM appointments 
+        WHERE patient_id=? AND doctor_id=? AND appointment_date=?
+    """, (pid, did, date)).fetchone()
+    
+    if existing:
+        conn.close()
+        return None  # signals double booking
+    
     cursor.execute("""
         INSERT INTO appointments
         (patient_id, doctor_id, appointment_date, appointment_time,
          status, reason, booking_source, language_used)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (pid, did, date, time_str, "Booked", reason, "voice", language))
-
+    
     aid = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -339,10 +356,14 @@ def generate_reply(text, user_id="user1", lang="en"):
                 d["dept"],
                 lang  # ← actual language now used
             )
+            
+            if aid is None:
+             user_state[user_id] = "idle"
+             user_data[user_id] = {}
+             return "You already have an appointment with this doctor on that date. Please choose a different date."
 
-            user_state[user_id] = "idle"
-            user_data[user_id] = {}
             return f"Appointment confirmed. Your booking ID is {aid}."
+
 
         elif "no" in text or "cancel" in text:
             user_state[user_id] = "idle"
@@ -431,13 +452,18 @@ async def get_all_doctors():
 
 @app.post("/login")
 async def login(request: Request):
-    data = await request.json()
-    phone    = data.get("phone", "").strip()
+     
+    data=await request.json()
     password = data.get("password", "")
     role     = data.get("role", "patient")
 
+    if role == "doctor":
+     phone = data.get("doctor_id", "").strip()
+    else:
+     phone = data.get("phone", "").strip()
+
     if not phone or not password:
-        return {"success": False, "message": "Missing fields"}
+     return {"success": False, "message": "Missing fields"}
 
     conn = get_db_connection()
 
@@ -460,7 +486,8 @@ async def login(request: Request):
         }
 
     elif role == "doctor":
-        user = conn.execute("SELECT * FROM doctors WHERE phone=?", (phone,)).fetchone()
+        doctor_id_val = data.get("doctor_id", "").strip()
+        user = conn.execute("SELECT * FROM doctors WHERE phone=?", (doctor_id_val,)).fetchone()
         conn.close()
         if not user:
             return {"success": False, "message": "Doctor ID not found"}
@@ -480,20 +507,24 @@ async def login(request: Request):
     return {"success": False, "message": "Invalid role"}
 
 @app.post("/register")
-def register_patient(
-    name: str = Form(...),
-    age: int = Form(...),
-    gender: str = Form(...),
-    phone: str = Form(...),
-    password: str = Form(...),
-    language: str = Form("en")
-):
+async def register_patient(request: Request):
     try:
+        data = await request.json()
+        name     = data.get("name", "").strip()
+        age      = data.get("age", 0)
+        phone    = data.get("phone", "").strip()
+        password = data.get("password", "")
+        language = data.get("preferred_language", "en")
+        gender   = data.get("gender", "Unknown")
+
+        if not name or not phone or not password:
+            return {"success": False, "message": "Missing required fields"}
+
         conn = get_db_connection()
         existing = conn.execute("SELECT * FROM patients WHERE phone=?", (phone,)).fetchone()
         if existing:
             conn.close()
-            return {"error": "Patient already exists"}
+            return {"success": False, "message": "Patient already exists"}
 
         conn.execute("""
             INSERT INTO patients (name, age, gender, phone, preferred_language, password_hash)
@@ -502,11 +533,12 @@ def register_patient(
 
         conn.commit()
         conn.close()
-        return {"status": "created"}
+        return {"success": True, "message": "Account created"}
 
     except Exception as e:
         print("REGISTER ERROR:", e)
-        return {"error": str(e)}
+        return {"success": False, "message": str(e)}
+
     
 @app.get("/admin/appointments")
 def get_admin_appointments(patient_id: int = None):
@@ -605,3 +637,4 @@ def doctor_appointments(doctor_id: int):
     """, (doctor_id,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
