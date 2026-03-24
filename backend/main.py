@@ -507,20 +507,24 @@ async def login(request: Request):
     return {"success": False, "message": "Invalid role"}
 
 @app.post("/register")
-def register_patient(
-    name: str = Form(...),
-    age: int = Form(...),
-    gender: str = Form(...),
-    phone: str = Form(...),
-    password: str = Form(...),
-    language: str = Form("en")
-):
+async def register_patient(request: Request):
     try:
+        data = await request.json()
+        name     = data.get("name", "").strip()
+        age      = data.get("age", 0)
+        phone    = data.get("phone", "").strip()
+        password = data.get("password", "")
+        language = data.get("preferred_language", "en")
+        gender   = data.get("gender", "Unknown")
+
+        if not name or not phone or not password:
+            return {"success": False, "message": "Missing required fields"}
+
         conn = get_db_connection()
         existing = conn.execute("SELECT * FROM patients WHERE phone=?", (phone,)).fetchone()
         if existing:
             conn.close()
-            return {"error": "Patient already exists"}
+            return {"success": False, "message": "Patient already exists"}
 
         conn.execute("""
             INSERT INTO patients (name, age, gender, phone, preferred_language, password_hash)
@@ -529,11 +533,12 @@ def register_patient(
 
         conn.commit()
         conn.close()
-        return {"status": "created"}
+        return {"success": True, "message": "Account created"}
 
     except Exception as e:
         print("REGISTER ERROR:", e)
-        return {"error": str(e)}
+        return {"success": False, "message": str(e)}
+
     
 @app.get("/admin/appointments")
 def get_admin_appointments(patient_id: int = None):
