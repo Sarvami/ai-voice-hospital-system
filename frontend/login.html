@@ -516,6 +516,9 @@
         if (role === 'patient') {
           localStorage.setItem('patient_id', data.user.id);
         }
+        if (role === 'doctor') {
+  localStorage.setItem('doctor_id', data.user.id);
+}
 
         /* Redirect to correct dashboard */
         const redirectMap = {
