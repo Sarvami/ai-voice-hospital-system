@@ -77,14 +77,19 @@ async function loadRecords() {
       return;
     }
 
-    list.forEach(r => {
-      table.innerHTML += `
-        <tr>
-          <td>${r.doctor || r.doctor_name || "—"}</td>
-          <td>${r.diagnosis || "—"}</td>
-          <td>${r.date || "—"}</td>
-        </tr>`;
-    });
+    list.forEach(a => {
+  table.innerHTML += `
+  <tr>
+    <td>${a.appointment_id || a.id || "—"}</td>
+    <td>${a.doctor || a.doctor_name || "—"}</td>
+    <td>${a.date || "—"}</td>
+    <td>${a.time || "—"}</td>
+    <td>${a.status || "—"}</td>
+    <td>${a.status === 'Completed' ?
+      `<button onclick="openRating('${a.appointment_id || a.id}', '${a.doctor || a.doctor_name}')" class="btn-rate">⭐ Rate</button>`
+      : '—'}</td>
+  </tr>`;
+});
 
     document.getElementById("reportCount").innerText = list.length;
 
