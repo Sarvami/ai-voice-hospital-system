@@ -4,13 +4,10 @@
 
 <title>Patient Dashboard</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-
 <link rel="stylesheet" href="patient.css">
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-<link rel="stylesheet" href="../dark-toggle.css">
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
 
@@ -19,6 +16,7 @@
 <div class="dashboard">
 
 <!-- SIDEBAR -->
+
 <div class="sidebar">
 
 <h2 class="logo">
@@ -27,20 +25,16 @@
 
 <ul>
 
-<li onclick="showSection('dashboard', this)" class="active">
+<li onclick="showSection('dashboard')" class="active">
 <i class="fa fa-home"></i> Dashboard
 </li>
 
-<li onclick="showSection('appointments', this)">
+<li onclick="showSection('appointments')">
 <i class="fa fa-calendar"></i> My Appointments
 </li>
 
-<li onclick="showSection('records', this)">
+<li onclick="showSection('records')">
 <i class="fa fa-file"></i> Medical Records
-</li>
-
-<li onclick="window.location.href='../indexx.html'">
-<i class="fa fa-microphone-lines"></i> Book Appointment
 </li>
 
 <li onclick="logout()">
@@ -52,12 +46,14 @@
 </div>
 
 <!-- MAIN AREA -->
+
 <div class="main">
 
-<!-- DASHBOARD STATS -->
-<div id="dashboard" class="section">
-
 <h1>Patient Dashboard</h1>
+
+<!-- DASHBOARD -->
+
+<div id="dashboard" class="section">
 
 <div class="stats">
 
@@ -77,70 +73,59 @@
 </div>
 
 </div>
+
 </div>
 
 <!-- APPOINTMENTS -->
+
 <div id="appointments" class="section hidden">
 
-<h2>My Appointments</h2>
+<h2>Appointments</h2>
 
 <table>
+
 <thead>
 <tr>
-<th>ID</th>
+<th>Appointment ID</th>
 <th>Doctor</th>
 <th>Date</th>
 <th>Time</th>
-<th>Status</th>
 </tr>
 </thead>
+
 <tbody id="appointmentsTable"></tbody>
+
 </table>
 
 </div>
 
-<!-- MEDICAL RECORDS -->
+<!-- RECORDS -->
+
 <div id="records" class="section hidden">
 
 <h2>Medical Records</h2>
 
 <table>
+
 <thead>
 <tr>
-<th>ID</th>
 <th>Doctor</th>
+<th>Diagnosis</th>
 <th>Date</th>
-<th>Time</th>
-<th>Status</th>
-<th>Action</th>
 </tr>
 </thead>
+
 <tbody id="recordsTable"></tbody>
+
 </table>
 
 </div>
 
-</div><!-- /main -->
-</div><!-- /dashboard -->
+</div>
+
+</div>
 
 <script src="patient.js"></script>
-<script src="../dark-toggle.js"></script>
-<div id="ratingModal">
-  <div id="ratingBox">
-    <h3>Rate Dr. <span id="ratingDoctorName"></span></h3>
-    <div id="stars">
-      <span onclick="setRating(1)">★</span>
-      <span onclick="setRating(2)">★</span>
-      <span onclick="setRating(3)">★</span>
-      <span onclick="setRating(4)">★</span>
-      <span onclick="setRating(5)">★</span>
-    </div>
-    <textarea id="reviewText" placeholder="Write a review (optional)"></textarea>
-    <div class="rating-btns">
-      <button onclick="submitRating()">Submit</button>
-      <button onclick="closeRating()" class="skip">Skip</button>
-    </div>
-  </div>
-</div>
+
 </body>
 </html>
