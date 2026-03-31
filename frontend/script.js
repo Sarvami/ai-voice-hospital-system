@@ -158,15 +158,23 @@ document.addEventListener("DOMContentLoaded", () => {
           formData.append("lang", selectedLang);
           formData.append("patient_id", localStorage.getItem("patient_id"));
 
+          console.log("Sending to backend...");
+          console.log("patient_id:", localStorage.getItem("patient_id"));
+          console.log("lang:", selectedLang);
+
           try {
             const res = await fetch(`${BACKEND}/process-audio`, { method: "POST", body: formData });
+            console.log("Response status:", res.status);
+            console.log("Response ok:", res.ok);
 
             if (!res.ok) {
               if (statusText) statusText.innerText = "Backend error ❌";
+              console.error("Backend error:", res.status);
               return;
             }
 
             const audioData = await res.blob();
+            console.log("Audio blob size:", audioData.size);
             const url = URL.createObjectURL(audioData);
 
             if (audioPlayer) {
@@ -178,10 +186,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (statusText) statusText.innerText = "Response received ✅";
 
-          } catch {
+          } catch (err) {
+            console.error("Fetch error:", err);
             if (statusText) statusText.innerText = "Cannot reach backend ❌";
           }
-        };
+        }; // end onstop
 
       } catch {
         alert("Microphone permission denied!");
@@ -219,24 +228,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-});
-// Logout function
+}); // end DOMContentLoaded
+
+/* ================= LOGOUT FUNCTION ================= */
 function logout() {
-    // Clear user session data (if using localStorage/sessionStorage)
-    localStorage.removeItem('user');
-    sessionStorage.clear();
-    
-    // Optional: Clear any cookies
-    document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-    });
-    
-    // Redirect to login page
-    window.location.href = 'login.html'; // or 'index.html' depending on your login page
-    
-    // Alternative: If you're using a backend API
-    // fetch('/api/logout', { method: 'POST' })
-    //     .then(() => {
-    //         window.location.href = 'login.html';
-    //     });
+  localStorage.clear();
+  window.location.href = "login.html";
 }
