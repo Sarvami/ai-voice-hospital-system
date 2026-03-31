@@ -293,8 +293,10 @@ def generate_reply(text, user_id="user1", lang="en"):
 
     if state == "waiting_doctor":
      available = user_data[user_id].get("available_doctors", [])
-    chosen = None
-
+     chosen = None
+     print(f"TEXT: {text}")
+     print(f"AVAILABLE: {available}")
+    
     for doc in available:
         # extract last name and check if it's in the text
         parts = doc.lower().replace("dr.", "").replace("dr", "").strip().split()
@@ -337,6 +339,8 @@ def generate_reply(text, user_id="user1", lang="en"):
         return f"Got it, {user_data[user_id]['date']}. At what time?"
      else:
         return "Sorry, I didn't catch the date. Please say just the date, like 'March 23rd' or 'tomorrow'."
+    
+   
 
     if state == "waiting_time":
      parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
