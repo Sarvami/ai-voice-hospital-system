@@ -430,6 +430,15 @@ class TextInput(BaseModel):
     text: str
     lang: str = "en"
     patient_id: int = 0   # FIX 5: added missing patient_id field
+    
+class AddDoctorRequest(BaseModel):
+    name: str
+    department: str
+    qualification: str = ""
+    experience_years: int = 0
+    phone: str          # this is the DOC-style login ID e.g. "DOC51"
+    password: str
+    available_days: str = ""
 
 
 @app.post("/process-text")
@@ -667,4 +676,75 @@ def patient_appointments(patient_id: int):
 def patient_records(patient_id: int):
     # placeholder for now
     return []
+
+# ── 1. OVERVIEW ────────────────────────────────────────────────────────────────
+ 
+@app.get("/admin/overview")
+def get_admin_overview():
+    conn = get_db_connection()
+    patients     = conn.execute("SELECT COUNT(*) FROM patients").fetchone()[0]
+    doctors      = conn.execute("SELECT COUNT(*) FROM doctors").fetchone()[0]
+    appointments = conn.execute("SELECT COUNT(*) FROM appointments").fetchone()[0]
+    conn.close()
+    return {"patients": patients, "doctors": doctors, "appointments": appointments}
+ 
+ 
+# ── 2. ALL PATIENTS ────────────────────────────────────────────────────────────
+ 
+@app.get("/admin/patients")
+def get_admin_patients():
+    conn = get_db_connection()
+    rows = conn.execute(
+        "SELECT name, age, phone, preferred_language, created_at FROM patients ORDER BY patient_id DESC"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+ 
+ 
+# ── 3. ALL DOCTORS ─────────────────────────────────────────────────────────────
+ 
+@app.get("/admin/doctors")
+def get_admin_doctors():
+    conn = get_db_connection()
+    rows = conn.execute(
+        """SELECT doctor_id, name, department, qualification,
+                  experience_years, available_days
+           FROM doctors ORDER BY doctor_id DESC"""
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+ 
+ 
+# ── 4. ADD DOCTOR ──────────────────────────────────────────────────────────────
+ 
+@app.post("/admin/add-doctor")
+def add_doctor(req: AddDoctorRequest):
+    conn = get_db_connection()
+ 
+    # Prevent duplicate phone / login ID
+    existing = conn.execute(
+        "SELECT doctor_id FROM doctors WHERE phone = ?", (req.phone,)
+    ).fetchone()
+    if existing:
+        conn.close()
+        return {"success": False, "message": f"A doctor with ID '{req.phone}' already exists."}
+ 
+    conn.execute(
+        """INSERT INTO doctors
+           (name, department, qualification, experience_years, available_days, phone, password_hash)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (
+            req.name,
+            req.department,
+            req.qualification,
+            req.experience_years,
+            req.available_days,
+            req.phone,                        # e.g. "DOC51"
+            hash_password(req.password),      # reuses your existing hash_password()
+        )
+    )
+    conn.commit()
+    conn.close()
+    return {"success": True}
+ 
 
