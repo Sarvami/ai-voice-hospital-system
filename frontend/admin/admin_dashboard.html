@@ -42,20 +42,17 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 </li>
 
 <li onclick="showSection('nurses')">
-<i class="fa fa-user-nurse"></i> Assign Nurses
+<i class="fa fa-user-nurse"></i> Assign Nurse
 </li>
 
 <li onclick="showSection('leaves')">
-<i class="fa fa-bed"></i> Staff Leaves
-</li>
-
-<li onclick="showSection('voice')">
-<i class="fa fa-microphone"></i> Voice Notes
+<i class="fa fa-bed"></i> Leaves
 </li>
 
 <li onclick="logout()">
 <i class="fa fa-sign-out"></i> Logout
 </li>
+
 </ul>
 
 </div>
@@ -98,13 +95,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <tr>
 <th>Name</th>
 <th>Age</th>
-<th>Phone</th>
-<th>Language</th>
+<th>Condition</th>
 </tr>
 </thead>
-<tbody id="patientsTable"></tbody>
-</table>
 
+<tbody id="patientsTable"></tbody>
+
+</table>
 </div>
 
 <!-- DOCTORS -->
@@ -116,13 +113,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <tr>
 <th>Name</th>
 <th>Specialization</th>
-<th>Experience</th>
-<th>Available Days</th>
+<th>Patients</th>
 </tr>
 </thead>
-<tbody id="doctorsTable"></tbody>
-</table>
 
+<tbody id="doctorsTable"></tbody>
+
+</table>
 </div>
 
 <!-- APPOINTMENTS -->
@@ -137,22 +134,25 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <th>Doctor</th>
 <th>Date</th>
 <th>Time</th>
-<th>Status</th>
 </tr>
 </thead>
-<tbody id="appointmentsTable"></tbody>
-</table>
 
+<tbody id="appointmentsTable"></tbody>
+
+</table>
 </div>
 
-<!-- NURSES -->
+<!-- NURSE -->
 <div id="nurses" class="section hidden">
 
 <div class="card">
 <h3>Assign Nurse</h3>
+
 <input type="text" id="doctorName" placeholder="Doctor Name">
 <input type="text" id="nurseName" placeholder="Nurse Name">
+
 <button onclick="assignNurse()">Assign</button>
+
 </div>
 
 </div>
@@ -162,17 +162,14 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 
 <div class="card">
 <h3>Manage Leaves</h3>
+
 <input type="text" id="staffName" placeholder="Staff Name">
 <input type="date" id="leaveDate">
+
 <button onclick="addLeave()">Add Leave</button>
-</div>
 
 </div>
 
-<!-- VOICE -->
-<div id="voice" class="section hidden">
-<h2>Voice Notes</h2>
-<ul id="voiceList"></ul>
 </div>
 
 </div>
