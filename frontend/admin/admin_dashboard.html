@@ -1,131 +1,178 @@
 <!DOCTYPE html>
 <html>
 <head>
-
+ 
 <title>Admin Dashboard</title>
-
+ 
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-
+ 
 <link rel="stylesheet" href="admin.css">
-
+ 
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
+ 
+<style>
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal-box {
+  background: #1a2744;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 400px;
+}
+.modal-box h3 { margin-bottom: 20px; color: #4fc3f7; font-size: 18px; }
+.modal-box input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #e8eaf6;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  margin-bottom: 12px;
+  outline: none;
+}
+.modal-box input:focus { border-color: #4fc3f7; }
+.modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+.modal-actions button {
+  flex: 1; padding: 12px; border-radius: 10px; border: none;
+  font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; font-size: 14px;
+}
+.btn-confirm { background: linear-gradient(135deg, #4fc3f7, #7c83fd); color: #0a0f1e; }
+.btn-cancel { background: rgba(255,255,255,0.08); color: #e8eaf6; }
+.modal-msg { font-size: 12px; margin-top: 8px; min-height: 16px; text-align: center; }
+</style>
+ 
 </head>
-
 <body>
-
+ 
 <div class="dashboard">
-
+ 
 <!-- SIDEBAR -->
 <div class="sidebar">
-
 <h2 class="logo">
 <i class="fa fa-microphone"></i> AI Voice Hospital
 </h2>
-
 <ul>
-<li onclick="showSection('overview')" class="active">
+<li onclick="showSection('overview', this)" class="active">
 <i class="fa fa-home"></i> Overview
 </li>
-
-<li onclick="showSection('patients')">
+<li onclick="showSection('patients', this)">
 <i class="fa fa-user"></i> Patients
 </li>
-
-<li onclick="showSection('doctors')">
+<li onclick="showSection('doctors', this)">
 <i class="fa fa-user-md"></i> Doctors
 </li>
-
-<li onclick="showSection('appointments')">
+<li onclick="showSection('appointments', this)">
 <i class="fa fa-calendar"></i> Appointments
 </li>
-
-<li onclick="showSection('nurses')">
-<i class="fa fa-user-nurse"></i> Assign Nurse
-</li>
-
-<li onclick="showSection('leaves')">
-<i class="fa fa-bed"></i> Leaves
-</li>
-
 <li onclick="logout()">
 <i class="fa fa-sign-out"></i> Logout
 </li>
-
 </ul>
-
 </div>
-
+ 
 <!-- MAIN -->
 <div class="main">
-
 <h1>Admin Dashboard</h1>
-
+ 
 <!-- OVERVIEW -->
 <div id="overview" class="section">
-
 <div class="cards">
-
 <div class="card">
 <h3>Total Patients</h3>
 <p id="totalPatients">0</p>
 </div>
-
 <div class="card">
 <h3>Total Doctors</h3>
 <p id="totalDoctors">0</p>
 </div>
-
 <div class="card">
 <h3>Total Appointments</h3>
 <p id="totalAppointments">0</p>
 </div>
-
 </div>
-
 </div>
-
+ 
 <!-- PATIENTS -->
 <div id="patients" class="section hidden">
-<h2>Patients</h2>
-
+<h2>All Patients</h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
 <th>Age</th>
-<th>Condition</th>
+<th>Phone</th>
+<th>Language</th>
+<th>Registered</th>
 </tr>
 </thead>
-
 <tbody id="patientsTable"></tbody>
-
 </table>
 </div>
-
+ 
 <!-- DOCTORS -->
 <div id="doctors" class="section hidden">
 <h2>Doctors</h2>
-
+ 
+<div class="card" style="margin-bottom:24px;">
+<h3>Add New Doctor</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+<input type="text" id="newDoctorName" placeholder="Full Name">
+<input type="text" id="newDoctorDept" placeholder="Department">
+<input type="text" id="newDoctorQual" placeholder="Qualification">
+<input type="number" id="newDoctorExp" placeholder="Experience (years)">
+<input type="text" id="newDoctorPhone" placeholder="Phone">
+<input type="password" id="newDoctorPassword" placeholder="Password">
+<input type="text" id="newDoctorDays" placeholder="Available Days (e.g. Mon,Tue,Wed)" style="grid-column:span 2;">
+</div>
+<button onclick="addDoctor()" style="margin-top:12px;">Add Doctor</button>
+<p id="doctorMsg" style="margin-top:8px;font-size:13px;"></p>
+</div>
+ 
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Specialization</th>
-<th>Patients</th>
+<th>Department</th>
+<th>Qualification</th>
+<th>Experience</th>
+<th>Available Days</th>
 </tr>
 </thead>
-
 <tbody id="doctorsTable"></tbody>
-
 </table>
 </div>
-
+ 
 <!-- APPOINTMENTS -->
 <div id="appointments" class="section hidden">
 <h2>Appointments</h2>
-
+ 
+<div class="card" style="margin-bottom:24px;">
+<h3>Schedule New Appointment</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+<input type="text" id="apptPatientPhone" placeholder="Patient Phone">
+<input type="number" id="apptDoctorId" placeholder="Doctor ID">
+<input type="date" id="apptDate">
+<input type="time" id="apptTime">
+<input type="text" id="apptReason" placeholder="Reason" style="grid-column:span 2;">
+</div>
+<button onclick="scheduleAppointment()" style="margin-top:12px;">Schedule</button>
+<p id="apptMsg" style="margin-top:8px;font-size:13px;"></p>
+</div>
+ 
 <table>
 <thead>
 <tr>
@@ -134,49 +181,31 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <th>Doctor</th>
 <th>Date</th>
 <th>Time</th>
+<th>Status</th>
+<th>Action</th>
 </tr>
 </thead>
-
 <tbody id="appointmentsTable"></tbody>
-
 </table>
 </div>
-
-<!-- NURSE -->
-<div id="nurses" class="section hidden">
-
-<div class="card">
-<h3>Assign Nurse</h3>
-
-<input type="text" id="doctorName" placeholder="Doctor Name">
-<input type="text" id="nurseName" placeholder="Nurse Name">
-
-<button onclick="assignNurse()">Assign</button>
-
+ 
+</div><!-- /main -->
+</div><!-- /dashboard -->
+ 
+<!-- RESCHEDULE MODAL -->
+<div class="modal-overlay" id="rescheduleModal">
+  <div class="modal-box">
+    <h3>📅 Reschedule Appointment</h3>
+    <input type="date" id="newRescheduleDate">
+    <input type="time" id="newRescheduleTime">
+    <p class="modal-msg" id="rescheduleMsg"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeRescheduleModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmReschedule()">Confirm</button>
+    </div>
+  </div>
 </div>
-
-</div>
-
-<!-- LEAVES -->
-<div id="leaves" class="section hidden">
-
-<div class="card">
-<h3>Manage Leaves</h3>
-
-<input type="text" id="staffName" placeholder="Staff Name">
-<input type="date" id="leaveDate">
-
-<button onclick="addLeave()">Add Leave</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
+ 
 <script src="admin.js"></script>
-
 </body>
 </html>
