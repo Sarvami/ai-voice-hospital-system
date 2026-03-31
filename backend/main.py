@@ -292,27 +292,33 @@ def generate_reply(text, user_id="user1", lang="en"):
         return "Sorry, I didn't catch that. Please describe your problem."
 
     if state == "waiting_doctor":
-        # FIX 3: Actually try to match what the user said to a doctor name
-        available = user_data[user_id].get("available_doctors", [])
-        chosen = None
+     available = user_data[user_id].get("available_doctors", [])
+    chosen = None
 
-        for doc in available:
-            if doc.lower() in text or any(part in text for part in doc.lower().split()):
+    for doc in available:
+        # extract last name and check if it's in the text
+        parts = doc.lower().replace("dr.", "").replace("dr", "").strip().split()
+        for part in parts:
+            if part in text.lower():
                 chosen = doc
                 break
+        if chosen:
+            break
 
-        # fallback: pick first doctor if no match
-        if not chosen and available:
-            chosen = available[0]
+    # fuzzy match as fallback
+    if not chosen:
+        for doc in available:
+            parts = doc.lower().replace("dr.", "").strip().split()
+            for part in parts:
+                matches = difflib.get_close_matches(part, text.lower().split(), 1, 0.6)
+                if matches:
+                    chosen = doc
+                    break
+            if chosen:
+                break
 
-        info = find_doctor_by_name(chosen)
-        if not info:
-            return "Could not find that doctor. Please try again."
-
-        user_data[user_id]["doctor"] = chosen
-        user_data[user_id]["doctor_id"] = info["doctor_id"]
-        user_state[user_id] = "waiting_date"
-        return f"Okay, {chosen}. On which date would you like the appointment?"
+    if not chosen:
+        return f"Sorry, I didn't catch that. Available doctors are: {', '.join(available)}. Please say a name."
 
     if state == "waiting_date":
      parsed = dateparser.parse(text, settings={
