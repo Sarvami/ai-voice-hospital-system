@@ -638,3 +638,23 @@ def doctor_appointments(doctor_id: int):
     conn.close()
     return [dict(r) for r in rows]
 
+@app.get("/patient/appointments")
+def patient_appointments(patient_id: int):
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT a.appointment_id, d.name AS doctor,
+               a.appointment_date AS date, a.appointment_time AS time,
+               a.status, a.reason
+        FROM appointments a
+        JOIN doctors d ON a.doctor_id = d.doctor_id
+        WHERE a.patient_id = ?
+        ORDER BY a.appointment_date DESC
+    """, (patient_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.get("/patient/records")
+def patient_records(patient_id: int):
+    # placeholder for now
+    return []
+
