@@ -1,42 +1,19 @@
-<<<<<<< HEAD
 body{
 margin:0;
 font-family:'Inter', sans-serif;
-background:linear-gradient(90deg,#020617,#04112a,#08204a,#0b2a5c);
+background: linear-gradient(90deg,#020617,#04112a,#08204a,#0b2a5c);
 color:#cbd5f5;
 }
 
-/* HEADINGS */
 h1,h2,h3{
 font-family:'Sora', sans-serif;
 }
 
-/* LAYOUT */
-=======
-/* ===== BODY BACKGROUND (MATCH IMAGE EXACTLY) ===== */
-
-body{
-margin:0;
-font-family:'Inter','Segoe UI',sans-serif;
-background: linear-gradient(
-    90deg,
-    #020617 0%,
-    #04112a 30%,
-    #08204a 70%,
-    #0b2a5c 100%
-);
-color:#cbd5f5;
-}
-
-/* ===== DASHBOARD LAYOUT ===== */
-
->>>>>>> 8327c51bf2af731e433958c65b201e4ad46dc083
 .dashboard{
 display:flex;
 height:100vh;
 }
 
-<<<<<<< HEAD
 /* SIDEBAR */
 .sidebar{
 width:220px;
@@ -49,24 +26,6 @@ margin-bottom:30px;
 color:#e2e8f0;
 }
 
-=======
-/* ===== SIDEBAR ===== */
-
-.sidebar{
-width:240px;
-background:#020617;
-padding:25px;
-}
-
-.logo{
-color:#e2e8f0;
-font-weight:600;
-margin-bottom:30px;
-}
-
-/* SIDEBAR LIST */
-
->>>>>>> 8327c51bf2af731e433958c65b201e4ad46dc083
 .sidebar ul{
 list-style:none;
 padding:0;
@@ -77,7 +36,6 @@ padding:12px;
 margin-bottom:10px;
 cursor:pointer;
 color:#cbd5f5;
-<<<<<<< HEAD
 }
 
 .sidebar li:hover{
@@ -86,25 +44,11 @@ color:#38bdf8;
 }
 
 /* MAIN */
-=======
-transition:0.3s;
-border-radius:6px;
-}
-
-.sidebar li:hover{
-color:#38bdf8;
-background: rgba(255,255,255,0.05);
-}
-
-/* ===== MAIN AREA ===== */
-
->>>>>>> 8327c51bf2af731e433958c65b201e4ad46dc083
 .main{
 flex:1;
 padding:40px;
 }
 
-<<<<<<< HEAD
 /* CARDS */
 .cards{
 display:flex;
@@ -112,78 +56,35 @@ gap:20px;
 }
 
 .card{
-background:linear-gradient(145deg,#1e2f5c,#243b6b);
+background: linear-gradient(145deg,#1e2f5c,#243b6b);
 padding:20px;
 border-radius:12px;
 width:250px;
 }
 
-/* TABLE */
-=======
-/* ===== HEADINGS ===== */
-
-h1{
-color:#e2e8f0;
-font-size:32px;
-font-weight:700;
-}
-
-h2{
-color:#cbd5f5;
-}
-
-/* ===== STATS CARDS ===== */
-
-.stats{
-display:flex;
-gap:25px;
-}
-
-.statCard{
-background:#1e3a6d;
-padding:25px;
-border-radius:12px;
-width:220px;
-text-align:center;
-color:white;
-transition:0.3s;
-}
-
-.statCard:hover{
-transform:translateY(-5px);
-}
-
-/* ===== TABLE ===== */
-
->>>>>>> 8327c51bf2af731e433958c65b201e4ad46dc083
+/* TABLE STYLE */
 table{
-width:100%;
-border-collapse:collapse;
-margin-top:20px;
-<<<<<<< HEAD
-=======
-border-radius:10px;
-overflow:hidden;
->>>>>>> 8327c51bf2af731e433958c65b201e4ad46dc083
+width:90%;
+margin:30px auto;
+border-collapse:separate;
+border-spacing:0;
+}
+
+thead tr{
+background:#2b4a7f;
 }
 
 th{
-background:#1e3a6d;
-<<<<<<< HEAD
-padding:12px;
+padding:16px;
+text-align:center;
 color:white;
-=======
-padding:14px;
-color:white;
-font-weight:600;
->>>>>>> 8327c51bf2af731e433958c65b201e4ad46dc083
 }
 
 td{
-background:#0f2a5c;
-padding:12px;
+padding:16px;
 text-align:center;
-<<<<<<< HEAD
+background:#1b3563;
+color:#cbd5f5;
 }
 
 /* INPUT */
@@ -197,6 +98,11 @@ background:rgba(255,255,255,0.1);
 color:white;
 }
 
+.card input::placeholder{
+color:white;
+opacity:1;
+}
+
 .card button{
 padding:10px;
 border:none;
@@ -206,24 +112,6 @@ color:white;
 cursor:pointer;
 }
 
-/* SECTION */
-=======
-color:#cbd5f5;
-}
-
-tr:hover td{
-background:#1e3a6d;
-}
-
-/* ===== SECTIONS ===== */
-
-.section{
-margin-top:20px;
-}
-
-/* ===== HIDDEN ===== */
-
->>>>>>> 8327c51bf2af731e433958c65b201e4ad46dc083
 .hidden{
 display:none;
 }
