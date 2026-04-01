@@ -31,6 +31,7 @@ cd ai-voice-hospital-system
 cd backend
 python -m venv venv
 venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
 ```
 
@@ -73,13 +74,18 @@ This adds 50 doctors across 10 departments and sets up default login credentials
 
 ## 🔑 Default Login Credentials
 
+### Admin
+- Phone/ID: `admin`
+- Password: `admin123`
+
 ### Patient (Sample)
 - Phone: `9921523959`
 - Password: `hello123`
 
 ### Doctor
-- Doctor ID: `DOC1` through `DOC50`
+- Doctor ID: `DOC1` through `DOC50` (stored in the `phone` column)
 - Password: `doctor123`
+- New doctors added via the admin dashboard follow the same pattern (e.g. `DOC51`, `DOC52`, ...)
 
 ---
 
@@ -122,7 +128,9 @@ ai-voice-hospital-system/
 ## ✅ Features Built
 
 - Patient registration and login
-- Doctor login with hospital-issued ID
+- Doctor login with hospital-issued ID (DOC1–DOC50)
+- Admin dashboard with overview, patients, doctors, appointments
+- Add new doctors via admin panel
 - Multilingual voice interaction (Hindi, Marathi, English)
 - Speech-to-text via AssemblyAI
 - Auto-translation via Google Translate
@@ -135,7 +143,6 @@ ai-voice-hospital-system/
 - Double booking prevention
 - Patient dashboard with appointment history
 - Doctor dashboard with appointments and stats
-- Admin dashboard with overview, patients, doctors, appointments
 - Department query answering ("What department is Dr. X in?")
 
 ---
@@ -159,15 +166,20 @@ ai-voice-hospital-system/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/login` | Login for patient/doctor/admin |
+| POST | `/login` | Login for patient / doctor / admin |
 | POST | `/register` | Register new patient |
 | POST | `/process-audio` | Send voice recording, get audio response |
+| POST | `/process-text` | Send text input, get audio response |
 | GET | `/doctors` | Get all doctors |
-| GET | `/doctor/dashboard` | Doctor's stats |
-| GET | `/doctor/appointments` | Doctor's appointments |
-| GET | `/patient/appointments` | Patient's appointments |
-| GET | `/admin/appointments` | All appointments (admin) |
-| GET | `/admin/overview` | Admin stats overview |
+| GET | `/doctor/dashboard` | Doctor's stats (requires `doctor_id`) |
+| GET | `/doctor/appointments` | Doctor's appointments (requires `doctor_id`) |
+| GET | `/patient/appointments` | Patient's appointments (requires `patient_id`) |
+| GET | `/patient/records` | Patient records — placeholder |
+| GET | `/admin/overview` | Total counts: patients, doctors, appointments |
+| GET | `/admin/patients` | All patients (name, age, phone, language, registered) |
+| GET | `/admin/doctors` | All doctors (name, dept, qualification, experience, days) |
+| POST | `/admin/add-doctor` | Add a new doctor with hashed password |
+| GET | `/admin/appointments` | All appointments with patient & doctor names |
 
 ---
 
@@ -176,4 +188,6 @@ ai-voice-hospital-system/
 - The voice pipeline supports Hindi (`hi`), Marathi (`mr`), and English (`en`)
 - Tamil, Telugu, Gujarati are shown in UI but not yet supported in backend
 - State machine resets if the backend server is restarted
-- Always run backend before opening the frontend
+- Doctor credentials use the `phone` column to store the DOC-style ID (e.g. `DOC1`)
+- Always run the backend before opening the frontend
+- Database file lives at `database/hospital.db` relative to the project root; backend connects via `../database/hospital.db`
