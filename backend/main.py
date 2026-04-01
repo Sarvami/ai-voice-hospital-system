@@ -471,18 +471,28 @@ async def get_all_doctors():
 
 @app.post("/login")
 async def login(request: Request):
-     
-    data=await request.json()
+
+    data     = await request.json()
     password = data.get("password", "")
     role     = data.get("role", "patient")
 
+    # ── ADMIN (no DB needed) ──────────────────────────────────────
+    if role == "admin":
+        ADMIN_EMAIL = "admin@gmail.com"
+        ADMIN_HASH  = "$2b$12$D4FWvBXmgrJLpN.JmmCnLexIzMOchI/56oQUdn3JQGaL8knIDoI.."
+        email = data.get("email", "").strip()
+        if email == ADMIN_EMAIL and verify_password(password, ADMIN_HASH):
+            return {"success": True, "user": {"id": 0, "name": "Admin", "role": "admin"}}
+        return {"success": False, "message": "Invalid admin credentials"}
+
+    # ── PATIENT & DOCTOR (need DB) ────────────────────────────────
     if role == "doctor":
-     phone = data.get("doctor_id", "").strip()
+        phone = data.get("doctor_id", "").strip()
     else:
-     phone = data.get("phone", "").strip()
+        phone = data.get("phone", "").strip()
 
     if not phone or not password:
-     return {"success": False, "message": "Missing fields"}
+        return {"success": False, "message": "Missing fields"}
 
     conn = get_db_connection()
 
@@ -493,7 +503,6 @@ async def login(request: Request):
             return {"success": False, "message": "User not found"}
         if not user["password_hash"] or not verify_password(password, user["password_hash"]):
             return {"success": False, "message": "Incorrect password"}
-        localStorage_id = "patient_id"
         return {
             "success": True,
             "user": {
