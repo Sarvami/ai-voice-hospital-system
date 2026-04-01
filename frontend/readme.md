@@ -75,7 +75,7 @@ This adds 50 doctors across 10 departments and sets up default login credentials
 ## 🔑 Default Login Credentials
 
 ### Admin
-- Phone/ID: `admin`
+- id: `admin@gmail.com`
 - Password: `admin123`
 
 ### Patient (Sample)
@@ -83,7 +83,7 @@ This adds 50 doctors across 10 departments and sets up default login credentials
 - Password: `hello123`
 
 ### Doctor
-- Doctor ID: `DOC1` through `DOC50` (stored in the `phone` column)
+- Doctor ID: `DOC20` through `DOC69` (stored in the `phone` column)
 - Password: `doctor123`
 - New doctors added via the admin dashboard follow the same pattern (e.g. `DOC51`, `DOC52`, ...)
 
