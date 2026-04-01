@@ -218,28 +218,6 @@ function clearApptFilters() {
   renderAppointments(allAppointments);
 }
 
-/* ── ASSIGN NURSE ── */
-async function assignNurse() {
-  const doctor = document.getElementById('doctorName').value.trim();
-  const nurse  = document.getElementById('nurseName').value.trim();
-  const msgEl  = document.getElementById('nurseMsg');
-
-  msgEl.style.color = '#ef9a9a';
-  if (!doctor || !nurse) { msgEl.innerText = 'Please fill in both fields.'; return; }
-
-  try {
-    const res  = await fetch(`${API}/admin/assign-nurse`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doctor, nurse }),
-    });
-    const data = await res.json();
-    msgEl.style.color = '#69f0ae';
-    msgEl.innerText = data.message || 'Nurse assigned!';
-    document.getElementById('doctorName').value = '';
-    document.getElementById('nurseName').value  = '';
-  } catch(e) { msgEl.innerText = 'Could not connect.'; }
-}
-
 /* ── ADD LEAVE ── */
 async function addLeave() {
   const name  = document.getElementById('staffName').value.trim();
