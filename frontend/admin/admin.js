@@ -1,263 +1,272 @@
 const API = "http://127.0.0.1:8000";
-let currentRescheduleId = null;
- 
-/* SWITCH SECTIONS */
-function showSection(section, el) {
-  document.querySelectorAll(".section").forEach(s => s.classList.add("hidden"));
-  document.getElementById(section).classList.remove("hidden");
-  document.querySelectorAll(".sidebar ul li").forEach(l => l.classList.remove("active"));
-  if (el) el.classList.add("active");
- 
-  if (section === "patients") loadPatients();
-  if (section === "doctors") loadDoctors();
-  if (section === "appointments") loadAppointments();
+
+/* ── All doctors cache for filtering ── */
+let allDoctors      = [];
+let allAppointments = [];
+
+/* ── Section titles ── */
+const sectionTitles = {
+  overview:     'Overview',
+  patients:     'Patients',
+  viewDoctors:  'Doctors — View',
+  createDoctor: 'Doctors — Create',
+  appointments: 'Appointments',
+  nurses:       'Assign Nurses',
+  leaves:       'Staff Leaves',
+  voice:        'Voice Notes',
+};
+
+/* ── SWITCH SECTION ── */
+function showSection(section, liEl) {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+  document.getElementById(section).classList.remove('hidden');
+
+  /* Update active sidebar item */
+  document.querySelectorAll('.sidebar li').forEach(l => l.classList.remove('active'));
+  if (liEl) liEl.classList.add('active');
+
+  /* Update page title bar */
+  document.getElementById('currentPageTitle').textContent = sectionTitles[section] || '';
+
+  /* Load data for section */
+  if (section === 'patients')     loadPatients();
+  if (section === 'viewDoctors')  loadDoctors();
+  if (section === 'appointments') loadAppointments();
 }
- 
-/* LOAD OVERVIEW */
-async function loadOverview() {
-  try {
-    const res = await fetch(`${API}/admin/overview`);
-    const data = await res.json();
-    document.getElementById("totalPatients").innerText = data.patients || 0;
-    document.getElementById("totalDoctors").innerText = data.doctors || 0;
-    document.getElementById("totalAppointments").innerText = data.appointments || 0;
-  } catch (e) {
-    console.error("Failed to load overview:", e);
+
+/* ── DOCTOR SUBMENU TOGGLE ── */
+function toggleDoctorMenu(liEl) {
+  const submenu = document.getElementById('doctorSubmenu');
+  const arrow   = document.getElementById('doctorArrow');
+  submenu.classList.toggle('hidden');
+  arrow.classList.toggle('rotated');
+  if (liEl) {
+    document.querySelectorAll('.sidebar > ul > li').forEach(l => l.classList.remove('active'));
+    liEl.classList.add('active');
   }
 }
- 
-/* LOAD PATIENTS */
-async function loadPatients() {
+
+/* ── OVERVIEW ── */
+async function loadOverview() {
   try {
-    const res = await fetch(`${API}/admin/patients`);
+    const res  = await fetch(`${API}/admin/overview`);
     const data = await res.json();
-    const table = document.getElementById("patientsTable");
-    table.innerHTML = "";
+    document.getElementById('totalPatients').innerText     = data.patients     ?? 0;
+    document.getElementById('totalDoctors').innerText      = data.doctors      ?? 0;
+    document.getElementById('totalAppointments').innerText = data.appointments ?? 0;
+  } catch(e) {
+    console.log('Backend not connected');
+  }
+}
+
+/* ── PATIENTS ── */
+async function loadPatients() {
+  const table = document.getElementById('patientsTable');
+  try {
+    const res  = await fetch(`${API}/admin/patients`);
+    const data = await res.json();
+    table.innerHTML = '';
     if (!data.length) {
-      table.innerHTML = `<tr><td colspan="5">No patients found.</td></tr>`;
+      table.innerHTML = `<tr><td colspan="3" class="empty-row">No patients found</td></tr>`;
       return;
     }
     data.forEach(p => {
       table.innerHTML += `
         <tr>
-          <td>${p.name || "—"}</td>
-          <td>${p.age || "—"}</td>
-          <td>${p.phone || "—"}</td>
-          <td>${p.preferred_language || "—"}</td>
-          <td>${p.created_at ? p.created_at.split(" ")[0] : "—"}</td>
+          <td>${p.name || '—'}</td>
+          <td>${p.age  || '—'}</td>
+          <td>${p.preferred_language || p.language || '—'}</td>
         </tr>`;
     });
-  } catch (e) {
-    console.error("Failed to load patients:", e);
+  } catch(e) {
+    table.innerHTML = `<tr><td colspan="3" class="empty-row">Could not load</td></tr>`;
   }
 }
- 
-/* LOAD DOCTORS */
+
+/* ── DOCTORS ── */
 async function loadDoctors() {
+  const table = document.getElementById('doctorsTable');
   try {
-    const res = await fetch(`${API}/admin/doctors`);
+    const res  = await fetch(`${API}/admin/doctors`);
     const data = await res.json();
-    const table = document.getElementById("doctorsTable");
-    table.innerHTML = "";
-    if (!data.length) {
-      table.innerHTML = `<tr><td colspan="5">No doctors found.</td></tr>`;
-      return;
-    }
-    data.forEach(d => {
-      table.innerHTML += `
-        <tr>
-          <td>${d.name || "—"}</td>
-          <td>${d.department || "—"}</td>
-          <td>${d.qualification || "—"}</td>
-          <td>${d.experience_years || "—"} yrs</td>
-          <td>${d.available_days || "—"}</td>
-        </tr>`;
-    });
-  } catch (e) {
-    console.error("Failed to load doctors:", e);
+    allDoctors = data;
+    renderDoctors(allDoctors);
+  } catch(e) {
+    table.innerHTML = `<tr><td colspan="6" class="empty-row">Could not load</td></tr>`;
   }
 }
- 
-/* ADD DOCTOR */
-async function addDoctor() {
-  const name = document.getElementById("newDoctorName").value.trim();
-  const dept = document.getElementById("newDoctorDept").value.trim();
-  const qual = document.getElementById("newDoctorQual").value.trim();
-  const exp = document.getElementById("newDoctorExp").value.trim();
-  const phone = document.getElementById("newDoctorPhone").value.trim();
-  const password = document.getElementById("newDoctorPassword").value.trim();
-  const days = document.getElementById("newDoctorDays").value.trim();
-  const msg = document.getElementById("doctorMsg");
- 
-  if (!name || !dept || !phone || !password) {
-    msg.style.color = "#ef9a9a";
-    msg.innerText = "Please fill in Name, Department, Phone and Password.";
+
+function renderDoctors(list) {
+  const table = document.getElementById('doctorsTable');
+  table.innerHTML = '';
+  if (!list.length) {
+    table.innerHTML = `<tr><td colspan="6" class="empty-row">No doctors found</td></tr>`;
     return;
   }
- 
+  list.forEach(d => {
+    table.innerHTML += `
+      <tr>
+        <td>${d.doctor_id || d.id || '—'}</td>
+        <td>${d.name || '—'}</td>
+        <td>${d.department || d.specialization || '—'}</td>
+        <td>${d.qualification || '—'}</td>
+        <td>${d.experience_years ?? d.experience ?? '—'} yrs</td>
+        <td>${d.available_days || '—'}</td>
+      </tr>`;
+  });
+}
+
+/* ── DEPARTMENT FILTER (Doctors) ── */
+function filterDoctors() {
+  const dept = document.getElementById('deptFilter').value;
+  if (dept === 'all') { renderDoctors(allDoctors); return; }
+  renderDoctors(allDoctors.filter(d =>
+    (d.department || d.specialization || '').toLowerCase() === dept.toLowerCase()
+  ));
+}
+
+/* ── CREATE DOCTOR ── */
+async function createDoctor() {
+  const name  = document.getElementById('newDoctorName').value.trim();
+  const dept  = document.getElementById('newDoctorDept').value;
+  const qual  = document.getElementById('newDoctorQual').value.trim();
+  const exp   = document.getElementById('newDoctorExp').value;
+  const days  = document.getElementById('newDoctorDays').value.trim();
+  const msgEl = document.getElementById('createDoctorMsg');
+
+  msgEl.style.color = '#ef9a9a';
+  if (!name || !dept || !qual || !exp || !days) {
+    msgEl.innerText = 'Please fill in all fields.'; return;
+  }
+
   try {
-    const res = await fetch(`${API}/admin/add-doctor`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name, department: dept, qualification: qual,
-        experience_years: parseInt(exp) || 0,
-        phone, password, available_days: days
-      })
+    const res  = await fetch(`${API}/admin/create-doctor`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name, department: dept, qualification: qual, experience_years: parseInt(exp), available_days: days }),
     });
     const data = await res.json();
-    if (data.success) {
-      msg.style.color = "#69f0ae";
-      msg.innerText = "✓ Doctor added successfully!";
-      loadDoctors();
-      loadOverview();
-      document.getElementById("newDoctorName").value = "";
-      document.getElementById("newDoctorDept").value = "";
-      document.getElementById("newDoctorQual").value = "";
-      document.getElementById("newDoctorExp").value = "";
-      document.getElementById("newDoctorPhone").value = "";
-      document.getElementById("newDoctorPassword").value = "";
-      document.getElementById("newDoctorDays").value = "";
-    } else {
-      msg.style.color = "#ef9a9a";
-      msg.innerText = data.message || "Failed to add doctor.";
-    }
-  } catch (e) {
-    msg.style.color = "#ef9a9a";
-    msg.innerText = "Could not connect to server.";
+    msgEl.style.color = '#69f0ae';
+    msgEl.innerText = data.message || `✓ Doctor created! Default password: doctor123`;
+    document.getElementById('newDoctorName').value = '';
+    document.getElementById('newDoctorDept').value = '';
+    document.getElementById('newDoctorQual').value = '';
+    document.getElementById('newDoctorExp').value  = '';
+    document.getElementById('newDoctorDays').value = '';
+  } catch(e) {
+    msgEl.innerText = 'Could not connect to server.';
   }
 }
- 
-/* LOAD APPOINTMENTS */
+
+/* ── APPOINTMENTS ── */
 async function loadAppointments() {
+  const table = document.getElementById('appointmentsTable');
   try {
-    const res = await fetch(`${API}/admin/appointments`);
+    const res  = await fetch(`${API}/admin/appointments`);
     const data = await res.json();
-    const table = document.getElementById("appointmentsTable");
-    table.innerHTML = "";
-    if (!data.length) {
-      table.innerHTML = `<tr><td colspan="7">No appointments found.</td></tr>`;
-      return;
-    }
-    data.forEach(a => {
-      table.innerHTML += `
-        <tr>
-          <td>${a.appointment_id || "—"}</td>
-          <td>${a.patient || "—"}</td>
-          <td>${a.doctor || "—"}</td>
-          <td>${a.date || "—"}</td>
-          <td>${a.time || "—"}</td>
-          <td>${a.status || "—"}</td>
-          <td>
-            <button onclick="openRescheduleModal(${a.appointment_id})"
-              style="font-size:11px;padding:4px 10px;border-radius:6px;border:none;background:#4fc3f7;color:#0a0f1e;cursor:pointer;font-weight:600;">
-              Reschedule
-            </button>
-          </td>
-        </tr>`;
-    });
-  } catch (e) {
-    console.error("Failed to load appointments:", e);
+    allAppointments = data;
+    renderAppointments(allAppointments);
+  } catch(e) {
+    table.innerHTML = `<tr><td colspan="7" class="empty-row">Could not load</td></tr>`;
   }
 }
- 
-/* SCHEDULE APPOINTMENT */
-async function scheduleAppointment() {
-  const phone = document.getElementById("apptPatientPhone").value.trim();
-  const doctorId = document.getElementById("apptDoctorId").value.trim();
-  const date = document.getElementById("apptDate").value;
-  const time = document.getElementById("apptTime").value;
-  const reason = document.getElementById("apptReason").value.trim();
-  const msg = document.getElementById("apptMsg");
- 
-  if (!phone || !doctorId || !date || !time) {
-    msg.style.color = "#ef9a9a";
-    msg.innerText = "Please fill in all required fields.";
+
+function renderAppointments(list) {
+  const table = document.getElementById('appointmentsTable');
+  table.innerHTML = '';
+  if (!list.length) {
+    table.innerHTML = `<tr><td colspan="7" class="empty-row">No appointments found</td></tr>`;
     return;
   }
- 
+  list.forEach(a => {
+    const status = a.status || '—';
+    table.innerHTML += `
+      <tr>
+        <td>${a.id || '—'}</td>
+        <td>${a.patient || a.patient_name || '—'}</td>
+        <td>${a.doctor  || a.doctor_name  || '—'}</td>
+        <td>${a.department || a.specialization || '—'}</td>
+        <td>${a.date || '—'}</td>
+        <td>${a.time || '—'}</td>
+        <td><span class="badge badge-${status.toLowerCase()}">${status}</span></td>
+      </tr>`;
+  });
+}
+
+/* ── APPOINTMENT FILTERS ── */
+function filterAppointments() {
+  const dept   = document.getElementById('apptDeptFilter').value;
+  const date   = document.getElementById('apptDateFilter').value;
+  const status = document.getElementById('apptStatusFilter').value;
+
+  let filtered = allAppointments;
+
+  if (dept !== 'all')
+    filtered = filtered.filter(a => (a.department || a.specialization || '').toLowerCase() === dept.toLowerCase());
+  if (date)
+    filtered = filtered.filter(a => a.date === date);
+  if (status !== 'all')
+    filtered = filtered.filter(a => (a.status || '').toLowerCase() === status.toLowerCase());
+
+  renderAppointments(filtered);
+}
+
+function clearApptFilters() {
+  document.getElementById('apptDeptFilter').value   = 'all';
+  document.getElementById('apptDateFilter').value   = '';
+  document.getElementById('apptStatusFilter').value = 'all';
+  renderAppointments(allAppointments);
+}
+
+/* ── ASSIGN NURSE ── */
+async function assignNurse() {
+  const doctor = document.getElementById('doctorName').value.trim();
+  const nurse  = document.getElementById('nurseName').value.trim();
+  const msgEl  = document.getElementById('nurseMsg');
+
+  msgEl.style.color = '#ef9a9a';
+  if (!doctor || !nurse) { msgEl.innerText = 'Please fill in both fields.'; return; }
+
   try {
-    const res = await fetch(`${API}/admin/schedule-appointment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, doctor_id: parseInt(doctorId), date, time, reason })
+    const res  = await fetch(`${API}/admin/assign-nurse`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctor, nurse }),
     });
     const data = await res.json();
-    if (data.success) {
-      msg.style.color = "#69f0ae";
-      msg.innerText = "✓ Appointment scheduled successfully!";
-      loadAppointments();
-      loadOverview();
-      document.getElementById("apptPatientPhone").value = "";
-      document.getElementById("apptDoctorId").value = "";
-      document.getElementById("apptDate").value = "";
-      document.getElementById("apptTime").value = "";
-      document.getElementById("apptReason").value = "";
-    } else {
-      msg.style.color = "#ef9a9a";
-      msg.innerText = data.message || "Failed to schedule.";
-    }
-  } catch (e) {
-    msg.style.color = "#ef9a9a";
-    msg.innerText = "Could not connect to server.";
-  }
+    msgEl.style.color = '#69f0ae';
+    msgEl.innerText = data.message || 'Nurse assigned!';
+    document.getElementById('doctorName').value = '';
+    document.getElementById('nurseName').value  = '';
+  } catch(e) { msgEl.innerText = 'Could not connect.'; }
 }
- 
-/* RESCHEDULE MODAL */
-function openRescheduleModal(id) {
-  currentRescheduleId = id;
-  document.getElementById("newRescheduleDate").value = "";
-  document.getElementById("newRescheduleTime").value = "";
-  document.getElementById("rescheduleMsg").innerText = "";
-  document.getElementById("rescheduleModal").classList.add("active");
-}
- 
-function closeRescheduleModal() {
-  document.getElementById("rescheduleModal").classList.remove("active");
-  currentRescheduleId = null;
-}
- 
-async function confirmReschedule() {
-  const date = document.getElementById("newRescheduleDate").value;
-  const time = document.getElementById("newRescheduleTime").value;
-  const msg = document.getElementById("rescheduleMsg");
- 
-  if (!date || !time) {
-    msg.style.color = "#ef9a9a";
-    msg.innerText = "Please select both date and time.";
-    return;
-  }
- 
+
+/* ── ADD LEAVE ── */
+async function addLeave() {
+  const name  = document.getElementById('staffName').value.trim();
+  const date  = document.getElementById('leaveDate').value;
+  const msgEl = document.getElementById('leaveMsg');
+
+  msgEl.style.color = '#ef9a9a';
+  if (!name || !date) { msgEl.innerText = 'Please fill in both fields.'; return; }
+
   try {
-    const res = await fetch(`${API}/admin/reschedule-appointment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ appointment_id: currentRescheduleId, date, time })
+    const res  = await fetch(`${API}/admin/leave`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, date }),
     });
     const data = await res.json();
-    if (data.success) {
-      msg.style.color = "#69f0ae";
-      msg.innerText = "✓ Rescheduled successfully!";
-      setTimeout(() => {
-        closeRescheduleModal();
-        loadAppointments();
-      }, 1000);
-    } else {
-      msg.style.color = "#ef9a9a";
-      msg.innerText = data.message || "Failed to reschedule.";
-    }
-  } catch (e) {
-    msg.style.color = "#ef9a9a";
-    msg.innerText = "Could not connect to server.";
-  }
+    msgEl.style.color = '#69f0ae';
+    msgEl.innerText = data.message || 'Leave added!';
+    document.getElementById('staffName').value = '';
+    document.getElementById('leaveDate').value = '';
+  } catch(e) { msgEl.innerText = 'Could not connect.'; }
 }
- 
-/* LOGOUT */
+
+/* ── LOGOUT ── */
 function logout() {
   localStorage.clear();
-  window.location.href = "../login.html";
+  window.location.href = '../login.html';
 }
- 
-/* INIT */
+
+/* ── INIT ── */
 loadOverview();
- 
