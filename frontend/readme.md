@@ -6,9 +6,9 @@ An AI-powered multilingual voice assistant that simplifies hospital appointment 
 
 ## 👥 Team
 
-- Sarvami
-- Shravani
-- Tanishka
+- Sarvami Agarwal
+- Shravani Wankhade
+- Tanishka Shinde
 
 ---
 
