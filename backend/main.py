@@ -335,23 +335,33 @@ def generate_reply(text, user_id="user1", lang="en"):
         return f"Great, {chosen}. What date would you like?"
 
     if state == "waiting_date":
+    # expanded cleaning — strip common Hinglish/Marathi noise words
+     cleaned = re.sub(
+        r"\b(i would like|an appointment on|appointment|please|book|schedule|"
+        r"chahungi|chahta|chahiye|chahir|mujhe|ko|co|la|che|ahe|mala|tya|on|"
+        r"the|a|an|for)\b",
+        "", text
+     ).strip()
+
+     parsed = dateparser.parse(cleaned, settings={
+        "PREFER_DATES_FROM": "future",
+        "RELATIVE_BASE": __import__("datetime").datetime.now(),
+        "DATE_ORDER": "DMY",   # ← important for "10 April" format
+     })
+
+    # fallback: try original text too
+     if not parsed:
         parsed = dateparser.parse(text, settings={
             "PREFER_DATES_FROM": "future",
-            "RELATIVE_BASE": __import__("datetime").datetime.now()
+            "DATE_ORDER": "DMY",
         })
-        if not parsed:
-            cleaned = re.sub(
-                r"(i would like|an appointment on|appointment|please|book|schedule|chahungi|chahta|chahiye|mujhe|ko)",
-                "", text
-            ).strip()
-            parsed = dateparser.parse(cleaned, settings={"PREFER_DATES_FROM": "future"})
 
-        if parsed:
-            user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
-            user_state[user_id] = "waiting_time"
-            return f"Got it, {user_data[user_id]['date']}. At what time?"
-        else:
-            return "Sorry, I didn't catch the date. Please say just the date, like 'March 23rd' or 'tomorrow'."
+     if parsed:
+        user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
+        user_state[user_id] = "waiting_time"
+        return f"Got it, {user_data[user_id]['date']}. At what time?"
+     else:
+        return "Sorry, I didn't catch the date. Please say just the date, like 'April 10th' or 'tomorrow'."
 
     if state == "waiting_time":
         parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
@@ -407,7 +417,7 @@ async def process_audio(
 
     try:
         original = speech_to_text(path)
-        english = gt_to_english(original)
+        english = gt_to_english(original) if lang != "en" else original
         print(f"ORIGINAL: {original}")
         print(f"TRANSLATED: {english}")
         print(f"USER STATE: {user_state.get(str(patient_id), 'NOT FOUND')}")
