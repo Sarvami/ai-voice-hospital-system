@@ -49,7 +49,7 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 supported = ["en", "hi", "mr"]
 
 MAX_STT_WAIT = 30
-STT_POLL_INTERVAL = 2
+STT_POLL_INTERVAL = 1
 
 # ------------------ DB CONNECTION ------------------
 # FIX 1: get_db_connection was never defined — added here
@@ -231,22 +231,22 @@ def fuzzy_match(text, keywords):
 
 def generate_reply(text, user_id="user1", lang="en"):
     text = text.lower().strip()
-    if "department" in text and ("which" in text or "what" in text or "belong" in text):
-     for doc in ["mehta", "sharma", "rao", "shah",
-                "desai", "gupta", "iyer", "malhotra",
-                "bose", "chandra", "murthy", "menon",
-                "sinha", "pandey", "hegde", "reddy"]:
-        if doc in text:
-            conn = get_db_connection()
-            result = conn.execute(
-                "SELECT name, department FROM doctors WHERE LOWER(name) LIKE ?",
-                (f"%{doc}%",)
-            ).fetchone()
-            conn.close()
-            if result:
-                return f"{result['name']} belongs to the {result['department']} department."
-     return "Sorry, I couldn't find that doctor."
 
+    if "department" in text and ("which" in text or "what" in text or "belong" in text):
+        for doc in ["mehta", "sharma", "rao", "shah",
+                    "desai", "gupta", "iyer", "malhotra",
+                    "bose", "chandra", "murthy", "menon",
+                    "sinha", "pandey", "hegde", "reddy"]:
+            if doc in text:
+                conn = get_db_connection()
+                result = conn.execute(
+                    "SELECT name, department FROM doctors WHERE LOWER(name) LIKE ?",
+                    (f"%{doc}%",)
+                ).fetchone()
+                conn.close()
+                if result:
+                    return f"{result['name']} belongs to the {result['department']} department."
+        return "Sorry, I couldn't find that doctor."
 
     if user_id not in user_state:
         conn = get_db_connection()
@@ -257,7 +257,7 @@ def generate_reply(text, user_id="user1", lang="en"):
             user_data[user_id]["name"] = patient["name"]
             user_data[user_id]["phone"] = patient["phone"]
             user_data[user_id]["patient_id"] = patient["patient_id"]
-        user_state[user_id] = "idle"  # ← inside the if block now
+        user_state[user_id] = "idle"
 
     state = user_state[user_id]
 
@@ -275,7 +275,6 @@ def generate_reply(text, user_id="user1", lang="en"):
                 matched_dept = dept
                 break
         if not matched_dept:
-            # try fuzzy match as fallback
             match = fuzzy_match(text, list(problem_map.keys()))
             if match:
                 matched_dept = problem_map[match]
@@ -292,88 +291,97 @@ def generate_reply(text, user_id="user1", lang="en"):
         return "Sorry, I didn't catch that. Please describe your problem."
 
     if state == "waiting_doctor":
-     available = user_data[user_id].get("available_doctors", [])
-     chosen = None
-     print(f"TEXT: {text}")
-     print(f"AVAILABLE: {available}")
-    
-    for doc in available:
-        # extract last name and check if it's in the text
-        parts = doc.lower().replace("dr.", "").replace("dr", "").strip().split()
-        for part in parts:
-            if part in text.lower():
-                chosen = doc
-                break
-        if chosen:
-            break
+        available = user_data[user_id].get("available_doctors", [])
+        chosen = None
+        print(f"TEXT: {text}")
+        print(f"AVAILABLE: {available}")
 
-    # fuzzy match as fallback
-    if not chosen:
+        # exact name match
         for doc in available:
-            parts = doc.lower().replace("dr.", "").strip().split()
+            parts = doc.lower().replace("dr.", "").replace("dr", "").strip().split()
             for part in parts:
-                matches = difflib.get_close_matches(part, text.lower().split(), 1, 0.6)
-                if matches:
+                if part in text.lower():
                     chosen = doc
                     break
             if chosen:
                 break
 
-    if not chosen:
-        return f"Sorry, I didn't catch that. Available doctors are: {', '.join(available)}. Please say a name."
+        # fuzzy match fallback
+        if not chosen:
+            for doc in available:
+                parts = doc.lower().replace("dr.", "").strip().split()
+                for part in parts:
+                    matches = difflib.get_close_matches(part, text.lower().split(), 1, 0.6)
+                    if matches:
+                        chosen = doc
+                        break
+                if chosen:
+                    break
+
+        if not chosen:
+            return f"Sorry, I didn't catch that. Available doctors are: {', '.join(available)}. Please say a name."
+
+        # ── doctor found — look up their ID and advance state ──
+        conn = get_db_connection()
+        doctor_row = conn.execute(
+            "SELECT doctor_id FROM doctors WHERE LOWER(name) LIKE ?",
+            (f"%{chosen.lower().replace('dr.', '').strip()}%",)
+        ).fetchone()
+        conn.close()
+
+        user_data[user_id]["doctor"]    = chosen
+        user_data[user_id]["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
+        user_state[user_id] = "waiting_date"
+        return f"Great, {chosen}. What date would you like?"
 
     if state == "waiting_date":
-     parsed = dateparser.parse(text, settings={
-        "PREFER_DATES_FROM": "future",
-        "RELATIVE_BASE": __import__("datetime").datetime.now()
-     })
-     if not parsed:
-        # try extracting just numbers and month names
-        import re
-        cleaned = re.sub(r"(i would like|an appointment on|appointment|please|book|schedule|chahungi|chahta|chahiye|mujhe|ko)", "", text).strip()
-        parsed = dateparser.parse(cleaned, settings={"PREFER_DATES_FROM": "future"})
-    
-     if parsed:
-        user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
-        user_state[user_id] = "waiting_time"
-        return f"Got it, {user_data[user_id]['date']}. At what time?"
-     else:
-        return "Sorry, I didn't catch the date. Please say just the date, like 'March 23rd' or 'tomorrow'."
-    
-   
+        parsed = dateparser.parse(text, settings={
+            "PREFER_DATES_FROM": "future",
+            "RELATIVE_BASE": __import__("datetime").datetime.now()
+        })
+        if not parsed:
+            cleaned = re.sub(
+                r"(i would like|an appointment on|appointment|please|book|schedule|chahungi|chahta|chahiye|mujhe|ko)",
+                "", text
+            ).strip()
+            parsed = dateparser.parse(cleaned, settings={"PREFER_DATES_FROM": "future"})
+
+        if parsed:
+            user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
+            user_state[user_id] = "waiting_time"
+            return f"Got it, {user_data[user_id]['date']}. At what time?"
+        else:
+            return "Sorry, I didn't catch the date. Please say just the date, like 'March 23rd' or 'tomorrow'."
 
     if state == "waiting_time":
-     parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
-     if parsed:
-        user_data[user_id]["time"] = parsed.strftime("%I:%M %p")  # e.g. "11:00 AM"
-        user_state[user_id] = "confirming"
-        d = user_data[user_id]
-        return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
-    else:
-        return "Sorry, I didn't catch the time. Please say it again, like '11 AM' or '3 in the afternoon'."
+        parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
+        if parsed:
+            user_data[user_id]["time"] = parsed.strftime("%I:%M %p")
+            user_state[user_id] = "confirming"
+            d = user_data[user_id]
+            return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
+        else:
+            return "Sorry, I didn't catch the time. Please say it again, like '11 AM' or '3 in the afternoon'."
 
     if state == "confirming":
         if "yes" in text or "confirm" in text or "ok" in text:
             d = user_data[user_id]
-            # FIX 4: Pass actual language instead of hardcoded "en"
             patient = get_or_create_patient(d["name"], d["phone"], lang)
-
             aid = create_appointment(
                 patient["patient_id"],
                 d["doctor_id"],
                 d["date"],
                 d["time"],
                 d["dept"],
-                lang  # ← actual language now used
+                lang
             )
-            
             if aid is None:
-             user_state[user_id] = "idle"
-             user_data[user_id] = {}
-             return "You already have an appointment with this doctor on that date. Please choose a different date."
-
-            return f"Appointment confirmed. Your booking ID is {aid}."
-
+                user_state[user_id] = "idle"
+                user_data[user_id] = {}
+                return "You already have an appointment with this doctor on that date. Please choose a different date."
+            user_state[user_id] = "idle"
+            user_data[user_id] = {}
+            return f"Appointment confirmed! Your booking ID is {aid}."
 
         elif "no" in text or "cancel" in text:
             user_state[user_id] = "idle"
