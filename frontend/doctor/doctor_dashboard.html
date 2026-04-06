@@ -76,22 +76,35 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <!-- APPOINTMENTS -->
 <div id="appointments" class="section hidden">
 
-<div class="appointments-card">
-<h2>Appointments</h2>
+  <div class="appointments-card">
+    <h2>Appointments</h2>
 
-<table class="appointment-table">
-<thead>
-<tr>
-<th>ID</th>
-<th>Patient</th>
-<th>Date</th>
-<th>Time</th>
-</tr>
-</thead>
-<tbody id="appointmentTable"></tbody>
-</table>
+    <!-- ADD THIS CALENDAR BLOCK -->
+    <div class="calendar-wrapper">
+      <div class="calendar-header">
+        <button onclick="changeMonth(-1)">&#8249;</button>
+        <span id="calMonthLabel"></span>
+        <button onclick="changeMonth(1)">&#8250;</button>
+      </div>
+      <div class="calendar-grid" id="calGrid"></div>
+    </div>
+    <!-- END CALENDAR BLOCK -->
 
-</div>
+    <p id="calSelectedLabel" style="margin: 12px 0 8px; font-size: 14px; color: var(--muted, #666);"></p>
+
+    <table class="appointment-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Patient</th>
+          <th>Date</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody id="appointmentTable"></tbody>
+    </table>
+
+  </div>
 
 </div>
 
