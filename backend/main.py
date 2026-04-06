@@ -353,13 +353,13 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
     elif state == "waiting_time":
         number_words = {
-            "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
-            "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
-            "gyarah": 11, "barah": 12, "bara": 12,
-            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-            "eleven": 11, "twelve": 12,
-        }
+    "bara": 12, "barah": 12, "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
+    "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
+    "gyarah": 11, "barah": 12, "bara": 12,
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "eleven": 11, "twelve": 12,
+}
 
         detected_hour = None
         detected_period = "AM"
