@@ -204,7 +204,7 @@ def fuzzy_match(text, keywords):
             return matches[0]
     return None
 
-def generate_reply(text, user_id="user1", lang="en"):
+def generate_reply(text, user_id="user1", lang="en", original=""):
     text = text.lower().strip()
 
     if "department" in text and ("which" in text or "what" in text or "belong" in text):
@@ -237,6 +237,7 @@ def generate_reply(text, user_id="user1", lang="en"):
     state = user_state[user_id]
 
     if state == "idle":
+        combined = text + " " + original.lower()
         if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
             user_state[user_id] = "waiting_problem"
             return "What problem are you facing? You can also say regular checkup."
@@ -261,7 +262,8 @@ def generate_reply(text, user_id="user1", lang="en"):
                 return "Sorry, no doctors available for that department right now."
             user_data[user_id]["available_doctors"] = doctors
             user_state[user_id] = "waiting_doctor"
-            return f"Available doctors: {', '.join(doctors)}. Any preference?"
+            doctor_names = [d.replace("Dr.", "Doctor") for d in doctors]
+            return f"Available doctors: {', '.join(doctor_names)}. Any preference?"
 
         return "Sorry, I didn't catch that. Please describe your problem."
 
@@ -307,24 +309,26 @@ def generate_reply(text, user_id="user1", lang="en"):
         return f"Great, {chosen}. What date would you like?"
 
     elif state == "waiting_date":
-        # Clean up STT artifacts: remove filler words
         cleaned = re.sub(
             r"\b(i would like|an appointment on|appointment|please|book|schedule|"
             r"chahungi|chahta|chahiye|chahir|mujhe|ko|co|la|che|ahe|mala|tya|on|"
-            r"the|a|an|for)\b",
+            r"the|a|an|for|kara|karaycha|dyaycha|hava)\b",
             "", text
         ).strip()
-
-        # Deduplicate repeated phrases (e.g. "April 15.April 15." → "April 15")
         cleaned = re.sub(r'[.]+', ' ', cleaned)
         cleaned = ' '.join(dict.fromkeys(cleaned.split()))
 
-        # Also try deduplicating on the raw text
         raw_deduped = re.sub(r'[.]+', ' ', text)
         raw_deduped = ' '.join(dict.fromkeys(raw_deduped.split()))
 
+        # Also clean the original (pre-translation) text
+        original_cleaned = re.sub(
+            r"\b(appointment|book|kara|karaycha|co|la|che|ahe|mala)\b",
+            "", original.lower()
+        ).strip()
+
         parsed = None
-        for attempt in [cleaned, raw_deduped, text]:
+        for attempt in [cleaned, raw_deduped, text, original_cleaned, original]:
             parsed = dateparser.parse(
                 attempt,
                 languages=["en", "hi", "mr"],
@@ -361,7 +365,7 @@ def generate_reply(text, user_id="user1", lang="en"):
         detected_period = "AM"
         words = text.lower().split()
 
-        if any(w in words for w in ["dopaher", "afternoon", "sham", "sandhya"]):
+        if any(w in combined for w in ["dopaher", "do peher", "dophar", "afternoon", "sham", "sandhya"]):
             detected_period = "PM"
         if any(w in words for w in ["sakal", "subah", "morning"]):
             detected_period = "AM"
@@ -457,7 +461,7 @@ async def process_audio(
         print(f"ORIGINAL: {original}")
         print(f"TRANSLATED: {english}")
         print(f"USER STATE: {user_state.get(str(patient_id), 'NOT FOUND')}")
-        reply = generate_reply(english, user_id=str(patient_id), lang=lang)
+        reply = generate_reply(english, user_id=str(patient_id), lang=lang, original=original)
         print(f"REPLY: {reply}")
         final = gt_from_english(reply, lang)
 
@@ -497,7 +501,7 @@ class AddDoctorRequest(BaseModel):
 @app.post("/process-text")
 def process_text(data: TextInput):
     english = gt_to_english(data.text)
-    reply = generate_reply(english, user_id=str(data.patient_id), lang=data.lang)
+    reply = generate_reply(english, user_id=str(data.patient_id), lang=data.lang, original=data.text)
     final = gt_from_english(reply, data.lang)
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
