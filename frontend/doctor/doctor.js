@@ -7,10 +7,8 @@ function showSection(section) {
   });
   document.getElementById(section).classList.remove("hidden");
 
-  // Load ratings only when that tab is clicked
   if (section === 'ratings') loadRatings();
 
-  // Update active sidebar item
   document.querySelectorAll(".sidebar ul li").forEach(l => l.classList.remove("active"));
   event.currentTarget.classList.add("active");
 }
@@ -36,30 +34,16 @@ async function loadDoctor(){
     }
 }
 
-async function loadAppointments(){
+async function loadAppointments(){  // ✅ fixed: was "aasync"
     try {
         const doctorId = localStorage.getItem("doctor_id");
         const res = await fetch(`${API}/doctor/appointments?doctor_id=${doctorId}`);
         const data = await res.json();
 
-        const table = document.getElementById("appointmentTable");
-        table.innerHTML = "";
+        allAppointments = data;
+        renderCalendar();
+        populateAppointmentTable(data);
 
-        if (data.length === 0) {
-            table.innerHTML = "<tr><td colspan='4'>No appointments yet.</td></tr>";
-            return;
-        }
-
-        data.forEach(a => {
-            table.innerHTML += `
-                <tr>
-                    <td>${a.id}</td>
-                    <td>${a.patient_name}</td>
-                    <td>${a.date}</td>
-                    <td>${a.time}</td>
-                </tr>
-            `;
-        });
     } catch(e) {
         console.log("Error loading appointments:", e);
     }
@@ -67,11 +51,11 @@ async function loadAppointments(){
 
 /* STARS */
 function renderStars(rating){
-let stars = "";
-for(let i=1;i<=5;i++){
-stars += `<i class="fa fa-star" style="color:${i<=rating?'gold':'gray'}"></i>`;
-}
-return stars;
+  let stars = "";
+  for(let i=1;i<=5;i++){
+    stars += `<i class="fa fa-star" style="color:${i<=rating?'gold':'gray'}"></i>`;
+  }
+  return stars;
 }
 
 function savePrescription() {
@@ -89,7 +73,6 @@ function savePrescription() {
     day: '2-digit', month: 'long', year: 'numeric'
   });
 
-  // Build printable HTML
   const win = window.open('', '_blank');
   win.document.write(`
     <!DOCTYPE html>
@@ -151,13 +134,12 @@ function savePrescription() {
 
       <script>
         window.onload = function() { window.print(); }
-      </script>
+      <\/script>
     </body>
     </html>
   `);
   win.document.close();
 
-  // Clear fields
   document.getElementById('pname').value    = '';
   document.getElementById('medicine').value = '';
   document.getElementById('dosage').value   = '';
@@ -165,13 +147,110 @@ function savePrescription() {
 
 /* LOGOUT */
 function logout(){
-localStorage.clear();
-window.location.href="../login.html";
+  localStorage.clear();
+  window.location.href="../login.html";
 }
 
-/* INIT */
-loadDoctor();
-loadAppointments();
+/* CALENDAR */
+let calDate = new Date();
+let allAppointments = [];
+let selectedDate = null;
+
+function renderCalendar() {
+  const year  = calDate.getFullYear();
+  const month = calDate.getMonth();
+
+  document.getElementById('calMonthLabel').textContent =
+    calDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'cal-day-header';
+    h.textContent = d;
+    grid.appendChild(h);
+  });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    grid.appendChild(Object.assign(document.createElement('div'), { className: 'cal-cell empty' }));
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    cell.textContent = d;
+
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    const hasAppt = allAppointments.some(a => a.date === dateStr);
+    if (hasAppt) cell.classList.add('has-appt');
+
+    if (selectedDate === dateStr) cell.classList.add('selected');
+
+    cell.onclick = () => selectDate(dateStr);
+    grid.appendChild(cell);
+  }
+}
+
+function selectDate(dateStr) {
+  selectedDate = dateStr;
+  renderCalendar();
+
+  const filtered = allAppointments.filter(a => a.date === dateStr);
+  const label = document.getElementById('calSelectedLabel');
+  const table = document.getElementById('appointmentTable');
+
+  label.textContent = filtered.length
+    ? `Showing ${filtered.length} appointment(s) for ${dateStr}`
+    : `No appointments on ${dateStr}`;
+
+  table.innerHTML = '';
+  if (!filtered.length) {
+    table.innerHTML = "<tr><td colspan='4'>No appointments on this date.</td></tr>";
+    return;
+  }
+  filtered.forEach(a => {
+    table.innerHTML += `
+      <tr>
+        <td>${a.id}</td>
+        <td>${a.patient_name}</td>
+        <td>${a.date}</td>
+        <td>${a.time}</td>
+      </tr>`;
+  });
+}
+
+function changeMonth(dir) {
+  calDate.setMonth(calDate.getMonth() + dir);
+  selectedDate = null;
+  renderCalendar();
+  populateAppointmentTable(allAppointments);
+  document.getElementById('calSelectedLabel').textContent = '';
+}
+
+function populateAppointmentTable(data) {
+  const table = document.getElementById('appointmentTable');
+  table.innerHTML = '';
+  if (!data.length) {
+    table.innerHTML = "<tr><td colspan='4'>No appointments yet.</td></tr>";
+    return;
+  }
+  data.forEach(a => {
+    table.innerHTML += `
+      <tr>
+        <td>${a.id}</td>
+        <td>${a.patient_name}</td>
+        <td>${a.date}</td>
+        <td>${a.time}</td>
+      </tr>`;
+  });
+}
+
 async function loadRatings() {
   const doctorId = localStorage.getItem('doctor_id');
   const tbody    = document.getElementById('ratingsTable');
@@ -181,12 +260,11 @@ async function loadRatings() {
     const data = await res.json();
     const list = data.ratings || [];
 
-    // Average score
     if (list.length) {
       const avg = list.reduce((s, r) => s + r.rating, 0) / list.length;
-      document.getElementById('avgScore').textContent    = avg.toFixed(1) + ' / 5';
+      document.getElementById('avgScore').textContent     = avg.toFixed(1) + ' / 5';
       document.getElementById('totalReviews').textContent = list.length + ' reviews';
-      document.getElementById('avgStars').textContent    = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
+      document.getElementById('avgStars').textContent     = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
     }
 
     tbody.innerHTML = '';
@@ -209,3 +287,7 @@ async function loadRatings() {
     tbody.innerHTML = `<tr><td colspan="4" class="empty-row">Could not load ratings</td></tr>`;
   }
 }
+
+/* INIT */
+loadDoctor();
+loadAppointments();
