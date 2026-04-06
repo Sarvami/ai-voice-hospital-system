@@ -325,12 +325,15 @@ def generate_reply(text, user_id="user1", lang="en"):
 
         parsed = None
         for attempt in [cleaned, raw_deduped, text]:
-            parsed = dateparser.parse(attempt, settings={
-                "PREFER_DATES_FROM": "future",
-                "RELATIVE_BASE": __import__("datetime").datetime.now(),
-                "DATE_ORDER": "DMY",
-                "LANGUAGES": ["en", "hi", "mr"],
-            })
+            parsed = dateparser.parse(
+                attempt,
+                languages=["en", "hi", "mr"],
+                settings={
+                    "PREFER_DATES_FROM": "future",
+                    "RELATIVE_BASE": __import__("datetime").datetime.now(),
+                    "DATE_ORDER": "DMY",
+                }
+            )
             if parsed:
                 break
 
