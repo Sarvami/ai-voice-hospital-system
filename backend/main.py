@@ -296,7 +296,6 @@ def generate_reply(text, user_id="user1", lang="en"):
         print(f"TEXT: {text}")
         print(f"AVAILABLE: {available}")
 
-        # exact name match
         for doc in available:
             parts = doc.lower().replace("dr.", "").replace("dr", "").strip().split()
             for part in parts:
@@ -306,7 +305,6 @@ def generate_reply(text, user_id="user1", lang="en"):
             if chosen:
                 break
 
-        # fuzzy match fallback
         if not chosen:
             for doc in available:
                 parts = doc.lower().replace("dr.", "").strip().split()
@@ -321,7 +319,6 @@ def generate_reply(text, user_id="user1", lang="en"):
         if not chosen:
             return f"Sorry, I didn't catch that. Available doctors are: {', '.join(available)}. Please say a name."
 
-        # ── doctor found — look up their ID and advance state ──
         conn = get_db_connection()
         doctor_row = conn.execute(
             "SELECT doctor_id FROM doctors WHERE LOWER(name) LIKE ?",
@@ -335,43 +332,85 @@ def generate_reply(text, user_id="user1", lang="en"):
         return f"Great, {chosen}. What date would you like?"
 
     if state == "waiting_date":
-    # expanded cleaning — strip common Hinglish/Marathi noise words
-     cleaned = re.sub(
-        r"\b(i would like|an appointment on|appointment|please|book|schedule|"
-        r"chahungi|chahta|chahiye|chahir|mujhe|ko|co|la|che|ahe|mala|tya|on|"
-        r"the|a|an|for)\b",
-        "", text
-     ).strip()
+        cleaned = re.sub(
+            r"\b(i would like|an appointment on|appointment|please|book|schedule|"
+            r"chahungi|chahta|chahiye|chahir|mujhe|ko|co|la|che|ahe|mala|tya|on|"
+            r"the|a|an|for)\b",
+            "", text
+        ).strip()
 
-     parsed = dateparser.parse(cleaned, settings={
-        "PREFER_DATES_FROM": "future",
-        "RELATIVE_BASE": __import__("datetime").datetime.now(),
-        "DATE_ORDER": "DMY",   # ← important for "10 April" format
-     })
-
-    # fallback: try original text too
-     if not parsed:
-        parsed = dateparser.parse(text, settings={
+        parsed = dateparser.parse(cleaned, settings={
             "PREFER_DATES_FROM": "future",
+            "RELATIVE_BASE": __import__("datetime").datetime.now(),
             "DATE_ORDER": "DMY",
         })
 
-     if parsed:
-        user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
-        user_state[user_id] = "waiting_time"
-        return f"Got it, {user_data[user_id]['date']}. At what time?"
-     else:
-        return "Sorry, I didn't catch the date. Please say just the date, like 'April 10th' or 'tomorrow'."
+        if not parsed:
+            parsed = dateparser.parse(text, settings={
+                "PREFER_DATES_FROM": "future",
+                "DATE_ORDER": "DMY",
+            })
+
+        if parsed:
+            user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
+            user_state[user_id] = "waiting_time"
+            return f"Got it, {user_data[user_id]['date']}. At what time?"
+        else:
+            return "Sorry, I didn't catch the date. Please say just the date, like 'April 10th' or 'tomorrow'."
 
     if state == "waiting_time":
+        number_words = {
+            "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
+            "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
+            "gyarah": 11, "barah": 12, "bara": 12,
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+            "eleven": 11, "twelve": 12,
+        }
+
+        detected_hour = None
+        detected_period = "AM"
+
+        words = text.lower().split()
+
+        if any(w in words for w in ["dopaher", "afternoon", "sham", "sandhya"]):
+            detected_period = "PM"
+        if any(w in words for w in ["sakal", "subah", "morning"]):
+            detected_period = "AM"
+        if any(w in words for w in ["raat", "night"]):
+            detected_period = "PM"
+
+        for word in words:
+            if word.isdigit():
+                detected_hour = int(word)
+                break
+            if word in number_words:
+                detected_hour = number_words[word]
+                break
+
+        if detected_hour:
+            if detected_period == "PM" and detected_hour < 12:
+                time_str = f"{detected_hour + 12}:00"
+            elif detected_period == "AM" and detected_hour == 12:
+                time_str = "00:00"
+            else:
+                time_str = f"{detected_hour:02d}:00"
+
+            from datetime import datetime
+            parsed_time = datetime.strptime(time_str, "%H:%M")
+            user_data[user_id]["time"] = parsed_time.strftime("%I:%M %p")
+            user_state[user_id] = "confirming"
+            d = user_data[user_id]
+            return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
+
         parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
         if parsed:
             user_data[user_id]["time"] = parsed.strftime("%I:%M %p")
             user_state[user_id] = "confirming"
             d = user_data[user_id]
             return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
-        else:
-            return "Sorry, I didn't catch the time. Please say it again, like '11 AM' or '3 in the afternoon'."
+
+        return "Sorry, I didn't catch the time. Please say it again, like '11 AM' or '3 in the afternoon'."
 
     if state == "confirming":
         if "yes" in text or "confirm" in text or "ok" in text:
