@@ -52,7 +52,6 @@ MAX_STT_WAIT = 30
 STT_POLL_INTERVAL = 1
 
 # ------------------ DB CONNECTION ------------------
-# FIX 1: get_db_connection was never defined — added here
 
 DB_PATH = "../database/hospital.db"
 
@@ -67,7 +66,7 @@ def gt_to_english(text: str) -> str:
     try:
         return translator.translate(text, dest="en").text
     except Exception:
-        return text  # fallback: return original if translation fails
+        return text
 
 def gt_from_english(text: str, target_lang: str) -> str:
     if target_lang == "en":
@@ -75,7 +74,7 @@ def gt_from_english(text: str, target_lang: str) -> str:
     try:
         return translator.translate(text, dest=target_lang).text
     except Exception:
-        return text  # fallback: return English if translation fails
+        return text
 
 
 # ------------------ MEMORY ------------------
@@ -113,40 +112,31 @@ def get_doctors_by_department(dept):
     return doctors
 
 def find_doctor_by_name(name):
-
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         "SELECT * FROM doctors WHERE LOWER(phone) = LOWER(?)",
         (name.strip(),)
     )
-
     doctor = cursor.fetchone()
     conn.close()
-
     return dict(doctor) if doctor else None
 
 def get_or_create_patient(name, phone, language="en"):
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute("SELECT * FROM patients WHERE phone=?", (phone,))
     patient = cursor.fetchone()
-
     if patient:
         conn.close()
         return dict(patient)
-
     cursor.execute("""
         INSERT INTO patients (name, age, gender, phone, preferred_language)
         VALUES (?, ?, ?, ?, ?)
     """, (name, 30, "Unknown", phone, language))
-
     pid = cursor.lastrowid
     cursor.execute("SELECT * FROM patients WHERE patient_id=?", (pid,))
     new_patient = cursor.fetchone()
-
     conn.commit()
     conn.close()
     return dict(new_patient)
@@ -154,24 +144,19 @@ def get_or_create_patient(name, phone, language="en"):
 def create_appointment(pid, did, date, time_str, reason, language):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Check for double booking
     existing = cursor.execute("""
         SELECT appointment_id FROM appointments 
         WHERE patient_id=? AND doctor_id=? AND appointment_date=?
     """, (pid, did, date)).fetchone()
-    
     if existing:
         conn.close()
-        return None  # signals double booking
-    
+        return None
     cursor.execute("""
         INSERT INTO appointments
         (patient_id, doctor_id, appointment_date, appointment_time,
          status, reason, booking_source, language_used)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (pid, did, date, time_str, "Booked", reason, "voice", language))
-    
     aid = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -181,42 +166,32 @@ def create_appointment(pid, did, date, time_str, reason, language):
 
 def speech_to_text(audio_path):
     headers = {"authorization": API_KEY}
-
     with open(audio_path, "rb") as f:
         upload = requests.post(
             "https://api.assemblyai.com/v2/upload",
             headers=headers,
             data=f
         )
-
     audio_url = upload.json()["upload_url"]
-
     transcript = requests.post(
         "https://api.assemblyai.com/v2/transcript",
         headers=headers,
         json={"audio_url": audio_url}
     )
-
     tid = transcript.json()["id"]
     start_time = time.time()
-
     while True:
         res = requests.get(
             f"https://api.assemblyai.com/v2/transcript/{tid}",
             headers=headers
         )
-
         status = res.json()["status"]
-
         if status == "completed":
             return res.json()["text"]
-
         if status == "error":
             raise Exception("STT failed")
-
         if time.time() - start_time > MAX_STT_WAIT:
             raise TimeoutError("STT timeout")
-
         time.sleep(STT_POLL_INTERVAL)
 
 # ------------------ LOGIC ------------------
@@ -268,7 +243,7 @@ def generate_reply(text, user_id="user1", lang="en"):
         else:
             return "Say 'book appointment' to get started."
 
-    if state == "waiting_problem":
+    elif state == "waiting_problem":
         matched_dept = None
         for key, dept in problem_map.items():
             if key in text:
@@ -290,7 +265,7 @@ def generate_reply(text, user_id="user1", lang="en"):
 
         return "Sorry, I didn't catch that. Please describe your problem."
 
-    if state == "waiting_doctor":
+    elif state == "waiting_doctor":
         available = user_data[user_id].get("available_doctors", [])
         chosen = None
         print(f"TEXT: {text}")
@@ -331,7 +306,8 @@ def generate_reply(text, user_id="user1", lang="en"):
         user_state[user_id] = "waiting_date"
         return f"Great, {chosen}. What date would you like?"
 
-    if state == "waiting_date":
+    elif state == "waiting_date":
+        # Clean up STT artifacts: remove filler words
         cleaned = re.sub(
             r"\b(i would like|an appointment on|appointment|please|book|schedule|"
             r"chahungi|chahta|chahiye|chahir|mujhe|ko|co|la|che|ahe|mala|tya|on|"
@@ -339,26 +315,36 @@ def generate_reply(text, user_id="user1", lang="en"):
             "", text
         ).strip()
 
-        parsed = dateparser.parse(cleaned, settings={
-            "PREFER_DATES_FROM": "future",
-            "RELATIVE_BASE": __import__("datetime").datetime.now(),
-            "DATE_ORDER": "DMY",
-        })
+        # Deduplicate repeated phrases (e.g. "April 15.April 15." → "April 15")
+        cleaned = re.sub(r'[.]+', ' ', cleaned)
+        cleaned = ' '.join(dict.fromkeys(cleaned.split()))
 
-        if not parsed:
-            parsed = dateparser.parse(text, settings={
+        # Also try deduplicating on the raw text
+        raw_deduped = re.sub(r'[.]+', ' ', text)
+        raw_deduped = ' '.join(dict.fromkeys(raw_deduped.split()))
+
+        parsed = None
+        for attempt in [cleaned, raw_deduped, text]:
+            parsed = dateparser.parse(attempt, settings={
                 "PREFER_DATES_FROM": "future",
+                "RELATIVE_BASE": __import__("datetime").datetime.now(),
                 "DATE_ORDER": "DMY",
+                "LANGUAGES": ["en", "hi", "mr"],
             })
+            if parsed:
+                break
 
         if parsed:
+            from datetime import datetime
+            if parsed.date() < datetime.now().date():
+                return "That date is in the past. Please choose a future date."
             user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
             user_state[user_id] = "waiting_time"
             return f"Got it, {user_data[user_id]['date']}. At what time?"
         else:
-            return "Sorry, I didn't catch the date. Please say just the date, like 'April 10th' or 'tomorrow'."
+            return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'."
 
-    if state == "waiting_time":
+    elif state == "waiting_time":
         number_words = {
             "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
             "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
@@ -370,7 +356,6 @@ def generate_reply(text, user_id="user1", lang="en"):
 
         detected_hour = None
         detected_period = "AM"
-
         words = text.lower().split()
 
         if any(w in words for w in ["dopaher", "afternoon", "sham", "sandhya"]):
@@ -390,12 +375,16 @@ def generate_reply(text, user_id="user1", lang="en"):
 
         if detected_hour:
             if detected_period == "PM" and detected_hour < 12:
-                time_str = f"{detected_hour + 12}:00"
+                hour_24 = detected_hour + 12
             elif detected_period == "AM" and detected_hour == 12:
-                time_str = "00:00"
+                hour_24 = 0
             else:
-                time_str = f"{detected_hour:02d}:00"
+                hour_24 = detected_hour
 
+            if not (8 <= hour_24 <= 20):
+                return "Sorry, appointments are only available between 8 AM and 8 PM. Please choose a valid time."
+
+            time_str = f"{hour_24:02d}:00"
             from datetime import datetime
             parsed_time = datetime.strptime(time_str, "%H:%M")
             user_data[user_id]["time"] = parsed_time.strftime("%I:%M %p")
@@ -403,8 +392,11 @@ def generate_reply(text, user_id="user1", lang="en"):
             d = user_data[user_id]
             return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
 
+        # Fallback: try dateparser if number_words didn't match
         parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
         if parsed:
+            if not (8 <= parsed.hour <= 20):
+                return "Sorry, appointments are only available between 8 AM and 8 PM. Please choose a valid time."
             user_data[user_id]["time"] = parsed.strftime("%I:%M %p")
             user_state[user_id] = "confirming"
             d = user_data[user_id]
@@ -412,8 +404,10 @@ def generate_reply(text, user_id="user1", lang="en"):
 
         return "Sorry, I didn't catch the time. Please say it again, like '11 AM' or '3 in the afternoon'."
 
-    if state == "confirming":
-        if "yes" in text or "confirm" in text or "ok" in text:
+    elif state == "confirming":
+        confirm_words = ["yes", "confirm", "ok", "okay", "ha", "haa", "haan", "ho", "hou", "theek", "bilkul", "sure"]
+        cancel_words  = ["no", "cancel", "nahi", "nako", "band", "nahii", "mat", "don't"]
+        if any(w in text for w in confirm_words):
             d = user_data[user_id]
             patient = get_or_create_patient(d["name"], d["phone"], lang)
             aid = create_appointment(
@@ -432,7 +426,7 @@ def generate_reply(text, user_id="user1", lang="en"):
             user_data[user_id] = {}
             return f"Appointment confirmed! Your booking ID is {aid}."
 
-        elif "no" in text or "cancel" in text:
+        elif any(w in text for w in cancel_words):
             user_state[user_id] = "idle"
             user_data[user_id] = {}
             return "Appointment cancelled. Say 'book appointment' to start again."
@@ -472,7 +466,6 @@ async def process_audio(
         final = "Sorry, something went wrong. Please try again."
 
     finally:
-        # clean up temp audio file
         if os.path.exists(path):
             os.remove(path)
 
@@ -486,14 +479,14 @@ async def process_audio(
 class TextInput(BaseModel):
     text: str
     lang: str = "en"
-    patient_id: int = 0   # FIX 5: added missing patient_id field
-    
+    patient_id: int = 0
+
 class AddDoctorRequest(BaseModel):
     name: str
     department: str
     qualification: str = ""
     experience_years: int = 0
-    phone: str          # this is the DOC-style login ID e.g. "DOC51"
+    phone: str
     password: str
     available_days: str = ""
 
@@ -501,7 +494,7 @@ class AddDoctorRequest(BaseModel):
 @app.post("/process-text")
 def process_text(data: TextInput):
     english = gt_to_english(data.text)
-    reply = generate_reply(english, user_id=str(data.patient_id), lang=data.lang)  # FIX 5
+    reply = generate_reply(english, user_id=str(data.patient_id), lang=data.lang)
     final = gt_from_english(reply, data.lang)
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
@@ -528,12 +521,10 @@ async def get_all_doctors():
 
 @app.post("/login")
 async def login(request: Request):
-
     data     = await request.json()
     password = data.get("password", "")
     role     = data.get("role", "patient")
 
-    # ── ADMIN (no DB needed) ──────────────────────────────────────
     if role == "admin":
         ADMIN_EMAIL = "admin@gmail.com"
         ADMIN_HASH  = "$2b$12$D4FWvBXmgrJLpN.JmmCnLexIzMOchI/56oQUdn3JQGaL8knIDoI.."
@@ -542,7 +533,6 @@ async def login(request: Request):
             return {"success": True, "user": {"id": 0, "name": "Admin", "role": "admin"}}
         return {"success": False, "message": "Invalid admin credentials"}
 
-    # ── PATIENT & DOCTOR (need DB) ────────────────────────────────
     if role == "doctor":
         phone = data.get("doctor_id", "").strip()
     else:
@@ -624,7 +614,7 @@ async def register_patient(request: Request):
         print("REGISTER ERROR:", e)
         return {"success": False, "message": str(e)}
 
-    
+
 @app.get("/admin/appointments")
 def get_admin_appointments(patient_id: int = None):
     conn = get_db_connection()
@@ -659,13 +649,10 @@ def doctor_login(phone: str = Form(...), password: str = Form(...)):
     conn = get_db_connection()
     doctor = conn.execute("SELECT * FROM doctors WHERE phone=?", (phone,)).fetchone()
     conn.close()
-
     if not doctor:
         return {"status": "not_found"}
-
     if not doctor["password_hash"] or not verify_password(password, doctor["password_hash"]):
         return {"status": "invalid_password"}
-
     return {
         "status": "success",
         "doctor": {
@@ -740,11 +727,10 @@ def patient_appointments(patient_id: int):
 
 @app.get("/patient/records")
 def patient_records(patient_id: int):
-    # placeholder for now
     return []
 
-# ── 1. OVERVIEW ────────────────────────────────────────────────────────────────
- 
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+
 @app.get("/admin/overview")
 def get_admin_overview():
     conn = get_db_connection()
@@ -753,10 +739,7 @@ def get_admin_overview():
     appointments = conn.execute("SELECT COUNT(*) FROM appointments").fetchone()[0]
     conn.close()
     return {"patients": patients, "doctors": doctors, "appointments": appointments}
- 
- 
-# ── 2. ALL PATIENTS ────────────────────────────────────────────────────────────
- 
+
 @app.get("/admin/patients")
 def get_admin_patients():
     conn = get_db_connection()
@@ -765,10 +748,7 @@ def get_admin_patients():
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
- 
- 
-# ── 3. ALL DOCTORS ─────────────────────────────────────────────────────────────
- 
+
 @app.get("/admin/doctors")
 def get_admin_doctors():
     conn = get_db_connection()
@@ -779,22 +759,16 @@ def get_admin_doctors():
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
- 
- 
-# ── 4. ADD DOCTOR ──────────────────────────────────────────────────────────────
- 
+
 @app.post("/admin/add-doctor")
 def add_doctor(req: AddDoctorRequest):
     conn = get_db_connection()
- 
-    # Prevent duplicate phone / login ID
     existing = conn.execute(
         "SELECT doctor_id FROM doctors WHERE phone = ?", (req.phone,)
     ).fetchone()
     if existing:
         conn.close()
         return {"success": False, "message": f"A doctor with ID '{req.phone}' already exists."}
- 
     conn.execute(
         """INSERT INTO doctors
            (name, department, qualification, experience_years, available_days, phone, password_hash)
@@ -805,12 +779,10 @@ def add_doctor(req: AddDoctorRequest):
             req.qualification,
             req.experience_years,
             req.available_days,
-            req.phone,                        # e.g. "DOC51"
-            hash_password(req.password),      # reuses your existing hash_password()
+            req.phone,
+            hash_password(req.password),
         )
     )
     conn.commit()
     conn.close()
     return {"success": True}
- 
-
