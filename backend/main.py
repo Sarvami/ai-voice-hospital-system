@@ -406,7 +406,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
           }
 
         detected_hour = None
-        detected_period = "AM"
+        detected_period = "PM"
         words = text.lower().split()
 
         if any(w in combined for w in ["dopaher", "do peher", "dophar", "afternoon", "sham", "sandhya"]):
