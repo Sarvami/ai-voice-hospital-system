@@ -3,294 +3,368 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Profile – AI Voice Hospital</title>
+  <title>My Profile | AI Voice Hospital</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="theme.css">
   <style>
-    /* Profile specific styles - maintains theme consistency */
-    
-    /* Avatar wrapper */
-    .avatar-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 28px;
+    .profile-container-page {
+      max-width: 500px;
+      width: 100%;
+      margin: 0 auto;
     }
-
-    .avatar-circle {
-      width: 80px;
-      height: 80px;
+    
+    .profile-card {
+      background: rgba(20, 28, 40, 0.8);
+      backdrop-filter: blur(14px);
+      border-radius: 28px;
+      border: 1px solid var(--border);
+      padding: 32px;
+      animation: fadeUp 0.5s ease;
+    }
+    
+    .profile-avatar-large {
+      width: 100px;
+      height: 100px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2.2rem;
-      margin-bottom: 14px;
-      box-shadow: 0 0 0 4px rgba(79,195,247,0.2), 0 12px 30px rgba(0,0,0,0.4);
-      transition: transform 0.2s;
+      font-size: 48px;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
-
-    .avatar-circle:hover {
-      transform: scale(1.05);
+    
+    .form-group {
+      margin-bottom: 20px;
     }
-
-    .avatar-name {
-      font-size: 1.5rem;
-      font-weight: 600;
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
       color: var(--text);
-      line-height: 1.2;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
     }
-
-    .avatar-name span {
-      color: var(--accent);
-    }
-
-    /* Info rows - consistent with glass card theme */
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 14px;
       border-radius: 12px;
-      padding: 13px 16px;
-      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Sora', sans-serif;
       transition: all 0.2s;
     }
-
-    .info-row:hover {
-      background: rgba(255,255,255,0.08);
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(79,195,247,0.2);
+    }
+    
+    .form-group input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
+    .btn-save {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #0a0f1e;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    
+    .btn-save:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79,195,247,0.3);
+    }
+    
+    .btn-back {
+      width: 100%;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+    
+    .btn-back:hover {
+      background: rgba(255,255,255,0.05);
       border-color: var(--accent);
     }
-
-    .info-label {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
+    
+    .success-badge {
+      background: rgba(76,175,80,0.15);
+      color: #4caf50;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 20px;
+      display: none;
+    }
+    
+    .success-badge.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .info-note {
+      font-size: 11px;
       color: var(--muted);
-    }
-
-    .info-value {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    /* Consistent button styles with main page */
-    .btn-primary {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: white;
-      font-family: 'Sora', 'Segoe UI', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-top: 8px;
-      border: none;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(79,195,247,0.3);
-    }
-
-    .btn-danger {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: 1px solid rgba(239,68,68,0.35);
-      background: transparent;
-      color: var(--error);
-      font-family: 'Sora', 'Segoe UI', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-top: 8px;
-    }
-
-    .btn-danger:hover {
-      background: rgba(239,68,68,0.08);
-      border-color: var(--error);
-    }
-
-    /* Profile icon in navbar */
-    .profile-icon-nav {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-
-    .profile-icon-nav:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(79,195,247,0.4);
-    }
-
-    /* Navbar right alignment */
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    /* Ensure glass card has consistent padding */
-    .glass-card {
-      max-width: 460px;
-      padding: 36px 30px;
+      text-align: center;
+      margin-top: 16px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Navbar - Matches main page exactly -->
   <nav class="navbar">
     <div class="nav-left">
-      <span class="logo">AI Voice Hospital</span>
+      <span class="logo">🎙️ AI Voice Hospital</span>
     </div>
     <div class="nav-right">
-      <button class="nav-btn" onclick="window.location.href='indexx.html'">
-        Dashboard
-      </button>
-      
-      <!-- Profile Icon - same as main page -->
-      <div class="profile-icon-nav" id="profileIconNav" onclick="window.location.href='profile.html'">
-        👤
+      <button class="nav-btn theme-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
+      <div class="profile-container">
+        <div class="profile-icon" id="profileIcon">👤</div>
       </div>
-      
-      <button class="logout-btn" onclick="logout()">
-        Logout
-      </button>
     </div>
   </nav>
 
-  <!-- Glass Card - consistent with main page -->
-  <div class="glass-card">
-
-    <div class="top-bar">AI VOICE HOSPITAL</div>
-
-    <!-- Avatar + Name -->
-    <div class="avatar-wrap">
-      <div class="avatar-circle" id="avatarEmoji">👤</div>
-      <div class="avatar-name">My <span>Profile.</span></div>
+  <div class="page-center">
+    <div class="profile-container-page">
+      <div class="profile-card">
+        <div class="profile-avatar-large" id="profileAvatar">👤</div>
+        
+        <div class="success-badge" id="successBadge">
+          ✅ Profile updated successfully!
+        </div>
+        
+        <form id="profileForm">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="fullName" placeholder="Enter your full name">
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Age</label>
+              <input type="number" id="age" placeholder="Age">
+            </div>
+            <div class="form-group">
+              <label>Gender</label>
+              <select id="gender">
+                <option value="">Select</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="phone" placeholder="10-digit mobile number" disabled>
+            <div class="info-note">📞 Phone number cannot be changed</div>
+          </div>
+          
+          <div class="form-group">
+            <label>Preferred Language</label>
+            <select id="language">
+              <option value="hi">Hindi</option>
+              <option value="en">English</option>
+              <option value="mr">Marathi</option>
+              <option value="ta">Tamil</option>
+              <option value="te">Telugu</option>
+              <option value="gu">Gujarati</option>
+            </select>
+          </div>
+          
+          <button type="submit" class="btn-save">💾 Save Changes</button>
+          <button type="button" class="btn-back" onclick="goBack()">← Back to Home</button>
+        </form>
+      </div>
     </div>
-
-    <!-- Info Rows -->
-    <div class="info-row">
-      <span class="info-label">Full Name</span>
-      <span class="info-value" id="profileName">—</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Patient ID</span>
-      <span class="info-value" id="profileId">—</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Phone Number</span>
-      <span class="info-value" id="profilePhone">—</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Age</span>
-      <span class="info-value" id="profileAge">—</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Gender</span>
-      <span class="info-value" id="profileGender">—</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Preferred Language</span>
-      <span class="info-value" id="profileLang">—</span>
-    </div>
-
-    <!-- Actions - using consistent button classes -->
-    <button class="btn-primary" onclick="window.location.href='indexx.html'">
-      🎤 &nbsp; Go to Dashboard
-    </button>
-    <button class="btn-danger" onclick="logout()">
-      🚪 &nbsp; Logout
-    </button>
-
   </div>
 
   <script>
-    const langMap = {
-      en: "English", hi: "Hindi", mr: "Marathi",
-      ta: "Tamil", te: "Telugu", gu: "Gujarati"
-    };
-
+    const BACKEND = "http://127.0.0.1:8000";
+    
+    // Load profile data
     function loadProfile() {
       const patient = JSON.parse(localStorage.getItem("patient") || "{}");
-
-      if (!patient || !patient.id) {
-        window.location.href = "login.html";
+      const name = localStorage.getItem("name") || patient.name || "";
+      const age = localStorage.getItem("age") || patient.age || "";
+      const gender = localStorage.getItem("gender") || patient.gender || "";
+      const phone = localStorage.getItem("phone") || patient.phone || "";
+      const language = localStorage.getItem("lang") || patient.language || "hi";
+      
+      document.getElementById("fullName").value = name;
+      document.getElementById("age").value = age;
+      document.getElementById("gender").value = gender;
+      document.getElementById("phone").value = phone;
+      document.getElementById("language").value = language;
+      
+      // Update avatar
+      const avatarEl = document.getElementById("profileAvatar");
+      const genderVal = gender.toLowerCase();
+      if (genderVal === "female") {
+        avatarEl.innerHTML = "👩";
+        avatarEl.style.background = "linear-gradient(135deg, #FF8E8E, #FF6B6B)";
+      } else if (genderVal === "male") {
+        avatarEl.innerHTML = "👨";
+        avatarEl.style.background = "linear-gradient(135deg, #4A90E2, #6BA5F0)";
+      } else {
+        avatarEl.innerHTML = name ? name.charAt(0).toUpperCase() : "👤";
+      }
+    }
+    
+    // Save profile data
+    document.getElementById("profileForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById("fullName").value.trim();
+      const age = document.getElementById("age").value.trim();
+      const gender = document.getElementById("gender").value;
+      const language = document.getElementById("language").value;
+      const phone = document.getElementById("phone").value;
+      
+      if (!name) {
+        alert("Please enter your name");
         return;
       }
-
-      const gender = (patient.gender || "").toLowerCase();
-      const avatarEmoji = document.getElementById("avatarEmoji");
-      const profileIconNav = document.getElementById("profileIconNav");
       
-      // Set avatar emoji based on gender
+      // Update localStorage
+      localStorage.setItem("name", name);
+      localStorage.setItem("age", age);
+      localStorage.setItem("gender", gender);
+      localStorage.setItem("lang", language);
+      
+      // Update patient object
+      const patient = JSON.parse(localStorage.getItem("patient") || "{}");
+      patient.name = name;
+      patient.age = age;
+      patient.gender = gender;
+      patient.language = language;
+      localStorage.setItem("patient", JSON.stringify(patient));
+      
+      // Send to backend if patient_id exists
+      const patientId = localStorage.getItem("patient_id");
+      if (patientId) {
+        try {
+          const response = await fetch(`${BACKEND}/update-profile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              patient_id: patientId,
+              name: name,
+              age: age,
+              gender: gender,
+              language: language
+            })
+          });
+          
+          if (response.ok) {
+            console.log("Profile synced with backend");
+          }
+        } catch (err) {
+          console.error("Backend sync failed:", err);
+        }
+      }
+      
+      // Show success message
+      const badge = document.getElementById("successBadge");
+      badge.classList.add("show");
+      setTimeout(() => {
+        badge.classList.remove("show");
+      }, 3000);
+      
+      // Update avatar
+      const avatarEl = document.getElementById("profileAvatar");
       if (gender === "female") {
-        avatarEmoji.textContent = "👩";
-        if (profileIconNav) profileIconNav.textContent = "👩";
+        avatarEl.innerHTML = "👩";
+        avatarEl.style.background = "linear-gradient(135deg, #FF8E8E, #FF6B6B)";
       } else if (gender === "male") {
-        avatarEmoji.textContent = "👨";
-        if (profileIconNav) profileIconNav.textContent = "👨";
+        avatarEl.innerHTML = "👨";
+        avatarEl.style.background = "linear-gradient(135deg, #4A90E2, #6BA5F0)";
       } else {
-        const firstLetter = (patient.name || "U").charAt(0).toUpperCase();
-        avatarEmoji.textContent = firstLetter;
-        if (profileIconNav) profileIconNav.textContent = firstLetter;
+        avatarEl.innerHTML = name.charAt(0).toUpperCase();
       }
-
-      // Set gradient colors based on gender
+    });
+    
+    function goBack() {
+      window.location.href = "indexx.html";
+    }
+    
+    // Theme toggle
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle("light-theme");
+      localStorage.setItem("theme", isLight ? "light" : "dark");
+      const btn = document.getElementById("themeToggleBtn");
+      if (btn) btn.textContent = isLight ? "🌙" : "☀️";
+    }
+    
+    // Apply saved theme
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "light") {
+      document.body.classList.add("light-theme");
+      const btn = document.getElementById("themeToggleBtn");
+      if (btn) btn.textContent = "🌙";
+    } else {
+      document.body.classList.add("dark-theme");
+      const btn = document.getElementById("themeToggleBtn");
+      if (btn) btn.textContent = "☀️";
+    }
+    
+    // Load profile on page load
+    loadProfile();
+    
+    // Update profile icon in navbar
+    function updateNavbarProfile() {
+      const patient = JSON.parse(localStorage.getItem("patient") || "{}");
+      const name = localStorage.getItem("name") || patient.name || "";
+      const gender = (patient.gender || "").toLowerCase();
+      const profileIconEl = document.getElementById("profileIcon");
+      
       if (gender === "female") {
-        const gradient = "linear-gradient(135deg, #FF6B6B, #FF8E8E)";
-        avatarEmoji.style.background = gradient;
-        if (profileIconNav) profileIconNav.style.background = gradient;
+        profileIconEl.innerHTML = "👩";
+        profileIconEl.style.background = "linear-gradient(135deg, #FF8E8E, #FF6B6B)";
       } else if (gender === "male") {
-        const gradient = "linear-gradient(135deg, #4A90E2, #6BA5F0)";
-        avatarEmoji.style.background = gradient;
-        if (profileIconNav) profileIconNav.style.background = gradient;
+        profileIconEl.innerHTML = "👨";
+        profileIconEl.style.background = "linear-gradient(135deg, #4A90E2, #6BA5F0)";
+      } else if (name) {
+        profileIconEl.innerHTML = name.charAt(0).toUpperCase();
       } else {
-        const gradient = "linear-gradient(135deg, var(--accent), var(--accent2))";
-        avatarEmoji.style.background = gradient;
-        if (profileIconNav) profileIconNav.style.background = gradient;
-      }
-
-      // Populate profile information
-      document.getElementById("profileName").textContent = patient.name || "—";
-      document.getElementById("profilePhone").textContent = patient.phone || "—";
-      document.getElementById("profileAge").textContent = patient.age || "—";
-      document.getElementById("profileGender").textContent = patient.gender || "—";
-      document.getElementById("profileId").textContent = "#" + patient.id;
-
-      const lang = patient.preferred_language || patient.language || "en";
-      document.getElementById("profileLang").textContent = langMap[lang] || lang;
-    }
-
-    function logout() {
-      if (confirm('Are you sure you want to logout?')) {
-        localStorage.removeItem("patient");
-        localStorage.removeItem("patient_id");
-        window.location.href = "login.html";
+        profileIconEl.innerHTML = "👤";
       }
     }
-
-    // Load profile when page loads
-    document.addEventListener("DOMContentLoaded", loadProfile);
+    
+    updateNavbarProfile();
   </script>
-
 </body>
 </html>
