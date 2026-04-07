@@ -256,7 +256,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
     if state == "idle":
         if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
             user_state[user_id] = "waiting_problem"
-            return "What problem are you facing? You can also say regular checkup."
+            return "What problem are you facing? You can also say regular checkup.", {}
         else:
             return "Say 'book appointment' to get started."
 
@@ -272,16 +272,20 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 matched_dept = problem_map[match]
 
         if matched_dept:
-            user_data[user_id]["dept"] = matched_dept
-            doctors = get_doctors_by_department(matched_dept)
-            if not doctors:
-                return "Sorry, no doctors available for that department right now."
-            user_data[user_id]["available_doctors"] = doctors
-            user_state[user_id] = "waiting_doctor"
-            doctor_names = [d.replace("Dr.", "Doctor") for d in doctors]
-            return f"Available doctors: {', '.join(doctor_names)}. Any preference?"
+         user_data[user_id]["dept"] = matched_dept
+         doctors = get_doctors_by_department(matched_dept)
+         if not doctors:
+            return "Sorry, no doctors available for that department right now.", {}
+         user_data[user_id]["available_doctors"] = doctors
+         user_state[user_id] = "waiting_doctor"
+         doctor_names = [d.replace("Dr.", "Doctor") for d in doctors]
+         reply = f"Available doctors: {', '.join(doctor_names)}. Any preference?"
+         return reply, {
+            "intent": "select_doctor",
+            "data": {"doctors": doctors}
+        }
 
-        return "Sorry, I didn't catch that. Please describe your problem."
+        return "Sorry, I didn't catch that. Please describe your problem." , {}
 
     elif state == "waiting_doctor":
         available = user_data[user_id].get("available_doctors", [])
@@ -322,8 +326,11 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         user_data[user_id]["doctor"]    = chosen
         user_data[user_id]["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
         user_state[user_id] = "waiting_date"
-        return f"Great, {chosen}. What date would you like?"
-
+        return f"Great, {chosen}. What date would you like?", {
+          "intent": "select_date",
+          "data": {"doctor": chosen}
+         }
+        
     elif state == "waiting_date":
         date_number_words = {
             "first": "1", "second": "2", "third": "3", "fourth": "4",
@@ -500,24 +507,32 @@ async def process_audio(
         print(f"ORIGINAL: {original}")
         print(f"TRANSLATED: {english}")
         print(f"USER STATE: {user_state.get(str(patient_id), 'NOT FOUND')}")
-        reply = generate_reply(english, user_id=str(patient_id), lang=lang, original=original)
+        reply, meta = generate_reply(english, user_id=str(patient_id), lang=lang, original=original)
         print(f"REPLY: {reply}")
         final = gt_from_english(reply, lang)
 
     except TimeoutError:
         final = "Sorry, the system is taking too long. Please try again."
+        meta = {}
 
     except Exception as e:
         print("ERROR in process_audio:", e)
         final = "Sorry, something went wrong. Please try again."
+        meta = {}
 
     finally:
         if os.path.exists(path):
             os.remove(path)
 
+    # If meta has a special intent, return JSON so frontend can show popup
+    if meta.get("intent"):
+        out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+        gTTS(text=final, lang=lang).save(out)
+        audio_url = f"/temp-audio/{os.path.basename(out)}"
+        return JSONResponse({"intent": meta["intent"], "data": meta.get("data", {}), "message": final, "audio_path": audio_url})
+
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
     gTTS(text=final, lang=lang).save(out)
-
     return FileResponse(out, media_type="audio/mpeg")
 
 # ------------------ TEXT API ------------------
@@ -842,3 +857,10 @@ def doctors_by_region(region: str):
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+@app.get("/temp-audio/{filename}")
+async def serve_temp_audio(filename: str):
+    path = f"{TEMP_DIR}/{filename}"
+    if os.path.exists(path):
+        return FileResponse(path, media_type="audio/mpeg")
+    return JSONResponse({"error": "File not found"}, status_code=404)
