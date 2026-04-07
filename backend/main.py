@@ -821,7 +821,7 @@ def add_doctor(req: AddDoctorRequest):
     
     clean = req.name.lower().replace("dr.", "").replace("dr ", "").strip()
     parts = clean.split()
-    email = ".".join(parts) + "@hospital.com"
+    email = ".".join(parts) + "@hospital.com" 
     contact_phone = "9" + str(random.randint(100000000, 999999999))
     
     conn.execute(
