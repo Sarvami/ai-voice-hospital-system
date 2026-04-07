@@ -833,3 +833,12 @@ def add_doctor(req: AddDoctorRequest):
     conn.commit()
     conn.close()
     return {"success": True}
+
+@app.get("/doctors/by-region/{region}")
+def doctors_by_region(region: str):
+    conn = get_db_connection()
+    rows = conn.execute(
+        "SELECT * FROM doctors WHERE LOWER(region)=LOWER(?)", (region,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
