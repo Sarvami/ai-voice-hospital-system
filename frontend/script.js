@@ -127,24 +127,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ── Helper: show single subtitle (legacy compatibility) ── */
-  function showSubtitle(text, type) {
-    if (!subtitleBar || !text) return;
-    addCaptionToHistory(text, type);
-    
-    // Also update the top status bar briefly for visual feedback
-    const statusText = document.getElementById("status");
-    if (statusText) {
-      const originalText = statusText.innerText;
-      statusText.innerText = type === 'user' ? `🎤 You: "${text.substring(0, 40)}${text.length > 40 ? '...' : ''}"` : `🤖 Assistant: "${text.substring(0, 40)}${text.length > 40 ? '...' : ''}"`;
-      setTimeout(() => {
-        if (statusText.innerText !== "Tap the mic and speak") {
-          statusText.innerText = originalText;
-        }
-      }, 3000);
-    }
-  }
-
   /* ── VOICE ASSISTANT ── */
   const recordBtn   = document.getElementById("recordBtn");
   const statusText  = document.getElementById("status");
@@ -169,8 +151,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (statusText) statusText.innerText = "🎙️ Listening... Speak now!";
         recordBtn.classList.add("recording");
-        recordBtn.style.transform = "scale(1.1)";
-        recordBtn.style.boxShadow = "0 0 25px #4fc3f7";
 
         // Clear previous timeout if exists
         if (recordingTimeout) clearTimeout(recordingTimeout);
@@ -181,8 +161,6 @@ document.addEventListener("DOMContentLoaded", () => {
             stream.getTracks().forEach(t => t.stop());
             if (statusText) statusText.innerText = "⏳ Processing your request...";
             recordBtn.classList.remove("recording");
-            recordBtn.style.transform = "scale(1)";
-            recordBtn.style.boxShadow = "";
           }
         }, 5000);
 
@@ -190,8 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         mediaRecorder.onstop = async () => {
           if (recordingTimeout) clearTimeout(recordingTimeout);
-          recordBtn.style.transform = "scale(1)";
-          recordBtn.style.boxShadow = "";
           
           const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
           const formData  = new FormData();
@@ -215,16 +191,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (contentType.includes("application/json")) {
               const json = await res.json();
+              
+              // DEBUG: Log the response
+              console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+              console.log("BACKEND RESPONSE:", json);
+              console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-              /* Show user speech subtitle */
+              /* Show user speech subtitle (BLUE) */
               if (json.user_text) {
-                showSubtitle(json.user_text, 'user');
+                console.log("Adding USER caption:", json.user_text);
+                addCaptionToHistory(json.user_text, 'user');
               }
 
-              /* Show AI response subtitle */
+              /* Show AI response subtitle (GREEN) */
               const aiText = json.text || json.subtitle || json.reply;
               if (aiText) {
-                showSubtitle(aiText, 'ai');
+                console.log("Adding AI caption:", aiText);
+                addCaptionToHistory(aiText, 'ai');
               }
 
               /* Handle date request */
@@ -235,10 +218,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 aiText.toLowerCase().includes("select date") ||
                 json.intent === "ask_date"
               )) {
-                pendingIntent   = "date";
+                pendingIntent = "date";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
-                addCaptionToHistory("📅 Please select your preferred appointment date from the calendar", 'ai');
+                addCaptionToHistory("Please select your preferred appointment date from the calendar", 'ai');
                 
                 const selectedDate = await openCalendarPopup();
                 if (selectedDate) {
@@ -257,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                     const dateResult = await dateRes.json();
                     if (dateResult.text) {
-                      showSubtitle(dateResult.text, 'ai');
+                      addCaptionToHistory(dateResult.text, 'ai');
                     }
                     if (dateResult.audio_url && audioPlayer) {
                       audioPlayer.src = dateResult.audio_url;
@@ -290,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 pendingIntent = "region";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
-                addCaptionToHistory("📍 Please select your preferred region from the list", 'ai');
+                addCaptionToHistory("Please select your preferred region from the list", 'ai');
                 
                 const selectedRegion = await openRegionPopup();
                 if (selectedRegion) {
@@ -309,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                     const regResult = await regRes.json();
                     if (regResult.text) {
-                      showSubtitle(regResult.text, 'ai');
+                      addCaptionToHistory(regResult.text, 'ai');
                     }
                     if (regResult.audio_url && audioPlayer) {
                       audioPlayer.src = regResult.audio_url;
@@ -478,7 +461,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Welcome message on load
   setTimeout(() => {
-    addCaptionToHistory("👋 Hello! I'm your AI hospital assistant. Tap the microphone and tell me how I can help you today.", 'ai');
+    addCaptionToHistory("Hello! I'm your AI hospital assistant. Tap the microphone and tell me how I can help you today.", 'ai');
   }, 500);
 
 }); // end DOMContentLoaded
