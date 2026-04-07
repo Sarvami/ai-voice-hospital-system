@@ -206,6 +206,7 @@ def fuzzy_match(text, keywords):
 
 def generate_reply(text, user_id="user1", lang="en", original=""):
     text = text.lower().strip()
+    combined = text + " " + original.lower()
 
     if "department" in text and ("which" in text or "what" in text or "belong" in text):
         for doc in ["mehta", "sharma", "rao", "shah",
@@ -237,7 +238,6 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
     state = user_state[user_id]
 
     if state == "idle":
-        combined = text + " " + original.lower()
         if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
             user_state[user_id] = "waiting_problem"
             return "What problem are you facing? You can also say regular checkup."
