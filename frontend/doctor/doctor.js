@@ -23,6 +23,8 @@ async function loadDoctor(){
         table.innerHTML = `
             <tr>
                 <td>${data.name}</td>
+                <td>${data.phone || '—'}</td>
+                <td>${data.email || '—'}</td>
                 <td>${data.specialization}</td>
                 <td>${data.appointments_today}</td>
                 <td>${data.total_patients}</td>

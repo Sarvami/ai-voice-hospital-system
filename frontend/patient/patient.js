@@ -33,11 +33,11 @@ async function loadAppointments() {
 
     list.forEach(a => {
       table.innerHTML += `
-        table.innerHTML += `
-  table.innerHTML += `
   <tr>
     <td>${a.appointment_id || a.id || "—"}</td>
     <td>${a.doctor || a.doctor_name || "—"}</td>
+    <td>${a.doctor_phone || "—"}</td>
+    <td>${a.doctor_email || "—"}</td>
     <td>${a.date || "—"}</td>
     <td>${a.time || "—"}</td>
     <td>${a.status || "—"}</td>
