@@ -121,6 +121,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let mediaRecorder;
   let audioChunks = [];
+  
+  // Store conversation context
+  let pendingIntent = null;
+  let pendingDoctorId = null;
 
   if (recordBtn) {
     recordBtn.addEventListener("click", async () => {
@@ -151,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
           formData.append("lang", selectedLang);
           formData.append("patient_id", localStorage.getItem("patient_id"));
 
-          // Show loader (check if function exists)
+          // Show loader
           if (typeof window.showLoader === 'function') {
             window.showLoader();
           } else if (typeof showLoader === 'function') {
@@ -178,14 +182,112 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (contentType.includes("application/json")) {
               const json = await res.json();
+              
+              console.log("JSON Response:", json); // Debug log
 
-              // Show subtitle
-              if (subtitleBar && json.text) {
-                subtitleBar.style.display = "block";
-                subtitleBar.textContent   = json.text;
-              } else if (subtitleBar && json.subtitle) {
-                subtitleBar.style.display = "block";
-                subtitleBar.textContent   = json.subtitle;
+              // Show subtitle - FIXED
+              if (subtitleBar) {
+                if (json.text) {
+                  subtitleBar.style.display = "block";
+                  subtitleBar.textContent = json.text;
+                  console.log("Subtitle displayed:", json.text);
+                } else if (json.subtitle) {
+                  subtitleBar.style.display = "block";
+                  subtitleBar.textContent = json.subtitle;
+                  console.log("Subtitle displayed:", json.subtitle);
+                } else if (json.reply) {
+                  subtitleBar.style.display = "block";
+                  subtitleBar.textContent = json.reply;
+                  console.log("Subtitle displayed:", json.reply);
+                }
+              }
+
+              // Handle date request from bot
+              if (json.text && (json.text.toLowerCase().includes("what date") || 
+                  json.text.toLowerCase().includes("which date") ||
+                  json.text.toLowerCase().includes("pick a date") ||
+                  json.intent === "ask_date")) {
+                
+                pendingIntent = "date";
+                if (json.doctor_id) pendingDoctorId = json.doctor_id;
+                
+                const selectedDate = await openCalendarPopup();
+                if (selectedDate && pendingIntent === "date") {
+                  showLoader();
+                  try {
+                    const dateResponse = await fetch(`${BACKEND}/set-appointment-date`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ 
+                        patient_id: localStorage.getItem("patient_id"),
+                        date: selectedDate,
+                        doctor_id: pendingDoctorId,
+                        lang: selectedLang 
+                      })
+                    });
+                    
+                    const dateResult = await dateResponse.json();
+                    if (dateResult.text && subtitleBar) {
+                      subtitleBar.textContent = dateResult.text;
+                    }
+                    if (dateResult.audio_url && audioPlayer) {
+                      audioPlayer.src = dateResult.audio_url;
+                      audioPlayer.load();
+                      audioPlayer.play();
+                      if (playBtn) playBtn.textContent = "❚❚";
+                    }
+                  } catch (err) {
+                    console.error("Date submission error:", err);
+                  } finally {
+                    hideLoader();
+                  }
+                }
+                pendingIntent = null;
+                return;
+              }
+              
+              // Handle region request from bot
+              if (json.text && (json.text.toLowerCase().includes("region") || 
+                  json.text.toLowerCase().includes("hospital") ||
+                  json.text.toLowerCase().includes("location") ||
+                  json.intent === "ask_region")) {
+                
+                pendingIntent = "region";
+                if (json.doctor_id) pendingDoctorId = json.doctor_id;
+                
+                const selectedRegion = await openRegionPopup();
+                if (selectedRegion && pendingIntent === "region") {
+                  showLoader();
+                  try {
+                    const regionResponse = await fetch(`${BACKEND}/set-region`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ 
+                        patient_id: localStorage.getItem("patient_id"),
+                        region: selectedRegion,
+                        doctor_id: pendingDoctorId,
+                        lang: selectedLang 
+                      })
+                    });
+                    
+                    const regionResult = await regionResponse.json();
+                    if (regionResult.text && subtitleBar) {
+                      subtitleBar.textContent = regionResult.text;
+                    }
+                    if (regionResult.audio_url && audioPlayer) {
+                      audioPlayer.src = regionResult.audio_url;
+                      audioPlayer.load();
+                      audioPlayer.play();
+                      if (playBtn) playBtn.textContent = "❚❚";
+                    }
+                  } catch (err) {
+                    console.error("Region submission error:", err);
+                  } finally {
+                    hideLoader();
+                  }
+                }
+                pendingIntent = null;
+                return;
               }
 
               // Show success popup if booking confirmed
@@ -238,6 +340,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  const text = json.text || json.subtitle || json.reply;
+
+console.log("Subtitle text:", text);
+
+if (text) {
+  const bar = document.getElementById("subtitleBar");
+  if (bar) {
+    bar.innerHTML = text;
+    bar.style.display = "block";
+  }
+}
 
   /* ================= AUDIO PLAYER ================= */
   if (audioPlayer && playBtn) {
@@ -270,8 +383,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
 }); // end DOMContentLoaded
 
+/* ================= THEME TOGGLE FUNCTION ================= */
+function toggleTheme() {
+  if (document.body.classList.contains('dark-theme')) {
+    document.body.classList.remove('dark-theme');
+    document.body.classList.add('light-theme');
+    localStorage.setItem('theme', 'light');
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = '🌙';
+  } else if (document.body.classList.contains('light-theme')) {
+    document.body.classList.remove('light-theme');
+    document.body.classList.add('dark-theme');
+    localStorage.setItem('theme', 'dark');
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = '☀️';
+  } else {
+    // Default to dark theme
+    document.body.classList.add('dark-theme');
+    localStorage.setItem('theme', 'dark');
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = '☀️';
+  }
+}
+
 /* ================= LOGOUT FUNCTION ================= */
 function logout() {
   localStorage.clear();
   window.location.href = "login.html";
+}
+
+// Apply saved theme on page load
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'light') {
+  document.body.classList.add('light-theme');
+  document.body.classList.remove('dark-theme');
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = '🌙';
+} else {
+  document.body.classList.add('dark-theme');
+  document.body.classList.remove('light-theme');
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = '☀️';
 }
