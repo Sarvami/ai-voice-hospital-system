@@ -3,24 +3,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const BACKEND = "http://127.0.0.1:8000";
 
   /* ================= PROFILE SECTION ================= */
-
-  const nameEl = document.getElementById("name");
+  const nameEl  = document.getElementById("name");
   const phoneEl = document.getElementById("phone-display");
-  const langEl = document.getElementById("language");
+  const langEl  = document.getElementById("language");
 
   if (nameEl && phoneEl && langEl) {
-    nameEl.innerText = localStorage.getItem("name") || "Unknown";
+    nameEl.innerText  = localStorage.getItem("name")  || "Unknown";
     phoneEl.innerText = localStorage.getItem("phone") || "Not available";
-    langEl.innerText = localStorage.getItem("lang") || "Not set";
+    langEl.innerText  = localStorage.getItem("lang")  || "Not set";
   }
 
   /* ================= REGISTER ================= */
-
   const registerBtn = document.getElementById("registerBtn");
 
   if (registerBtn) {
     registerBtn.addEventListener("click", async () => {
-
       const name     = document.getElementById("reg-name")?.value.trim();
       const age      = document.getElementById("reg-age")?.value.trim();
       const gender   = document.getElementById("reg-gender")?.value;
@@ -50,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("password", password);
         formData.append("language", language);
 
-        const res = await fetch(`${BACKEND}/register`, { method: "POST", body: formData });
+        const res  = await fetch(`${BACKEND}/register`, { method: "POST", body: formData });
         const data = await res.json();
 
         if (data.error) {
@@ -72,7 +69,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= LOGOUT ================= */
-
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
@@ -82,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= DASHBOARD BUTTON ================= */
-
   const dashboardBtn = document.getElementById("dashboardBtn");
   if (dashboardBtn) {
     dashboardBtn.addEventListener("click", () => {
@@ -91,7 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= AUTH GUARD ================= */
-
   if (document.getElementById("recordBtn")) {
     const patientId = localStorage.getItem("patient_id");
     if (!patientId) {
@@ -101,7 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= LANGUAGE SELECTION ================= */
-
   let selectedLang = localStorage.getItem("lang") || "hi";
 
   document.querySelectorAll(".bubble").forEach(btn => {
@@ -118,13 +111,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ================= VOICE ASSISTANT ================= */
-
   const recordBtn   = document.getElementById("recordBtn");
   const statusText  = document.getElementById("status");
   const audioPlayer = document.getElementById("audioPlayer");
   const playBtn     = document.getElementById("playBtn");
   const progress    = document.getElementById("progress");
   const timeText    = document.getElementById("time");
+  const subtitleBar = document.getElementById("subtitleBar");
 
   let mediaRecorder;
   let audioChunks = [];
@@ -134,8 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
+        mediaRecorder  = new MediaRecorder(stream);
+        audioChunks    = [];
         mediaRecorder.start();
 
         if (statusText) statusText.innerText = "Listening... 🎙️";
@@ -158,14 +151,22 @@ document.addEventListener("DOMContentLoaded", () => {
           formData.append("lang", selectedLang);
           formData.append("patient_id", localStorage.getItem("patient_id"));
 
-          console.log("Sending to backend...");
-          console.log("patient_id:", localStorage.getItem("patient_id"));
-          console.log("lang:", selectedLang);
+          // Show loader (check if function exists)
+          if (typeof window.showLoader === 'function') {
+            window.showLoader();
+          } else if (typeof showLoader === 'function') {
+            showLoader();
+          }
 
           try {
             const res = await fetch(`${BACKEND}/process-audio`, { method: "POST", body: formData });
-            console.log("Response status:", res.status);
-            console.log("Response ok:", res.ok);
+
+            // Hide loader
+            if (typeof window.hideLoader === 'function') {
+              window.hideLoader();
+            } else if (typeof hideLoader === 'function') {
+              hideLoader();
+            }
 
             if (!res.ok) {
               if (statusText) statusText.innerText = "Backend error ❌";
@@ -173,33 +174,72 @@ document.addEventListener("DOMContentLoaded", () => {
               return;
             }
 
-            const audioData = await res.blob();
-            console.log("Audio blob size:", audioData.size);
-            const url = URL.createObjectURL(audioData);
+            const contentType = res.headers.get("content-type") || "";
 
-            if (audioPlayer) {
-              audioPlayer.src = url;
-              audioPlayer.load();
-              audioPlayer.play();
-              if (playBtn) playBtn.textContent = "❚❚";
+            if (contentType.includes("application/json")) {
+              const json = await res.json();
+
+              // Show subtitle
+              if (subtitleBar && json.text) {
+                subtitleBar.style.display = "block";
+                subtitleBar.textContent   = json.text;
+              } else if (subtitleBar && json.subtitle) {
+                subtitleBar.style.display = "block";
+                subtitleBar.textContent   = json.subtitle;
+              }
+
+              // Show success popup if booking confirmed
+              if (json.booked) {
+                if (typeof window.showSuccessPopup === 'function') {
+                  window.showSuccessPopup(json.success_message || "Your appointment has been successfully booked.");
+                } else if (typeof showSuccessPopup === 'function') {
+                  showSuccessPopup(json.success_message || "Your appointment has been successfully booked.");
+                }
+              }
+
+              // Play audio if url provided
+              if (json.audio_url && audioPlayer) {
+                audioPlayer.src = json.audio_url;
+                audioPlayer.load();
+                audioPlayer.play();
+                if (playBtn) playBtn.textContent = "❚❚";
+              }
+
+            } else {
+              // Original flow: backend returns raw audio blob
+              const audioData = await res.blob();
+              const url       = URL.createObjectURL(audioData);
+
+              if (audioPlayer) {
+                audioPlayer.src = url;
+                audioPlayer.load();
+                audioPlayer.play();
+                if (playBtn) playBtn.textContent = "❚❚";
+              }
             }
 
             if (statusText) statusText.innerText = "Response received ✅";
 
           } catch (err) {
+            // Hide loader on error
+            if (typeof window.hideLoader === 'function') {
+              window.hideLoader();
+            } else if (typeof hideLoader === 'function') {
+              hideLoader();
+            }
             console.error("Fetch error:", err);
             if (statusText) statusText.innerText = "Cannot reach backend ❌";
           }
-        }; // end onstop
+        };
 
-      } catch {
+      } catch (err) {
+        console.error("Microphone error:", err);
         alert("Microphone permission denied!");
       }
     });
   }
 
   /* ================= AUDIO PLAYER ================= */
-
   if (audioPlayer && playBtn) {
     playBtn.addEventListener("click", () => {
       if (audioPlayer.paused) {
