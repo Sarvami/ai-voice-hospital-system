@@ -2,20 +2,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const BACKEND = "http://127.0.0.1:8000";
 
-  /* ================= PROFILE SECTION ================= */
+  /* ── PROFILE SECTION ── */
   const nameEl  = document.getElementById("name");
   const phoneEl = document.getElementById("phone-display");
   const langEl  = document.getElementById("language");
+  if (nameEl)  nameEl.innerText  = localStorage.getItem("name")  || "Unknown";
+  if (phoneEl) phoneEl.innerText = localStorage.getItem("phone") || "Not available";
+  if (langEl)  langEl.innerText  = localStorage.getItem("lang")  || "Not set";
 
-  if (nameEl && phoneEl && langEl) {
-    nameEl.innerText  = localStorage.getItem("name")  || "Unknown";
-    phoneEl.innerText = localStorage.getItem("phone") || "Not available";
-    langEl.innerText  = localStorage.getItem("lang")  || "Not set";
-  }
-
-  /* ================= REGISTER ================= */
+  /* ── REGISTER ── */
   const registerBtn = document.getElementById("registerBtn");
-
   if (registerBtn) {
     registerBtn.addEventListener("click", async () => {
       const name     = document.getElementById("reg-name")?.value.trim();
@@ -31,13 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
         msg.innerText = "Please fill in all fields";
         return;
       }
-
       if (phone.replace(/\D/g, "").length < 10) {
         msg.className = "msg error";
         msg.innerText = "Enter a valid 10-digit phone number";
         return;
       }
-
       try {
         const formData = new FormData();
         formData.append("name", name);
@@ -50,25 +44,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const res  = await fetch(`${BACKEND}/register`, { method: "POST", body: formData });
         const data = await res.json();
 
-        if (data.error) {
-          msg.className = "msg error";
-          msg.innerText = data.error;
-          return;
-        }
-
+        if (data.error) { msg.className = "msg error"; msg.innerText = data.error; return; }
         msg.className = "msg success";
         msg.innerText = "Account created! Redirecting to login...";
         setTimeout(() => window.location.href = "login.html", 1500);
-
       } catch (err) {
         msg.className = "msg error";
         msg.innerText = "Cannot reach backend";
-        console.error(err);
       }
     });
   }
 
-  /* ================= LOGOUT ================= */
+  /* ── LOGOUT BUTTON ── */
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
@@ -77,15 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ================= DASHBOARD BUTTON ================= */
-  const dashboardBtn = document.getElementById("dashboardBtn");
-  if (dashboardBtn) {
-    dashboardBtn.addEventListener("click", () => {
-      window.location.href = "patient/patient_dashboard.html";
-    });
-  }
-
-  /* ================= AUTH GUARD ================= */
+  /* ── AUTH GUARD ── */
   if (document.getElementById("recordBtn")) {
     const patientId = localStorage.getItem("patient_id");
     if (!patientId) {
@@ -94,12 +73,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* ================= LANGUAGE SELECTION ================= */
+  /* ── LANGUAGE SELECTION ── */
   let selectedLang = localStorage.getItem("lang") || "hi";
 
   document.querySelectorAll(".bubble").forEach(btn => {
     if (btn.dataset.lang === selectedLang) btn.classList.add("active");
-
     btn.addEventListener("click", () => {
       document.querySelectorAll(".bubble").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
@@ -107,74 +85,129 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem("lang", selectedLang);
       const statusText = document.getElementById("status");
       if (statusText) statusText.innerText = "Language selected ✔";
+      addCaptionToHistory(`Language switched to ${selectedLang.toUpperCase()}`, 'ai');
     });
   });
 
-  /* ================= VOICE ASSISTANT ================= */
+  /* ── ENHANCED SUBTITLE SYSTEM (with history) ── */
+  let captionHistory = [];
+  const captionContainer = document.getElementById("captionContainer");
+  const subtitleBar = document.getElementById("subtitleBar");
+
+  function addCaptionToHistory(text, type) {
+    if (!text) return;
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    captionHistory.push({ text, type, time });
+    // Keep last 15 messages for clean UI
+    if (captionHistory.length > 15) captionHistory.shift();
+    renderCaptions();
+  }
+
+  function renderCaptions() {
+    if (!captionContainer) return;
+    captionContainer.innerHTML = '';
+    captionHistory.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = msg.type === 'user' ? 'caption-user' : 'caption-ai';
+      div.innerHTML = `<span class="caption-time">${msg.time}</span> ${escapeHtml(msg.text)}`;
+      captionContainer.appendChild(div);
+    });
+    // Auto-scroll to bottom
+    if (subtitleBar) subtitleBar.scrollTop = subtitleBar.scrollHeight;
+  }
+
+  // Helper to escape HTML
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  /* ── Helper: show single subtitle (legacy compatibility) ── */
+  function showSubtitle(text, type) {
+    if (!subtitleBar || !text) return;
+    addCaptionToHistory(text, type);
+    
+    // Also update the top status bar briefly for visual feedback
+    const statusText = document.getElementById("status");
+    if (statusText) {
+      const originalText = statusText.innerText;
+      statusText.innerText = type === 'user' ? `🎤 You: "${text.substring(0, 40)}${text.length > 40 ? '...' : ''}"` : `🤖 Assistant: "${text.substring(0, 40)}${text.length > 40 ? '...' : ''}"`;
+      setTimeout(() => {
+        if (statusText.innerText !== "Tap the mic and speak") {
+          statusText.innerText = originalText;
+        }
+      }, 3000);
+    }
+  }
+
+  /* ── VOICE ASSISTANT ── */
   const recordBtn   = document.getElementById("recordBtn");
   const statusText  = document.getElementById("status");
   const audioPlayer = document.getElementById("audioPlayer");
   const playBtn     = document.getElementById("playBtn");
   const progress    = document.getElementById("progress");
   const timeText    = document.getElementById("time");
-  const subtitleBar = document.getElementById("subtitleBar");
-
-  let mediaRecorder;
-  let audioChunks = [];
   
-  // Store conversation context
+  let mediaRecorder;
+  let audioChunks   = [];
   let pendingIntent = null;
   let pendingDoctorId = null;
+  let recordingTimeout = null;
 
   if (recordBtn) {
     recordBtn.addEventListener("click", async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        mediaRecorder  = new MediaRecorder(stream);
-        audioChunks    = [];
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks   = [];
         mediaRecorder.start();
 
-        if (statusText) statusText.innerText = "Listening... 🎙️";
-        recordBtn.style.background = "#ef5350";
+        if (statusText) statusText.innerText = "🎙️ Listening... Speak now!";
+        recordBtn.classList.add("recording");
+        recordBtn.style.transform = "scale(1.1)";
+        recordBtn.style.boxShadow = "0 0 25px #4fc3f7";
+
+        // Clear previous timeout if exists
+        if (recordingTimeout) clearTimeout(recordingTimeout);
+        
+        recordingTimeout = setTimeout(() => {
+          if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+            stream.getTracks().forEach(t => t.stop());
+            if (statusText) statusText.innerText = "⏳ Processing your request...";
+            recordBtn.classList.remove("recording");
+            recordBtn.style.transform = "scale(1)";
+            recordBtn.style.boxShadow = "";
+          }
+        }, 5000);
 
         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
-        setTimeout(() => {
-          mediaRecorder.stop();
-          stream.getTracks().forEach(t => t.stop());
-          if (statusText) statusText.innerText = "Processing...";
-          recordBtn.style.background = "";
-        }, 5000);
-
         mediaRecorder.onstop = async () => {
+          if (recordingTimeout) clearTimeout(recordingTimeout);
+          recordBtn.style.transform = "scale(1)";
+          recordBtn.style.boxShadow = "";
+          
           const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-
-          const formData = new FormData();
+          const formData  = new FormData();
           formData.append("audio", audioBlob, "recording.wav");
           formData.append("lang", selectedLang);
           formData.append("patient_id", localStorage.getItem("patient_id"));
 
-          // Show loader
-          if (typeof window.showLoader === 'function') {
-            window.showLoader();
-          } else if (typeof showLoader === 'function') {
-            showLoader();
-          }
+          showLoader();
 
           try {
             const res = await fetch(`${BACKEND}/process-audio`, { method: "POST", body: formData });
-
-            // Hide loader
-            if (typeof window.hideLoader === 'function') {
-              window.hideLoader();
-            } else if (typeof hideLoader === 'function') {
-              hideLoader();
-            }
+            hideLoader();
 
             if (!res.ok) {
-              if (statusText) statusText.innerText = "Backend error ❌";
-              console.error("Backend error:", res.status);
+              if (statusText) statusText.innerText = "❌ Backend error";
+              addCaptionToHistory("Sorry, there was an error processing your request.", 'ai');
               return;
             }
 
@@ -182,53 +215,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (contentType.includes("application/json")) {
               const json = await res.json();
-              
-              console.log("JSON Response:", json); // Debug log
 
-              // Show subtitle - FIXED
-              if (subtitleBar) {
-                if (json.text) {
-                  subtitleBar.style.display = "block";
-                  subtitleBar.textContent = json.text;
-                  console.log("Subtitle displayed:", json.text);
-                } else if (json.subtitle) {
-                  subtitleBar.style.display = "block";
-                  subtitleBar.textContent = json.subtitle;
-                  console.log("Subtitle displayed:", json.subtitle);
-                } else if (json.reply) {
-                  subtitleBar.style.display = "block";
-                  subtitleBar.textContent = json.reply;
-                  console.log("Subtitle displayed:", json.reply);
-                }
+              /* Show user speech subtitle */
+              if (json.user_text) {
+                showSubtitle(json.user_text, 'user');
               }
 
-              // Handle date request from bot
-              if (json.text && (json.text.toLowerCase().includes("what date") || 
-                  json.text.toLowerCase().includes("which date") ||
-                  json.text.toLowerCase().includes("pick a date") ||
-                  json.intent === "ask_date")) {
-                
-                pendingIntent = "date";
+              /* Show AI response subtitle */
+              const aiText = json.text || json.subtitle || json.reply;
+              if (aiText) {
+                showSubtitle(aiText, 'ai');
+              }
+
+              /* Handle date request */
+              if (aiText && (
+                aiText.toLowerCase().includes("what date") ||
+                aiText.toLowerCase().includes("which date") ||
+                aiText.toLowerCase().includes("pick a date") ||
+                aiText.toLowerCase().includes("select date") ||
+                json.intent === "ask_date"
+              )) {
+                pendingIntent   = "date";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
+
+                addCaptionToHistory("📅 Please select your preferred appointment date from the calendar", 'ai');
                 
                 const selectedDate = await openCalendarPopup();
-                if (selectedDate && pendingIntent === "date") {
+                if (selectedDate) {
+                  addCaptionToHistory(`Selected date: ${selectedDate}`, 'user');
                   showLoader();
                   try {
-                    const dateResponse = await fetch(`${BACKEND}/set-appointment-date`, {
+                    const dateRes = await fetch(`${BACKEND}/set-appointment-date`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ 
+                      body: JSON.stringify({
                         patient_id: localStorage.getItem("patient_id"),
                         date: selectedDate,
                         doctor_id: pendingDoctorId,
-                        lang: selectedLang 
+                        lang: selectedLang
                       })
                     });
-                    
-                    const dateResult = await dateResponse.json();
-                    if (dateResult.text && subtitleBar) {
-                      subtitleBar.textContent = dateResult.text;
+                    const dateResult = await dateRes.json();
+                    if (dateResult.text) {
+                      showSubtitle(dateResult.text, 'ai');
                     }
                     if (dateResult.audio_url && audioPlayer) {
                       audioPlayer.src = dateResult.audio_url;
@@ -236,70 +265,79 @@ document.addEventListener("DOMContentLoaded", () => {
                       audioPlayer.play();
                       if (playBtn) playBtn.textContent = "❚❚";
                     }
-                  } catch (err) {
-                    console.error("Date submission error:", err);
-                  } finally {
-                    hideLoader();
+                    if (dateResult.booked) {
+                      showSuccessPopup(dateResult.success_message || "Your appointment has been successfully booked!");
+                    }
+                  } catch(e) { 
+                    console.error("Date error:", e);
+                    addCaptionToHistory("Sorry, there was an error setting the date.", 'ai');
                   }
+                  finally { hideLoader(); }
+                } else {
+                  addCaptionToHistory("Date selection was cancelled.", 'ai');
                 }
                 pendingIntent = null;
                 return;
               }
-              
-              // Handle region request from bot
-              if (json.text && (json.text.toLowerCase().includes("region") || 
-                  json.text.toLowerCase().includes("hospital") ||
-                  json.text.toLowerCase().includes("location") ||
-                  json.intent === "ask_region")) {
-                
+
+              /* Handle region request */
+              if (aiText && (
+                aiText.toLowerCase().includes("region") ||
+                aiText.toLowerCase().includes("location") ||
+                aiText.toLowerCase().includes("area") ||
+                json.intent === "ask_region"
+              )) {
                 pendingIntent = "region";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
+
+                addCaptionToHistory("📍 Please select your preferred region from the list", 'ai');
                 
                 const selectedRegion = await openRegionPopup();
-                if (selectedRegion && pendingIntent === "region") {
+                if (selectedRegion) {
+                  addCaptionToHistory(`Selected region: ${selectedRegion}`, 'user');
                   showLoader();
                   try {
-                    const regionResponse = await fetch(`${BACKEND}/set-region`, {
+                    const regRes = await fetch(`${BACKEND}/set-region`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ 
+                      body: JSON.stringify({
                         patient_id: localStorage.getItem("patient_id"),
                         region: selectedRegion,
                         doctor_id: pendingDoctorId,
-                        lang: selectedLang 
+                        lang: selectedLang
                       })
                     });
-                    
-                    const regionResult = await regionResponse.json();
-                    if (regionResult.text && subtitleBar) {
-                      subtitleBar.textContent = regionResult.text;
+                    const regResult = await regRes.json();
+                    if (regResult.text) {
+                      showSubtitle(regResult.text, 'ai');
                     }
-                    if (regionResult.audio_url && audioPlayer) {
-                      audioPlayer.src = regionResult.audio_url;
+                    if (regResult.audio_url && audioPlayer) {
+                      audioPlayer.src = regResult.audio_url;
                       audioPlayer.load();
                       audioPlayer.play();
                       if (playBtn) playBtn.textContent = "❚❚";
                     }
-                  } catch (err) {
-                    console.error("Region submission error:", err);
-                  } finally {
-                    hideLoader();
+                    if (regResult.booked) {
+                      showSuccessPopup(regResult.success_message || "Your appointment has been successfully booked!");
+                    }
+                  } catch(e) { 
+                    console.error("Region error:", e);
+                    addCaptionToHistory("Sorry, there was an error setting the region.", 'ai');
                   }
+                  finally { hideLoader(); }
+                } else {
+                  addCaptionToHistory("Region selection was cancelled.", 'ai');
                 }
                 pendingIntent = null;
                 return;
               }
 
-              // Show success popup if booking confirmed
+              /* Show success popup if appointment booked */
               if (json.booked) {
-                if (typeof window.showSuccessPopup === 'function') {
-                  window.showSuccessPopup(json.success_message || "Your appointment has been successfully booked.");
-                } else if (typeof showSuccessPopup === 'function') {
-                  showSuccessPopup(json.success_message || "Your appointment has been successfully booked.");
-                }
+                showSuccessPopup(json.success_message || "Your appointment has been successfully booked!");
               }
 
-              // Play audio if url provided
+              /* Play audio */
               if (json.audio_url && audioPlayer) {
                 audioPlayer.src = json.audio_url;
                 audioPlayer.load();
@@ -308,10 +346,9 @@ document.addEventListener("DOMContentLoaded", () => {
               }
 
             } else {
-              // Original flow: backend returns raw audio blob
+              /* Raw audio blob */
               const audioData = await res.blob();
-              const url       = URL.createObjectURL(audioData);
-
+              const url = URL.createObjectURL(audioData);
               if (audioPlayer) {
                 audioPlayer.src = url;
                 audioPlayer.load();
@@ -320,58 +357,44 @@ document.addEventListener("DOMContentLoaded", () => {
               }
             }
 
-            if (statusText) statusText.innerText = "Response received ✅";
+            if (statusText) statusText.innerText = "✅ Response received";
 
           } catch (err) {
-            // Hide loader on error
-            if (typeof window.hideLoader === 'function') {
-              window.hideLoader();
-            } else if (typeof hideLoader === 'function') {
-              hideLoader();
-            }
+            hideLoader();
             console.error("Fetch error:", err);
-            if (statusText) statusText.innerText = "Cannot reach backend ❌";
+            if (statusText) statusText.innerText = "❌ Cannot reach backend";
+            addCaptionToHistory("Sorry, I'm having trouble connecting to the server.", 'ai');
           }
         };
 
       } catch (err) {
-        console.error("Microphone error:", err);
-        alert("Microphone permission denied!");
+        console.error("Mic error:", err);
+        alert("Microphone permission denied! Please allow microphone access and try again.");
+        if (statusText) statusText.innerText = "❌ Microphone access denied";
       }
     });
   }
-  const text = json.text || json.subtitle || json.reply;
 
-console.log("Subtitle text:", text);
-
-if (text) {
-  const bar = document.getElementById("subtitleBar");
-  if (bar) {
-    bar.innerHTML = text;
-    bar.style.display = "block";
-  }
-}
-
-  /* ================= AUDIO PLAYER ================= */
+  /* ── AUDIO PLAYER ── */
   if (audioPlayer && playBtn) {
     playBtn.addEventListener("click", () => {
-      if (audioPlayer.paused) {
-        audioPlayer.play();
-        playBtn.textContent = "❚❚";
-      } else {
-        audioPlayer.pause();
-        playBtn.textContent = "▶";
+      if (audioPlayer.paused) { 
+        audioPlayer.play(); 
+        playBtn.textContent = "❚❚"; 
+      } else { 
+        audioPlayer.pause(); 
+        playBtn.textContent = "▶"; 
       }
     });
 
     audioPlayer.addEventListener("timeupdate", () => {
       if (!audioPlayer.duration) return;
-      const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-      if (progress) progress.style.width = percent + "%";
+      const pct = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+      if (progress) progress.style.width = pct + "%";
       if (timeText) {
-        const mins = Math.floor(audioPlayer.currentTime / 60);
-        const secs = Math.floor(audioPlayer.currentTime % 60).toString().padStart(2, "0");
-        timeText.textContent = `${mins}:${secs}`;
+        const m = Math.floor(audioPlayer.currentTime / 60);
+        const s = Math.floor(audioPlayer.currentTime % 60).toString().padStart(2, "0");
+        timeText.textContent = `${m}:${s}`;
       }
     });
 
@@ -381,47 +404,231 @@ if (text) {
     });
   }
 
+  /* ── PROFILE DROPDOWN ── */
+  const profileIcon     = document.getElementById("profileIcon");
+  const profileDropdown = document.getElementById("profileDropdown");
+
+  if (profileIcon && profileDropdown) {
+    profileIcon.addEventListener("click", e => {
+      e.stopPropagation();
+      profileDropdown.classList.toggle("show");
+    });
+    document.addEventListener("click", e => {
+      if (!profileIcon.contains(e.target) && !profileDropdown.contains(e.target)) {
+        profileDropdown.classList.remove("show");
+      }
+    });
+  }
+
+  /* ── UPDATE PROFILE INFO ── */
+  function updateProfileInfo() {
+    const patient = JSON.parse(localStorage.getItem("patient") || "{}");
+    const name    = localStorage.getItem("name") || patient.name || "";
+
+    const profileIconEl  = document.getElementById("profileIcon");
+    const dropdownAvatar = document.getElementById("dropdownAvatar");
+    const dropdownName   = document.getElementById("dropdownName");
+    const dropdownEmail  = document.getElementById("dropdownEmail");
+
+    if (name) {
+      const initial = name.charAt(0).toUpperCase();
+      const gender  = (patient.gender || "").toLowerCase();
+      let avatar = "👤";
+      let gradient = "linear-gradient(135deg, #4FC3F7, #7C4DFF)";
+      
+      if (gender === "female") {
+        avatar = "👩";
+        gradient = "linear-gradient(135deg, #FF8E8E, #FF6B6B)";
+      } else if (gender === "male") {
+        avatar = "👨";
+        gradient = "linear-gradient(135deg, #4A90E2, #6BA5F0)";
+      } else {
+        avatar = initial;
+      }
+
+      if (profileIconEl) {
+        profileIconEl.textContent = avatar;
+        profileIconEl.style.background = gradient;
+      }
+      if (dropdownAvatar) {
+        dropdownAvatar.textContent = avatar;
+        dropdownAvatar.style.background = gradient;
+      }
+      if (dropdownName)   dropdownName.textContent = name;
+      if (dropdownEmail)  dropdownEmail.textContent = localStorage.getItem("phone") || "No phone number";
+    } else {
+      if (dropdownName)  dropdownName.textContent = "Guest User";
+      if (dropdownEmail) dropdownEmail.textContent = "Not signed in";
+    }
+  }
+
+  updateProfileInfo();
+
+  /* ── APPLY SAVED THEME ON LOAD ── */
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "light") {
+    document.body.classList.add("light-theme");
+    const btn = document.getElementById("themeToggleBtn");
+    if (btn) btn.textContent = "🌙";
+  } else {
+    document.body.classList.add("dark-theme");
+    const btn = document.getElementById("themeToggleBtn");
+    if (btn) btn.textContent = "☀️";
+  }
+
+  // Welcome message on load
+  setTimeout(() => {
+    addCaptionToHistory("👋 Hello! I'm your AI hospital assistant. Tap the microphone and tell me how I can help you today.", 'ai');
+  }, 500);
+
 }); // end DOMContentLoaded
 
-/* ================= THEME TOGGLE FUNCTION ================= */
+
+/* ── GLOBAL FUNCTIONS ── */
+
 function toggleTheme() {
-  if (document.body.classList.contains('dark-theme')) {
-    document.body.classList.remove('dark-theme');
-    document.body.classList.add('light-theme');
-    localStorage.setItem('theme', 'light');
-    const btn = document.getElementById('themeToggleBtn');
-    if (btn) btn.textContent = '🌙';
-  } else if (document.body.classList.contains('light-theme')) {
-    document.body.classList.remove('light-theme');
-    document.body.classList.add('dark-theme');
-    localStorage.setItem('theme', 'dark');
-    const btn = document.getElementById('themeToggleBtn');
-    if (btn) btn.textContent = '☀️';
-  } else {
-    // Default to dark theme
-    document.body.classList.add('dark-theme');
-    localStorage.setItem('theme', 'dark');
-    const btn = document.getElementById('themeToggleBtn');
-    if (btn) btn.textContent = '☀️';
+  const isLight = document.body.classList.toggle("light-theme");
+  localStorage.setItem("theme", isLight ? "light" : "dark");
+  const btn = document.getElementById("themeToggleBtn");
+  if (btn) btn.textContent = isLight ? "🌙" : "☀️";
+}
+
+function logout() {
+  if (confirm("Are you sure you want to logout?")) {
+    localStorage.clear();
+    window.location.href = "login.html";
   }
 }
 
-/* ================= LOGOUT FUNCTION ================= */
-function logout() {
-  localStorage.clear();
-  window.location.href = "login.html";
+/* ── LOADER ── */
+function showLoader() {
+  const loader = document.getElementById("loaderOverlay");
+  if (loader) loader.classList.add("show");
+}
+function hideLoader() {
+  const loader = document.getElementById("loaderOverlay");
+  if (loader) loader.classList.remove("show");
 }
 
-// Apply saved theme on page load
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'light') {
-  document.body.classList.add('light-theme');
-  document.body.classList.remove('dark-theme');
-  const btn = document.getElementById('themeToggleBtn');
-  if (btn) btn.textContent = '🌙';
-} else {
-  document.body.classList.add('dark-theme');
-  document.body.classList.remove('light-theme');
-  const btn = document.getElementById('themeToggleBtn');
-  if (btn) btn.textContent = '☀️';
+/* ── SUCCESS POPUP ── */
+function showSuccessPopup(msg) {
+  const successMsg = document.getElementById("successMsg");
+  if (successMsg && msg) successMsg.textContent = msg;
+  const popup = document.getElementById("successPopup");
+  if (popup) popup.classList.add("show");
+  
+  // Auto-hide after 3 seconds
+  setTimeout(() => {
+    closeSuccessPopup();
+  }, 3000);
+}
+function closeSuccessPopup() {
+  const popup = document.getElementById("successPopup");
+  if (popup) popup.classList.remove("show");
+}
+
+/* ── CALENDAR POPUP ── */
+let calPopupDate    = new Date();
+let calPopupResolve = null;
+
+function openCalendarPopup() {
+  return new Promise(resolve => {
+    calPopupResolve = resolve;
+    calPopupDate = new Date();
+    renderCalPopup();
+    const popup = document.getElementById("calendarPopup");
+    if (popup) popup.classList.add("show");
+  });
+}
+
+function closeCalendarPopup() {
+  const popup = document.getElementById("calendarPopup");
+  if (popup) popup.classList.remove("show");
+}
+
+function calChangeMonth(dir) {
+  calPopupDate.setMonth(calPopupDate.getMonth() + dir);
+  renderCalPopup();
+}
+
+function renderCalPopup() {
+  const year  = calPopupDate.getFullYear();
+  const month = calPopupDate.getMonth();
+  const today = new Date(); 
+  today.setHours(0,0,0,0);
+
+  const labelEl = document.getElementById("calPopupLabel");
+  if (labelEl) {
+    labelEl.textContent = calPopupDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  }
+
+  const grid = document.getElementById("calPopupGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  ["Su","Mo","Tu","We","Th","Fr","Sa"].forEach(d => {
+    const h = document.createElement("div");
+    h.className = "ch"; 
+    h.textContent = d; 
+    grid.appendChild(h);
+  });
+
+  const firstDay    = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    const blank = document.createElement("div");
+    blank.style.height = "32px";
+    grid.appendChild(blank);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cell     = document.createElement("div");
+    cell.className = "cd";
+    cell.textContent = d;
+
+    const thisDate = new Date(year, month, d);
+    const dateStr  = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
+    if (thisDate.getTime() === today.getTime()) cell.classList.add("today");
+    if (thisDate < today) cell.classList.add("past");
+
+    cell.onclick = () => {
+      closeCalendarPopup();
+      if (calPopupResolve) calPopupResolve(dateStr);
+      calPopupResolve = null;
+    };
+
+    grid.appendChild(cell);
+  }
+}
+
+/* ── REGION POPUP ── */
+let regionResolve = null;
+
+function openRegionPopup() {
+  return new Promise(resolve => {
+    regionResolve = resolve;
+    const selectEl = document.getElementById("regionSelect");
+    if (selectEl) selectEl.value = "";
+    const popup = document.getElementById("regionPopup");
+    if (popup) popup.classList.add("show");
+  });
+}
+
+function closeRegionPopup() {
+  const popup = document.getElementById("regionPopup");
+  if (popup) popup.classList.remove("show");
+}
+
+function confirmRegion() {
+  const selectEl = document.getElementById("regionSelect");
+  const val = selectEl ? selectEl.value : "";
+  if (!val) { 
+    alert("Please select a region."); 
+    return; 
+  }
+  closeRegionPopup();
+  if (regionResolve) regionResolve(val);
+  regionResolve = null;
 }
