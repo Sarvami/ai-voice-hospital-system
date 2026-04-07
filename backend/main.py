@@ -330,10 +330,33 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         return f"Great, {chosen}. What date would you like?"
 
     elif state == "waiting_date":
+        date_number_words = {
+            "first": "1", "second": "2", "third": "3", "fourth": "4",
+            "fifth": "5", "sixth": "6", "seventh": "7", "eighth": "8",
+            "ninth": "9", "tenth": "10", "eleventh": "11", "twelfth": "12",
+            "thirteenth": "13", "fourteenth": "14", "fifteenth": "15",
+            "sixteenth": "16", "seventeenth": "17", "eighteenth": "18",
+            "nineteenth": "19", "twentieth": "20", "thirtieth": "30",
+            "thirty-first": "31",
+            "ek": "1", "don": "2", "do": "2", "teen": "3",
+            "paach": "5", "paanch": "5", "saha": "6", "chhe": "6",
+            "saat": "7", "aat": "8", "aath": "8", "nau": "9",
+            "daha": "10", "das": "10", "gara": "10", "dhara": "10",
+            "akra": "11", "gyarah": "11", "bara": "12", "barah": "12",
+            "tera": "13", "thera": "13", "chaudha": "14",
+            "pandhra": "15", "solha": "16", "satra": "17", "athra": "18",
+            "ekonis": "19", "vis": "20", "ekkis": "21", "bais": "22",
+            "teis": "23", "chaubis": "24", "panchvis": "25",
+            "sattavis": "27", "athhavis": "28", "ekonatis": "29",
+            "tis": "30", "ekatis": "31",
+        }
+        words = text.lower().split()
+        text = " ".join([date_number_words.get(w, w) for w in words])
+
         cleaned = re.sub(
             r"\b(i would like|an appointment on|appointment|please|book|schedule|"
             r"chahungi|chahta|chahiye|chahir|mujhe|ko|co|la|che|ahe|mala|tya|on|"
-            r"the|a|an|for|kara|karaycha|dyaycha|hava)\b",
+            r"the|a|an|for|kara|karaycha|dyaycha|hava|because|of)\b",
             "", text
         ).strip()
         cleaned = re.sub(r'[.]+', ' ', cleaned)
@@ -342,7 +365,6 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         raw_deduped = re.sub(r'[.]+', ' ', text)
         raw_deduped = ' '.join(dict.fromkeys(raw_deduped.split()))
 
-        # Also clean the original (pre-translation) text
         original_cleaned = re.sub(
             r"\b(appointment|book|kara|karaycha|co|la|che|ahe|mala)\b",
             "", original.lower()
@@ -371,16 +393,17 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             return f"Got it, {user_data[user_id]['date']}. At what time?"
         else:
             return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'."
+       
 
     elif state == "waiting_time":
         number_words = {
-         "bara": 12, "barah": 12, "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
-         "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
+         "Bara": 12, "barah": 12, "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
+         "chhe": 6, "saat": 7,"Saat": 7,"sat": 7, "aath": 8, "nau": 9, "das": 10,
          "gyarah": 11, "barah": 12, "bara": 12,
          "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
          "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
          "eleven": 11, "twelve": 12,
-}
+          }
 
         detected_hour = None
         detected_period = "AM"
