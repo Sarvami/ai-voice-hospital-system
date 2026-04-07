@@ -86,3 +86,169 @@ button:hover {
   color: #b14b4b;
   margin-top: 10px;
 }
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  background: linear-gradient(135deg, #e7efe9, #e3ecf5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ---------- LOGIN CARD ---------- */
+.login-card {
+  width: 360px;
+  padding: 30px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+/* ---------- PROFILE CARD ---------- */
+.profile-card {
+  width: 420px;
+  padding: 30px;
+  border-radius: 26px;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(22px);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.25);
+}
+
+h2 {
+  color: #3f5d50;
+  margin-bottom: 20px;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border: none;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  border: none;
+  background: #9db7a5;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #88a896;
+}
+
+.label {
+  font-weight: 600;
+  color: #3f5d50;
+  margin-top: 10px;
+}
+
+.value {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.logout-btn {
+  margin-top: 20px;
+  background: #c85c5c;
+}
+
+.logout-btn:hover {
+  background: #b14b4b;
+}
+
+.msg {
+  color: #b14b4b;
+  margin-top: 10px;
+}
+
+/* ========== ADDED: DARK/LIGHT THEME SUPPORT ========== */
+/* Dark theme variables */
+body.dark-theme {
+  background: #0a0f1e;
+}
+
+body.dark-theme .login-card,
+body.dark-theme .profile-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+body.dark-theme h2 {
+  color: #e8eaf6;
+}
+
+body.dark-theme .label {
+  color: #7986cb;
+}
+
+body.dark-theme .value {
+  color: #e8eaf6;
+}
+
+body.dark-theme input,
+body.dark-theme select {
+  background: rgba(255,255,255,0.05);
+  color: #e8eaf6;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+body.dark-theme input:focus,
+body.dark-theme select:focus {
+  border-color: #4fc3f7;
+  background: rgba(79,195,247,0.05);
+}
+
+body.dark-theme button {
+  background: linear-gradient(135deg, #4fc3f7, #7c83fd);
+  color: #0a0f1e;
+}
+
+body.dark-theme button:hover {
+  opacity: 0.9;
+}
+
+body.dark-theme .logout-btn {
+  background: #c85c5c;
+}
+
+body.dark-theme .logout-btn:hover {
+  background: #b14b4b;
+}
+
+/* Theme transition smoothness */
+body, .login-card, .profile-card, input, select, button {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Theme toggle button styling (if used on any page) */
+.theme-toggle-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: auto;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  font-size: 14px;
+  z-index: 1000;
+}
+
+body.dark-theme .theme-toggle-btn {
+  background: rgba(0,0,0,0.3);
+  color: white;
+}
