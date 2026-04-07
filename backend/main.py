@@ -30,8 +30,10 @@ def verify_password(password: str, hashed: str) -> bool:
 
 translator = Translator()
 
-load_dotenv()
-API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
+from pathlib import Path
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
+
+API_KEY = os.getenv("ASSEMBLYAI_API_KEY") 
 
 app = FastAPI()
 
@@ -166,20 +168,39 @@ def create_appointment(pid, did, date, time_str, reason, language):
 
 def speech_to_text(audio_path):
     headers = {"authorization": API_KEY}
+
+    print(f"API_KEY loaded: {API_KEY[:8]}..." if API_KEY else "API_KEY IS NONE!")
+
     with open(audio_path, "rb") as f:
-        upload = requests.post(
+        upload_response = requests.post(
             "https://api.assemblyai.com/v2/upload",
             headers=headers,
             data=f
         )
-    audio_url = upload.json()["upload_url"]
-    transcript = requests.post(
+    print(f"Upload status: {upload_response.status_code}")
+    print(f"Upload response: {upload_response.text}")
+
+    upload_json = upload_response.json()
+    if "upload_url" not in upload_json:
+        raise Exception(f"Upload failed: {upload_json}")
+
+    audio_url = upload_json["upload_url"]
+
+    transcript_response = requests.post(
         "https://api.assemblyai.com/v2/transcript",
         headers=headers,
         json={"audio_url": audio_url}
     )
-    tid = transcript.json()["id"]
+    print(f"Transcript status: {transcript_response.status_code}")
+    print(f"Transcript response: {transcript_response.text}")
+
+    transcript_json = transcript_response.json()
+    if "id" not in transcript_json:
+        raise Exception(f"Transcript request failed: {transcript_json}")
+
+    tid = transcript_json["id"]
     start_time = time.time()
+
     while True:
         res = requests.get(
             f"https://api.assemblyai.com/v2/transcript/{tid}",
@@ -189,7 +210,7 @@ def speech_to_text(audio_path):
         if status == "completed":
             return res.json()["text"]
         if status == "error":
-            raise Exception("STT failed")
+            raise Exception(f"STT failed: {res.json()}")
         if time.time() - start_time > MAX_STT_WAIT:
             raise TimeoutError("STT timeout")
         time.sleep(STT_POLL_INTERVAL)
@@ -353,12 +374,12 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
     elif state == "waiting_time":
         number_words = {
-    "bara": 12, "barah": 12, "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
-    "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
-    "gyarah": 11, "barah": 12, "bara": 12,
-    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-    "eleven": 11, "twelve": 12,
+         "bara": 12, "barah": 12, "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
+         "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
+         "gyarah": 11, "barah": 12, "bara": 12,
+         "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+         "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+         "eleven": 11, "twelve": 12,
 }
 
         detected_hour = None
