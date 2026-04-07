@@ -14,6 +14,7 @@ import difflib
 import re
 import sqlite3
 import dateparser
+import random
 
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -117,7 +118,7 @@ def find_doctor_by_name(name):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT * FROM doctors WHERE LOWER(phone) = LOWER(?)",
+        "SELECT * FROM doctors WHERE LOWER(doc_id) = LOWER(?)",
         (name.strip(),)
     )
     doctor = cursor.fetchone()
@@ -169,16 +170,12 @@ def create_appointment(pid, did, date, time_str, reason, language):
 def speech_to_text(audio_path):
     headers = {"authorization": API_KEY}
 
-    print(f"API_KEY loaded: {API_KEY[:8]}..." if API_KEY else "API_KEY IS NONE!")
-
     with open(audio_path, "rb") as f:
         upload_response = requests.post(
             "https://api.assemblyai.com/v2/upload",
             headers=headers,
             data=f
         )
-    print(f"Upload status: {upload_response.status_code}")
-    print(f"Upload response: {upload_response.text}")
 
     upload_json = upload_response.json()
     if "upload_url" not in upload_json:
@@ -191,8 +188,6 @@ def speech_to_text(audio_path):
         headers=headers,
         json={"audio_url": audio_url}
     )
-    print(f"Transcript status: {transcript_response.status_code}")
-    print(f"Transcript response: {transcript_response.text}")
 
     transcript_json = transcript_response.json()
     if "id" not in transcript_json:
@@ -214,7 +209,7 @@ def speech_to_text(audio_path):
         if time.time() - start_time > MAX_STT_WAIT:
             raise TimeoutError("STT timeout")
         time.sleep(STT_POLL_INTERVAL)
-
+        
 # ------------------ LOGIC ------------------
 
 def fuzzy_match(text, keywords):
@@ -537,7 +532,7 @@ class AddDoctorRequest(BaseModel):
     department: str
     qualification: str = ""
     experience_years: int = 0
-    phone: str
+    doc_id: str
     password: str
     available_days: str = ""
 
@@ -613,7 +608,10 @@ async def login(request: Request):
 
     elif role == "doctor":
         doctor_id_val = data.get("doctor_id", "").strip()
-        user = conn.execute("SELECT * FROM doctors WHERE phone=?", (doctor_id_val,)).fetchone()
+        print(f"TRYING TO FIND: '{doctor_id_val}'")
+        all_doctors = conn.execute("SELECT doc_id FROM doctors LIMIT 5").fetchall()
+        print(f"SAMPLE DOCTOR IDs IN DB: {[d[0] for d in all_doctors]}")
+        user = conn.execute("SELECT * FROM doctors WHERE doc_id=?", (doctor_id_val,)).fetchone()
         conn.close()
         if not user:
             return {"success": False, "message": "Doctor ID not found"}
@@ -624,7 +622,7 @@ async def login(request: Request):
             "user": {
                 "id": user["doctor_id"],
                 "name": user["name"],
-                "phone": user["phone"],
+                "doc_id": user["doc_id"],
                 "preferred_language": "en"
             }
         }
@@ -696,9 +694,9 @@ def get_admin_appointments(patient_id: int = None):
 # ------------------ DOCTOR AUTH + DASHBOARD ------------------
 
 @app.post("/doctor/login")
-def doctor_login(phone: str = Form(...), password: str = Form(...)):
+def doctor_login(doc_id: str = Form(...), password: str = Form(...)):
     conn = get_db_connection()
-    doctor = conn.execute("SELECT * FROM doctors WHERE phone=?", (phone,)).fetchone()
+    doctor = conn.execute("SELECT * FROM doctors WHERE doc_id=?", (doc_id,)).fetchone()    
     conn.close()
     if not doctor:
         return {"status": "not_found"}
@@ -815,24 +813,22 @@ def get_admin_doctors():
 def add_doctor(req: AddDoctorRequest):
     conn = get_db_connection()
     existing = conn.execute(
-        "SELECT doctor_id FROM doctors WHERE phone = ?", (req.phone,)
+        "SELECT doctor_id FROM doctors WHERE doc_id = ?", (req.doc_id,)
     ).fetchone()
     if existing:
         conn.close()
-        return {"success": False, "message": f"A doctor with ID '{req.phone}' already exists."}
+        return {"success": False, "message": f"A doctor with ID '{req.doc_id}' already exists."}
+    
+    clean = req.name.lower().replace("dr.", "").replace("dr ", "").strip()
+    parts = clean.split()
+    email = ".".join(parts) + "@hospital.com"
+    contact_phone = "9" + str(random.randint(100000000, 999999999))
+    
     conn.execute(
         """INSERT INTO doctors
-           (name, department, qualification, experience_years, available_days, phone, password_hash)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (
-            req.name,
-            req.department,
-            req.qualification,
-            req.experience_years,
-            req.available_days,
-            req.phone,
-            hash_password(req.password),
-        )
+   (name, department, qualification, experience_years, available_days, doc_id, password_hash, email, contact_phone)""",
+        (req.name, req.department, req.qualification, req.experience_years,
+         req.available_days, req.doc_id, hash_password(req.password), email, contact_phone)
     )
     conn.commit()
     conn.close()
