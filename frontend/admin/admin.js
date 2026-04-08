@@ -89,6 +89,7 @@ async function loadDoctors() {
   try {
     const res  = await fetch(`${API}/admin/doctors`);
     const data = await res.json();
+    console.log("FIRST DOCTOR:", data[0]);
     allDoctors = data;
     renderDoctors(allDoctors);
   } catch(e) {
@@ -106,16 +107,17 @@ function renderDoctors(list) {
   list.forEach(d => {
     table.innerHTML += `
       <tr>
-        <td>${d.doctor_id || d.id || '—'}</td>
+        <td>${d.doctor_id || '—'}</td>
         <td>${d.name || '—'}</td>
-        <td>${d.phone || d.contact_phone || '—'}</td>
+        <td>${d.contact_phone || '—'}</td>
         <td>${d.email || '—'}</td>
-        <td>${d.department || d.specialization || '—'}</td>
+        <td>${d.department || '—'}</td>
         <td>${d.qualification || '—'}</td>
-        <td>${d.experience_years ?? d.experience ?? '—'} yrs</td>
+        <td>${d.experience_years ?? '—'} yrs</td>
         <td>${d.available_days || '—'}</td>
       </tr>`;
   });
+
 }
 
 /* ── DEPARTMENT FILTER (Doctors) ── */
