@@ -199,17 +199,16 @@ document.addEventListener("DOMContentLoaded", () => {
               console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
               /* Show user speech subtitle (BLUE) */
-              if (json.user_text) {
-                console.log("Adding USER caption:", json.user_text);
-                addCaptionToHistory(json.user_text, 'user');
-              }
+              const userDisplay = json.original_text || json.user_text;
+if (userDisplay) {
+  addCaptionToHistory(userDisplay, 'user');
+}
 
-              /* Show AI response subtitle (GREEN) */
-              const aiText = json.text || json.subtitle || json.reply;
-              if (aiText) {
-                console.log("Adding AI caption:", aiText);
-                addCaptionToHistory(aiText, 'ai');
-              }
+/* Show AI reply in THEIR language (GREEN) */
+const aiText = json.reply_in_lang || json.text || json.subtitle || json.reply;
+if (aiText) {
+  addCaptionToHistory(aiText, 'ai');
+}
 
               /* Handle date request */
               if (aiText && (
@@ -604,7 +603,18 @@ function closeRegionPopup() {
   const popup = document.getElementById("regionPopup");
   if (popup) popup.classList.remove("show");
 }
-
+// ── ASK REGION ON FIRST LOAD ──
+const savedRegion = localStorage.getItem("selected_region");
+if (!savedRegion) {
+  // Small delay so page loads first
+  setTimeout(async () => {
+    const region = await openRegionPopup();
+    if (region) {
+      localStorage.setItem("selected_region", region);
+      addCaptionToHistory(`Region set to: ${region}`, 'ai');
+    }
+  }, 800);
+}
 function confirmRegion() {
   const selectEl = document.getElementById("regionSelect");
   const val = selectEl ? selectEl.value : "";
@@ -612,6 +622,7 @@ function confirmRegion() {
     alert("Please select a region."); 
     return; 
   }
+  localStorage.setItem("selected_region", val); // ← ADD THIS
   closeRegionPopup();
   if (regionResolve) regionResolve(val);
   regionResolve = null;

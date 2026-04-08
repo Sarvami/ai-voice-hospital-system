@@ -796,6 +796,7 @@ def patient_appointments(patient_id: int):
     conn = get_db_connection()
     rows = conn.execute("""
         SELECT a.appointment_id, d.name AS doctor,
+               d.email, d.contact_phone,
                a.appointment_date AS date, a.appointment_time AS time,
                a.status, a.reason
         FROM appointments a
@@ -875,3 +876,67 @@ def doctors_by_region(region: str):
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+@app.post("/set-appointment-date")
+async def set_appointment_date(request: Request):
+    data = await request.json()
+    patient_id = str(data.get("patient_id"))
+    date = data.get("date")
+    lang = data.get("lang", "en")
+
+    if patient_id not in user_state:
+        return JSONResponse({"success": False, "message": "Session not found"})
+
+    user_data[patient_id]["date"] = date
+    user_state[patient_id] = "waiting_time"
+
+    reply = f"Got it, {date}. At what time?"
+    final = gt_from_english(reply, lang)
+
+    out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+    gTTS(text=final, lang=lang).save(out)
+    audio_url = f"/temp-audio/{os.path.basename(out)}"
+
+    return JSONResponse({"success": True, "text": reply, "audio_url": audio_url})
+
+@app.post("/set-region")
+async def set_region(request: Request):
+    data = await request.json()
+    patient_id = str(data.get("patient_id"))
+    region = data.get("region")
+    lang = data.get("lang", "en")
+
+    if patient_id not in user_data:
+        user_data[patient_id] = {}
+
+    user_data[patient_id]["region"] = region
+
+    conn = get_db_connection()
+    dept = user_data[patient_id].get("dept", "general")
+    doctors = conn.execute(
+        "SELECT name FROM doctors WHERE LOWER(department)=LOWER(?) AND LOWER(region)=LOWER(?)",
+        (dept, region)
+    ).fetchall()
+    conn.close()
+
+    if not doctors:
+        # fallback to just dept if no region match
+        doctors = get_doctors_by_department(dept)
+
+    doctor_list = [r[0] for r in doctors]
+    user_data[patient_id]["available_doctors"] = doctor_list
+    user_state[patient_id] = "waiting_doctor"
+
+    reply = f"Doctors available in {region}: {', '.join(doctor_list)}. Any preference?"
+    final = gt_from_english(reply, lang)
+
+    out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+    gTTS(text=final, lang=lang).save(out)
+    audio_url = f"/temp-audio/{os.path.basename(out)}"
+
+    return JSONResponse({
+        "success": True,
+        "text": reply,
+        "audio_url": audio_url,
+        "doctors": doctor_list
+    })
