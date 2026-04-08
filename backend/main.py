@@ -526,15 +526,13 @@ async def process_audio(
     audio_url = f"http://127.0.0.1:8000/temp-audio/{out_filename}"
 
     return JSONResponse({
-    "text": reply,                                    # reply in English
-    "original_text": data.text,                      # what user said in their language
-    "reply_in_lang": final,                          # bot reply in chosen language
-    "user_text": data.text,                          # for text, original = translated
+    "text": reply,                  # reply in English
+    "original_text": original,      # what user said in their language
+    "reply_in_lang": final,         # bot reply in chosen language
+    "user_text": original,          # translated text (same as original here)
     "audio_url": audio_url,
-    "intent": meta.get("intent"),
-    "data": meta.get("data", {}),
-    "booked": meta.get("booked", False),
-    "success_message": meta.get("success_message")
+    "booked": meta.get("booked", False)
+
 })
 
 # ------------------ TEXT API ------------------
@@ -566,15 +564,12 @@ def process_text(data: TextInput):
     audio_url = f"http://127.0.0.1:8000/temp-audio/{out_filename}"
 
     return JSONResponse({
-    "text": reply,                                    # reply in English
-    "original_text": original,                       # what user said in their language
-    "reply_in_lang": final,                          # bot reply in chosen language
-    "user_text": user_text,                          # translated text (kept for compatibility)
+    "text": reply,                  # reply in English
+    "original_text": data.text,     # what user said in their language
+    "reply_in_lang": final,         # bot reply in chosen language
+    "user_text": english,           # translated text (english variable from gt_to_english)
     "audio_url": audio_url,
-    "intent": meta.get("intent"),
-    "data": meta.get("data", {}),
-    "booked": meta.get("booked", False),
-    "success_message": meta.get("success_message")
+    "booked": meta.get("booked", False)
 })
 
 # ------------------ TEST APIs ------------------
