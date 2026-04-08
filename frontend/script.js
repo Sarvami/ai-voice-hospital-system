@@ -271,6 +271,12 @@ if (aiText) {
   aiText.includes("दिवस") ||
   json.intent === "ask_date"
 )){
+                if (json.audio_url && audioPlayer) {
+        audioPlayer.src = json.audio_url;
+        audioPlayer.load();
+        audioPlayer.play();
+        if (playBtn) playBtn.textContent = "❚❚";
+    }
                 pendingIntent = "date";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
