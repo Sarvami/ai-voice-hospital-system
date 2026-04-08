@@ -349,9 +349,9 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         # Mention special hours to the patient upfront
         hours_note = f" (available {avail_hours})" if avail_hours != "8:00 AM - 8:00 PM" else ""
         return f"Great, {chosen}{hours_note}. What date would you like?", {
-            "intent": "select_date",
-            "data": {"doctor": chosen}
-        }
+         "intent": "ask_date",
+         "data": {"doctor": chosen}
+         }
 
     elif state == "waiting_date":
         date_number_words = {
@@ -417,7 +417,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
             return f"Got it, {user_data[user_id]['date']}. At what time? ({avail_hours})", {}
         else:
-            return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'.", {}
+         return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'.", {}
 
     elif state == "waiting_time":
         number_words = {
