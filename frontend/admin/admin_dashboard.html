@@ -138,6 +138,8 @@
         <tr>
           <th>Doctor ID</th>
           <th>Name</th>
+          <th>Contact</th>
+          <th>Email</th>
           <th>Department</th>
           <th>Qualification</th>
           <th>Experience</th>
@@ -153,7 +155,9 @@
     <h2>Create Doctor</h2>
     <div class="form-card">
       <h3>Add New Doctor</h3>
-      <input type="text"   id="newDoctorName"   placeholder="Full Name (e.g. Dr. Arjun Mehta)">
+      <input type="text"   id="newDoctorName"    placeholder="Full Name (e.g. Dr. Arjun Mehta)">
+      <input type="text"   id="newDoctorContact" placeholder="Contact Number (e.g. 9876543210)">
+      <input type="email"  id="newDoctorEmail"   placeholder="Email (e.g. doctor@hospital.com)">
       <select id="newDoctorDept">
         <option value="">Select Department</option>
         <option value="Cardiology">Cardiology</option>
@@ -167,9 +171,9 @@
         <option value="Pediatrics">Pediatrics</option>
         <option value="Ophthalmology">Ophthalmology</option>
       </select>
-      <input type="text"   id="newDoctorQual"   placeholder="Qualification (e.g. MD Cardiology)">
-      <input type="number" id="newDoctorExp"    placeholder="Experience (years)">
-      <input type="text"   id="newDoctorDays"   placeholder="Available Days (e.g. Mon-Fri)">
+      <input type="text"   id="newDoctorQual"    placeholder="Qualification (e.g. MD Cardiology)">
+      <input type="number" id="newDoctorExp"     placeholder="Experience (years)">
+      <input type="text"   id="newDoctorDays"    placeholder="Available Days (e.g. Mon-Fri)">
       <button onclick="createDoctor()">Create Doctor</button>
       <p class="msg" id="createDoctorMsg"></p>
     </div>
