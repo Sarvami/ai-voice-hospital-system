@@ -92,7 +92,7 @@ async function loadDoctors() {
     allDoctors = data;
     renderDoctors(allDoctors);
   } catch(e) {
-    table.innerHTML = `<tr><td colspan="6" class="empty-row">Could not load</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8" class="empty-row">Could not load</td></tr>`;
   }
 }
 
@@ -100,7 +100,7 @@ function renderDoctors(list) {
   const table = document.getElementById('doctorsTable');
   table.innerHTML = '';
   if (!list.length) {
-    table.innerHTML = `<tr><td colspan="6" class="empty-row">No doctors found</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8" class="empty-row">No doctors found</td></tr>`;
     return;
   }
   list.forEach(d => {
@@ -108,6 +108,8 @@ function renderDoctors(list) {
       <tr>
         <td>${d.doctor_id || d.id || '—'}</td>
         <td>${d.name || '—'}</td>
+        <td>${d.phone || d.contact_phone || '—'}</td>
+        <td>${d.email || '—'}</td>
         <td>${d.department || d.specialization || '—'}</td>
         <td>${d.qualification || '—'}</td>
         <td>${d.experience_years ?? d.experience ?? '—'} yrs</td>
@@ -127,15 +129,17 @@ function filterDoctors() {
 
 /* ── CREATE DOCTOR ── */
 async function createDoctor() {
-  const name  = document.getElementById('newDoctorName').value.trim();
-  const dept  = document.getElementById('newDoctorDept').value;
-  const qual  = document.getElementById('newDoctorQual').value.trim();
-  const exp   = document.getElementById('newDoctorExp').value;
-  const days  = document.getElementById('newDoctorDays').value.trim();
-  const msgEl = document.getElementById('createDoctorMsg');
+  const name    = document.getElementById('newDoctorName').value.trim();
+  const contact = document.getElementById('newDoctorContact').value.trim();
+  const email   = document.getElementById('newDoctorEmail').value.trim();
+  const dept    = document.getElementById('newDoctorDept').value;
+  const qual    = document.getElementById('newDoctorQual').value.trim();
+  const exp     = document.getElementById('newDoctorExp').value;
+  const days    = document.getElementById('newDoctorDays').value.trim();
+  const msgEl   = document.getElementById('createDoctorMsg');
 
   msgEl.style.color = '#ef9a9a';
-  if (!name || !dept || !qual || !exp || !days) {
+  if (!name || !contact || !email || !dept || !qual || !exp || !days) {
     msgEl.innerText = 'Please fill in all fields.'; return;
   }
 
@@ -143,16 +147,18 @@ async function createDoctor() {
     const res  = await fetch(`${API}/admin/create-doctor`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, department: dept, qualification: qual, experience_years: parseInt(exp), available_days: days }),
+      body:    JSON.stringify({ name, contact, email, department: dept, qualification: qual, experience_years: parseInt(exp), available_days: days }),
     });
     const data = await res.json();
     msgEl.style.color = '#69f0ae';
     msgEl.innerText = data.message || `✓ Doctor created! Default password: doctor123`;
-    document.getElementById('newDoctorName').value = '';
-    document.getElementById('newDoctorDept').value = '';
-    document.getElementById('newDoctorQual').value = '';
-    document.getElementById('newDoctorExp').value  = '';
-    document.getElementById('newDoctorDays').value = '';
+    document.getElementById('newDoctorName').value    = '';
+    document.getElementById('newDoctorContact').value = '';
+    document.getElementById('newDoctorEmail').value   = '';
+    document.getElementById('newDoctorDept').value    = '';
+    document.getElementById('newDoctorQual').value    = '';
+    document.getElementById('newDoctorExp').value     = '';
+    document.getElementById('newDoctorDays').value    = '';
   } catch(e) {
     msgEl.innerText = 'Could not connect to server.';
   }
