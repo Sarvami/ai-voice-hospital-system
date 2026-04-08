@@ -334,7 +334,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             "ek": "1", "don": "2", "do": "2", "teen": "3",
             "paach": "5", "paanch": "5", "saha": "6", "chhe": "6",
             "saat": "7", "aat": "8", "aath": "8", "nau": "9",
-            "daha": "10", "das": "10", "gara": "10", "dhara": "10",
+            "daha": "10", "das": "10", "Thus": "10", "dhara": "10",
             "akra": "11", "gyarah": "11", "bara": "12", "barah": "12",
             "tera": "13", "thera": "13", "chaudha": "14",
             "pandhra": "15", "solha": "16", "satra": "17", "athra": "18",
