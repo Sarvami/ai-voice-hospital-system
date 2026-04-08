@@ -796,6 +796,7 @@ def patient_appointments(patient_id: int):
     conn = get_db_connection()
     rows = conn.execute("""
         SELECT a.appointment_id, d.name AS doctor,
+               d.email, d.contact_phone,
                a.appointment_date AS date, a.appointment_time AS time,
                a.status, a.reason
         FROM appointments a
