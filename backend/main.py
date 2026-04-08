@@ -881,7 +881,7 @@ def get_admin_patients():
 def get_admin_doctors():
     conn = get_db_connection()
     rows = conn.execute(
-        """SELECT doctor_id, name, department, qualification,
+        """SELECT doctor_id, doc_id, name, department, qualification,
                   experience_years, available_days, available_hours,
                   email, contact_phone
            FROM doctors ORDER BY doctor_id DESC"""
