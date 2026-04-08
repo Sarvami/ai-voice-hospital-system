@@ -42,7 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("language", language);
 
         const res  = await fetch(`${BACKEND}/register`, { method: "POST", body: formData });
-        const data = await res.json();
+        const json = await res.json();
+        alert("Backend returned: " + JSON.stringify(json));
 
         if (data.error) { msg.className = "msg error"; msg.innerText = data.error; return; }
         msg.className = "msg success";
