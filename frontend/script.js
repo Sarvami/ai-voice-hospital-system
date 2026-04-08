@@ -262,12 +262,15 @@ if (aiText) {
 
               /* Handle date request */
               if (aiText && (
-                aiText.toLowerCase().includes("what date") ||
-                aiText.toLowerCase().includes("which date") ||
-                aiText.toLowerCase().includes("pick a date") ||
-                aiText.toLowerCase().includes("select date") ||
-                json.intent === "ask_date"
-              )) {
+  aiText.toLowerCase().includes("what date") ||
+  aiText.toLowerCase().includes("which date") ||
+  aiText.toLowerCase().includes("pick a date") ||
+  aiText.toLowerCase().includes("select date") ||
+  aiText.includes("तारीख") ||
+  aiText.includes("दिनांक") ||
+  aiText.includes("दिवस") ||
+  json.intent === "ask_date"
+)){
                 pendingIntent = "date";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
@@ -315,11 +318,14 @@ if (aiText) {
 
               /* Handle region request */
               if (aiText && (
-                aiText.toLowerCase().includes("region") ||
-                aiText.toLowerCase().includes("location") ||
-                aiText.toLowerCase().includes("area") ||
-                json.intent === "ask_region"
-              )) {
+  aiText.toLowerCase().includes("region") ||
+  aiText.toLowerCase().includes("location") ||
+  aiText.toLowerCase().includes("area") ||
+  aiText.includes("क्षेत्र") ||
+  aiText.includes("इलाका") ||
+  aiText.includes("प्रदेश") ||
+  json.intent === "ask_region"
+)) {
                 pendingIntent = "region";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
