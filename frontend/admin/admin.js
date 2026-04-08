@@ -102,7 +102,7 @@ function renderDoctors(list) {
 
     table.innerHTML += `
       <tr>
-        <td>${d.doctor_id || '—'}</td>
+        <td>${d.doc_id || '—'}</td>
         <td>${d.name || '—'}</td>
         <td>${d.contact_phone || '—'}</td>
         <td>${d.email || '—'}</td>
