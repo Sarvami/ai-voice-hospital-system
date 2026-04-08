@@ -252,11 +252,7 @@ function t(key, ...args) {
               console.log("BACKEND RESPONSE:", json);
               console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-              /* Show user speech subtitle (BLUE) */
-              const userDisplay = json.original_text || json.user_text;
-if (userDisplay) {
-  addCaptionToHistory(userDisplay, 'user');
-}
+          
 
 /* Show AI reply in THEIR language (GREEN) */
 const aiText = json.reply_in_lang || json.text || json.subtitle || json.reply;
