@@ -63,6 +63,26 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+# ------------------ AVAILABLE HOURS HELPER ------------------
+
+def parse_available_hours(hours_str: str):
+    """
+    Parse '6:00 PM - 8:00 PM' → (18, 20).
+    Falls back to hospital default (8, 20) on any error.
+    """
+    from datetime import datetime as _dt
+    if not hours_str:
+        return 8, 20
+    parts = [p.strip() for p in hours_str.split("-", 1)]
+    if len(parts) != 2:
+        return 8, 20
+    try:
+        start = _dt.strptime(parts[0].strip(), "%I:%M %p").hour
+        end   = _dt.strptime(parts[1].strip(), "%I:%M %p").hour
+        return start, end
+    except Exception:
+        return 8, 20
+
 # ------------------ GOOGLETRANS ------------------
 
 def gt_to_english(text: str) -> str:
@@ -213,7 +233,6 @@ def fuzzy_match(text, keywords):
             return matches[0]
     return None
 
-# ALL states return (reply_text, meta_dict)
 def generate_reply(text, user_id="user1", lang="en", original=""):
     text = text.lower().strip()
     combined = text + " " + original.lower()
@@ -309,15 +328,27 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
         conn = get_db_connection()
         doctor_row = conn.execute(
-            "SELECT doctor_id FROM doctors WHERE LOWER(name) LIKE ?",
+            "SELECT doctor_id, available_hours FROM doctors WHERE LOWER(name) LIKE ?",
             (f"%{chosen.lower().replace('dr.', '').strip()}%",)
         ).fetchone()
         conn.close()
 
         user_data[user_id]["doctor"] = chosen
         user_data[user_id]["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
+
+        # Cache hours so waiting_time doesn't need another DB hit
+        avail_hours = (
+            doctor_row["available_hours"]
+            if doctor_row and doctor_row["available_hours"]
+            else "8:00 AM - 8:00 PM"
+        )
+        user_data[user_id]["available_hours"] = avail_hours
+
         user_state[user_id] = "waiting_date"
-        return f"Great, {chosen}. What date would you like?", {
+
+        # Mention special hours to the patient upfront
+        hours_note = f" (available {avail_hours})" if avail_hours != "8:00 AM - 8:00 PM" else ""
+        return f"Great, {chosen}{hours_note}. What date would you like?", {
             "intent": "select_date",
             "data": {"doctor": chosen}
         }
@@ -334,7 +365,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             "ek": "1", "don": "2", "do": "2", "teen": "3",
             "paach": "5", "paanch": "5", "saha": "6", "chhe": "6",
             "saat": "7", "aat": "8", "aath": "8", "nau": "9",
-            "daha": "10", "das": "10", "gara": "10", "dhara": "10",
+            "daha": "10", "das": "10", "Thus": "10", "dhara": "10",
             "akra": "11", "gyarah": "11", "bara": "12", "barah": "12",
             "tera": "13", "thera": "13", "chaudha": "14",
             "pandhra": "15", "solha": "16", "satra": "17", "athra": "18",
@@ -383,7 +414,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 return "That date is in the past. Please choose a future date.", {}
             user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
             user_state[user_id] = "waiting_time"
-            return f"Got it, {user_data[user_id]['date']}. At what time?", {}
+            avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
+            return f"Got it, {user_data[user_id]['date']}. At what time? ({avail_hours})", {}
         else:
             return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'.", {}
 
@@ -396,6 +428,20 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
             "eleven": 11, "twelve": 12,
         }
+
+        # ── Doctor's allowed window ──────────────────────────────────────────
+        avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
+        allowed_start, allowed_end = parse_available_hours(avail_hours)
+
+        def time_out_of_range(h24):
+            return not (allowed_start <= h24 <= allowed_end)
+
+        doctor_name = user_data[user_id].get("doctor", "this doctor")
+        out_of_range_msg = (
+            f"Sorry, {doctor_name} is only available {avail_hours}. "
+            f"Please choose a time within that window."
+        )
+        # ────────────────────────────────────────────────────────────────────
 
         detected_hour = None
         detected_period = "PM"
@@ -425,8 +471,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             else:
                 hour_24 = detected_hour
 
-            if not (8 <= hour_24 <= 20):
-                return "Sorry, appointments are only available between 8 AM and 8 PM. Please choose a valid time.", {}
+            if time_out_of_range(hour_24):
+                return out_of_range_msg, {}
 
             time_str = f"{hour_24:02d}:00"
             from datetime import datetime
@@ -438,8 +484,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
         parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
         if parsed:
-            if not (8 <= parsed.hour <= 20):
-                return "Sorry, appointments are only available between 8 AM and 8 PM. Please choose a valid time.", {}
+            if time_out_of_range(parsed.hour):
+                return out_of_range_msg, {}
             user_data[user_id]["time"] = parsed.strftime("%I:%M %p")
             user_state[user_id] = "confirming"
             d = user_data[user_id]
@@ -495,6 +541,7 @@ async def process_audio(
     user_text = ""
     reply = ""
     meta = {}
+    original = ""
 
     try:
         original = speech_to_text(path)
@@ -526,16 +573,13 @@ async def process_audio(
     audio_url = f"http://127.0.0.1:8000/temp-audio/{out_filename}"
 
     return JSONResponse({
-    "text": reply,                                    # reply in English
-    "original_text": data.text,                      # what user said in their language
-    "reply_in_lang": final,                          # bot reply in chosen language
-    "user_text": data.text,                          # for text, original = translated
-    "audio_url": audio_url,
-    "intent": meta.get("intent"),
-    "data": meta.get("data", {}),
-    "booked": meta.get("booked", False),
-    "success_message": meta.get("success_message")
-})
+        "text": reply,
+        "original_text": original,
+        "reply_in_lang": final,
+        "user_text": original,
+        "audio_url": audio_url,
+        "booked": meta.get("booked", False)
+    })
 
 # ------------------ TEXT API ------------------
 
@@ -552,6 +596,7 @@ class AddDoctorRequest(BaseModel):
     doc_id: str
     password: str
     available_days: str = ""
+    available_hours: str = "8:00 AM - 8:00 PM"
 
 
 @app.post("/process-text")
@@ -566,16 +611,13 @@ def process_text(data: TextInput):
     audio_url = f"http://127.0.0.1:8000/temp-audio/{out_filename}"
 
     return JSONResponse({
-    "text": reply,                                    # reply in English
-    "original_text": original,                       # what user said in their language
-    "reply_in_lang": final,                          # bot reply in chosen language
-    "user_text": user_text,                          # translated text (kept for compatibility)
-    "audio_url": audio_url,
-    "intent": meta.get("intent"),
-    "data": meta.get("data", {}),
-    "booked": meta.get("booked", False),
-    "success_message": meta.get("success_message")
-})
+        "text": reply,
+        "original_text": data.text,
+        "reply_in_lang": final,
+        "user_text": english,
+        "audio_url": audio_url,
+        "booked": meta.get("booked", False)
+    })
 
 # ------------------ TEST APIs ------------------
 
@@ -840,7 +882,8 @@ def get_admin_doctors():
     conn = get_db_connection()
     rows = conn.execute(
         """SELECT doctor_id, name, department, qualification,
-                  experience_years, available_days, email, contact_phone
+                  experience_years, available_days, available_hours,
+                  email, contact_phone
            FROM doctors ORDER BY doctor_id DESC"""
     ).fetchall()
     conn.close()
@@ -863,10 +906,12 @@ def add_doctor(req: AddDoctorRequest):
 
     conn.execute(
         """INSERT INTO doctors
-           (name, department, qualification, experience_years, available_days, doc_id, password_hash, email, contact_phone)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           (name, department, qualification, experience_years,
+            available_days, available_hours, doc_id, password_hash, email, contact_phone)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (req.name, req.department, req.qualification, req.experience_years,
-         req.available_days, req.doc_id, hash_password(req.password), email, contact_phone)
+         req.available_days, req.available_hours,
+         req.doc_id, hash_password(req.password), email, contact_phone)
     )
     conn.commit()
     conn.close()
@@ -894,7 +939,8 @@ async def set_appointment_date(request: Request):
     user_data[patient_id]["date"] = date
     user_state[patient_id] = "waiting_time"
 
-    reply = f"Got it, {date}. At what time?"
+    avail_hours = user_data[patient_id].get("available_hours", "8:00 AM - 8:00 PM")
+    reply = f"Got it, {date}. At what time? ({avail_hours})"
     final = gt_from_english(reply, lang)
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
@@ -924,14 +970,14 @@ async def set_region(request: Request):
     conn.close()
 
     if not doctors:
-        # fallback to just dept if no region match
-        doctors = get_doctors_by_department(dept)
+        doctors_raw = get_doctors_by_department(dept)
+    else:
+        doctors_raw = [r[0] for r in doctors]
 
-    doctor_list = [r[0] for r in doctors]
-    user_data[patient_id]["available_doctors"] = doctor_list
+    user_data[patient_id]["available_doctors"] = doctors_raw
     user_state[patient_id] = "waiting_doctor"
 
-    reply = f"Doctors available in {region}: {', '.join(doctor_list)}. Any preference?"
+    reply = f"Doctors available in {region}: {', '.join(doctors_raw)}. Any preference?"
     final = gt_from_english(reply, lang)
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
@@ -942,5 +988,5 @@ async def set_region(request: Request):
         "success": True,
         "text": reply,
         "audio_url": audio_url,
-        "doctors": doctor_list
+        "doctors": doctors_raw
     })

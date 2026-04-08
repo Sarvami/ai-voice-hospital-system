@@ -2,6 +2,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const BACKEND = "http://127.0.0.1:8000";
 
+  const UI_TEXT = {
+  en: {
+    welcome: "Hello! I'm your AI hospital assistant. Tap the microphone and tell me how I can help you today.",
+    langSwitched: lang => `Language switched to ${lang}`,
+    selectDate: "Please select your preferred appointment date from the calendar",
+    dateCancelled: "Date selection was cancelled.",
+    selectRegion: "Please select your preferred region from the list",
+    regionCancelled: "Region selection was cancelled.",
+    regionSet: region => `Region set to: ${region}`,
+    dateSelected: date => `Selected date: ${date}`,
+    regionSelected: region => `Selected region: ${region}`,
+    dateError: "Sorry, there was an error setting the date.",
+    regionError: "Sorry, there was an error setting the region.",
+    serverError: "Sorry, there was an error processing your request.",
+    connectError: "Sorry, I'm having trouble connecting to the server.",
+  },
+  hi: {
+    welcome: "नमस्ते! मैं आपका AI अस्पताल सहायक हूँ। माइक्रोफोन दबाएं और बताएं मैं आपकी कैसे मदद कर सकता हूँ।",
+    langSwitched: lang => `भाषा बदली: ${lang}`,
+    selectDate: "कृपया कैलेंडर से अपनी पसंदीदा तारीख चुनें",
+    dateCancelled: "तारीख चयन रद्द किया गया।",
+    selectRegion: "कृपया सूची से अपना क्षेत्र चुनें",
+    regionCancelled: "क्षेत्र चयन रद्द किया गया।",
+    regionSet: region => `क्षेत्र सेट हुआ: ${region}`,
+    dateSelected: date => `चुनी गई तारीख: ${date}`,
+    regionSelected: region => `चुना गया क्षेत्र: ${region}`,
+    dateError: "क्षमा करें, तारीख सेट करने में त्रुटि हुई।",
+    regionError: "क्षमा करें, क्षेत्र सेट करने में त्रुटि हुई।",
+    serverError: "क्षमा करें, आपका अनुरोध प्रोसेस करने में त्रुटि हुई।",
+    connectError: "क्षमा करें, सर्वर से कनेक्ट करने में समस्या है।",
+  },
+  mr: {
+    welcome: "नमस्कार! मी तुमचा AI रुग्णालय सहाय्यक आहे। मायक्रोफोन दाबा आणि सांगा मी तुम्हाला कशी मदत करू शकतो।",
+    langSwitched: lang => `भाषा बदलली: ${lang}`,
+    selectDate: "कृपया कॅलेंडरमधून तुमची पसंतीची तारीख निवडा",
+    dateCancelled: "तारीख निवड रद्द केली.",
+    selectRegion: "कृपया यादीतून तुमचा प्रदेश निवडा",
+    regionCancelled: "प्रदेश निवड रद्द केली.",
+    regionSet: region => `प्रदेश सेट झाला: ${region}`,
+    dateSelected: date => `निवडलेली तारीख: ${date}`,
+    regionSelected: region => `निवडलेला प्रदेश: ${region}`,
+    dateError: "माफ करा, तारीख सेट करताना त्रुटी आली.",
+    regionError: "माफ करा, प्रदेश सेट करताना त्रुटी आली.",
+    serverError: "माफ करा, तुमची विनंती प्रक्रिया करताना त्रुटी आली.",
+    connectError: "माफ करा, सर्व्हरशी कनेक्ट करण्यात समस्या आहे.",
+  }
+};
+
+function t(key, ...args) {
+  const lang = selectedLang || 'en';
+  const entry = (UI_TEXT[lang] || UI_TEXT['en'])[key];
+  return typeof entry === 'function' ? entry(...args) : entry;
+}
+
   /* ── PROFILE SECTION ── */
   const nameEl  = document.getElementById("name");
   const phoneEl = document.getElementById("phone-display");
@@ -86,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem("lang", selectedLang);
       const statusText = document.getElementById("status");
       if (statusText) statusText.innerText = "Language selected ✔";
-      addCaptionToHistory(`Language switched to ${selectedLang.toUpperCase()}`, 'ai');
+      addCaptionToHistory(t('langSwitched', selectedLang.toUpperCase()), 'ai');
     });
   });
 
@@ -184,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!res.ok) {
               if (statusText) statusText.innerText = "❌ Backend error";
-              addCaptionToHistory("Sorry, there was an error processing your request.", 'ai');
+              addCaptionToHistory(t('regionError'), 'ai');
               return;
             }
 
@@ -198,11 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
               console.log("BACKEND RESPONSE:", json);
               console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-              /* Show user speech subtitle (BLUE) */
-              const userDisplay = json.original_text || json.user_text;
-if (userDisplay) {
-  addCaptionToHistory(userDisplay, 'user');
-}
+          
 
 /* Show AI reply in THEIR language (GREEN) */
 const aiText = json.reply_in_lang || json.text || json.subtitle || json.reply;
@@ -221,11 +271,11 @@ if (aiText) {
                 pendingIntent = "date";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
-                addCaptionToHistory("Please select your preferred appointment date from the calendar", 'ai');
+                addCaptionToHistory(t('selectDate'), 'ai');
                 
                 const selectedDate = await openCalendarPopup();
                 if (selectedDate) {
-                  addCaptionToHistory(`Selected date: ${selectedDate}`, 'user');
+                  addCaptionToHistory(t('dateSelected', selectedDate), 'user');
                   showLoader();
                   try {
                     const dateRes = await fetch(`${BACKEND}/set-appointment-date`, {
@@ -253,11 +303,11 @@ if (aiText) {
                     }
                   } catch(e) { 
                     console.error("Date error:", e);
-                    addCaptionToHistory("Sorry, there was an error setting the date.", 'ai');
+                    addCaptionToHistory(t('serverError'), 'ai');
                   }
                   finally { hideLoader(); }
                 } else {
-                  addCaptionToHistory("Date selection was cancelled.", 'ai');
+                  addCaptionToHistory(t('dateCancelled'), 'ai');
                 }
                 pendingIntent = null;
                 return;
@@ -273,11 +323,11 @@ if (aiText) {
                 pendingIntent = "region";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
-                addCaptionToHistory("Please select your preferred region from the list", 'ai');
+                addCaptionToHistory(t('selectRegion'), 'ai');
                 
                 const selectedRegion = await openRegionPopup();
                 if (selectedRegion) {
-                  addCaptionToHistory(`Selected region: ${selectedRegion}`, 'user');
+                  addCaptionToHistory(t('regionSelected', selectedRegion), 'user');
                   showLoader();
                   try {
                     const regRes = await fetch(`${BACKEND}/set-region`, {
@@ -305,11 +355,11 @@ if (aiText) {
                     }
                   } catch(e) { 
                     console.error("Region error:", e);
-                    addCaptionToHistory("Sorry, there was an error setting the region.", 'ai');
+                    addCaptionToHistory(t('dateError'), 'ai');
                   }
                   finally { hideLoader(); }
                 } else {
-                  addCaptionToHistory("Region selection was cancelled.", 'ai');
+                  addCaptionToHistory(t('regionCancelled'), 'ai');
                 }
                 pendingIntent = null;
                 return;
@@ -461,7 +511,7 @@ if (aiText) {
 
   // Welcome message on load
   setTimeout(() => {
-    addCaptionToHistory("Hello! I'm your AI hospital assistant. Tap the microphone and tell me how I can help you today.", 'ai');
+    addCaptionToHistory(t('welcome'), 'ai');
   }, 500);
 
 }); // end DOMContentLoaded
@@ -611,7 +661,7 @@ if (!savedRegion) {
     const region = await openRegionPopup();
     if (region) {
       localStorage.setItem("selected_region", region);
-      addCaptionToHistory(`Region set to: ${region}`, 'ai');
+      addCaptionToHistory(t('regionSet', region), 'ai');
     }
   }, 800);
 }
