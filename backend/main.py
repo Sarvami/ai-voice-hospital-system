@@ -526,14 +526,16 @@ async def process_audio(
     audio_url = f"http://127.0.0.1:8000/temp-audio/{out_filename}"
 
     return JSONResponse({
-        "user_text": user_text,
-        "text": reply,
-        "audio_url": audio_url,
-        "intent": meta.get("intent"),
-        "data": meta.get("data", {}),
-        "booked": meta.get("booked", False),
-        "success_message": meta.get("success_message")
-    })
+    "text": reply,                                    # reply in English
+    "original_text": data.text,                      # what user said in their language
+    "reply_in_lang": final,                          # bot reply in chosen language
+    "user_text": data.text,                          # for text, original = translated
+    "audio_url": audio_url,
+    "intent": meta.get("intent"),
+    "data": meta.get("data", {}),
+    "booked": meta.get("booked", False),
+    "success_message": meta.get("success_message")
+})
 
 # ------------------ TEXT API ------------------
 
@@ -564,14 +566,16 @@ def process_text(data: TextInput):
     audio_url = f"http://127.0.0.1:8000/temp-audio/{out_filename}"
 
     return JSONResponse({
-        "user_text": data.text,
-        "text": reply,
-        "audio_url": audio_url,
-        "intent": meta.get("intent"),
-        "data": meta.get("data", {}),
-        "booked": meta.get("booked", False),
-        "success_message": meta.get("success_message")
-    })
+    "text": reply,                                    # reply in English
+    "original_text": original,                       # what user said in their language
+    "reply_in_lang": final,                          # bot reply in chosen language
+    "user_text": user_text,                          # translated text (kept for compatibility)
+    "audio_url": audio_url,
+    "intent": meta.get("intent"),
+    "data": meta.get("data", {}),
+    "booked": meta.get("booked", False),
+    "success_message": meta.get("success_message")
+})
 
 # ------------------ TEST APIs ------------------
 
