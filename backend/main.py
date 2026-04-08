@@ -34,7 +34,7 @@ translator = Translator()
 from pathlib import Path
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
-API_KEY = os.getenv("ASSEMBLYAI_API_KEY") 
+API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 
 app = FastAPI()
 
@@ -148,7 +148,7 @@ def create_appointment(pid, did, date, time_str, reason, language):
     conn = get_db_connection()
     cursor = conn.cursor()
     existing = cursor.execute("""
-        SELECT appointment_id FROM appointments 
+        SELECT appointment_id FROM appointments
         WHERE patient_id=? AND doctor_id=? AND appointment_date=?
     """, (pid, did, date)).fetchone()
     if existing:
@@ -169,33 +169,26 @@ def create_appointment(pid, did, date, time_str, reason, language):
 
 def speech_to_text(audio_path):
     headers = {"authorization": API_KEY}
-
     with open(audio_path, "rb") as f:
         upload_response = requests.post(
             "https://api.assemblyai.com/v2/upload",
             headers=headers,
             data=f
         )
-
     upload_json = upload_response.json()
     if "upload_url" not in upload_json:
         raise Exception(f"Upload failed: {upload_json}")
-
     audio_url = upload_json["upload_url"]
-
     transcript_response = requests.post(
         "https://api.assemblyai.com/v2/transcript",
         headers=headers,
         json={"audio_url": audio_url}
     )
-
     transcript_json = transcript_response.json()
     if "id" not in transcript_json:
         raise Exception(f"Transcript request failed: {transcript_json}")
-
     tid = transcript_json["id"]
     start_time = time.time()
-
     while True:
         res = requests.get(
             f"https://api.assemblyai.com/v2/transcript/{tid}",
@@ -209,7 +202,7 @@ def speech_to_text(audio_path):
         if time.time() - start_time > MAX_STT_WAIT:
             raise TimeoutError("STT timeout")
         time.sleep(STT_POLL_INTERVAL)
-        
+
 # ------------------ LOGIC ------------------
 
 def fuzzy_match(text, keywords):
@@ -220,6 +213,7 @@ def fuzzy_match(text, keywords):
             return matches[0]
     return None
 
+# ALL states return (reply_text, meta_dict)
 def generate_reply(text, user_id="user1", lang="en", original=""):
     text = text.lower().strip()
     combined = text + " " + original.lower()
@@ -237,8 +231,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 ).fetchone()
                 conn.close()
                 if result:
-                    return f"{result['name']} belongs to the {result['department']} department."
-        return "Sorry, I couldn't find that doctor."
+                    return f"{result['name']} belongs to the {result['department']} department.", {}
+        return "Sorry, I couldn't find that doctor.", {}
 
     if user_id not in user_state:
         conn = get_db_connection()
@@ -258,7 +252,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_state[user_id] = "waiting_problem"
             return "What problem are you facing? You can also say regular checkup.", {}
         else:
-            return "Say 'book appointment' to get started."
+            return "Say 'book appointment' to get started.", {}
 
     elif state == "waiting_problem":
         matched_dept = None
@@ -272,20 +266,17 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 matched_dept = problem_map[match]
 
         if matched_dept:
-         user_data[user_id]["dept"] = matched_dept
-         doctors = get_doctors_by_department(matched_dept)
-         if not doctors:
-            return "Sorry, no doctors available for that department right now.", {}
-         user_data[user_id]["available_doctors"] = doctors
-         user_state[user_id] = "waiting_doctor"
-         doctor_names = [d.replace("Dr.", "Doctor") for d in doctors]
-         reply = f"Available doctors: {', '.join(doctor_names)}. Any preference?"
-         return reply, {
-            "intent": "select_doctor",
-            "data": {"doctors": doctors}
-        }
+            user_data[user_id]["dept"] = matched_dept
+            doctors = get_doctors_by_department(matched_dept)
+            if not doctors:
+                return "Sorry, no doctors available for that department right now.", {}
+            user_data[user_id]["available_doctors"] = doctors
+            user_state[user_id] = "waiting_doctor"
+            doctor_names = [d.replace("Dr.", "Doctor") for d in doctors]
+            reply = f"Available doctors: {', '.join(doctor_names)}. Any preference?"
+            return reply, {"intent": "select_doctor", "data": {"doctors": doctors}}
 
-        return "Sorry, I didn't catch that. Please describe your problem." , {}
+        return "Sorry, I didn't catch that. Please describe your problem.", {}
 
     elif state == "waiting_doctor":
         available = user_data[user_id].get("available_doctors", [])
@@ -314,7 +305,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                     break
 
         if not chosen:
-            return f"Sorry, I didn't catch that. Available doctors are: {', '.join(available)}. Please say a name."
+            return f"Sorry, I didn't catch that. Available doctors are: {', '.join(available)}. Please say a name.", {}
 
         conn = get_db_connection()
         doctor_row = conn.execute(
@@ -323,14 +314,14 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         ).fetchone()
         conn.close()
 
-        user_data[user_id]["doctor"]    = chosen
+        user_data[user_id]["doctor"] = chosen
         user_data[user_id]["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
         user_state[user_id] = "waiting_date"
         return f"Great, {chosen}. What date would you like?", {
-          "intent": "select_date",
-          "data": {"doctor": chosen}
-         }
-        
+            "intent": "select_date",
+            "data": {"doctor": chosen}
+        }
+
     elif state == "waiting_date":
         date_number_words = {
             "first": "1", "second": "2", "third": "3", "fourth": "4",
@@ -389,33 +380,33 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         if parsed:
             from datetime import datetime
             if parsed.date() < datetime.now().date():
-                return "That date is in the past. Please choose a future date."
+                return "That date is in the past. Please choose a future date.", {}
             user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
             user_state[user_id] = "waiting_time"
-            return f"Got it, {user_data[user_id]['date']}. At what time?"
+            return f"Got it, {user_data[user_id]['date']}. At what time?", {}
         else:
-            return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'."
-       
+            return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'.", {}
 
     elif state == "waiting_time":
         number_words = {
-         "Bara": 12, "barah": 12, "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
-         "chhe": 6, "saat": 7,"Saat": 7,"sat": 7, "aath": 8, "nau": 9, "das": 10,
-         "gyarah": 11, "barah": 12, "bara": 12,
-         "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-         "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-         "eleven": 11, "twelve": 12,
-          }
+            "bara": 12, "barah": 12, "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
+            "chhe": 6, "saat": 7, "sat": 7, "aath": 8, "nau": 9, "das": 10,
+            "gyarah": 11,
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+            "eleven": 11, "twelve": 12,
+        }
 
         detected_hour = None
         detected_period = "PM"
         words = text.lower().split()
+        original_lower = original.lower()
 
-        if any(w in combined for w in ["dopaher", "do peher", "dophar", "afternoon", "sham", "sandhya"]):
+        if any(w in combined or w in original_lower for w in ["dopaher", "do peher", "dophar", "afternoon", "sham", "sandhya"]):
             detected_period = "PM"
-        if any(w in words for w in ["sakal", "subah", "morning"]):
+        if any(w in combined or w in original_lower for w in ["sakal", "subah", "morning"]):
             detected_period = "AM"
-        if any(w in words for w in ["raat", "night"]):
+        if any(w in combined or w in original_lower for w in ["raat", "night"]):
             detected_period = "PM"
 
         for word in words:
@@ -435,7 +426,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 hour_24 = detected_hour
 
             if not (8 <= hour_24 <= 20):
-                return "Sorry, appointments are only available between 8 AM and 8 PM. Please choose a valid time."
+                return "Sorry, appointments are only available between 8 AM and 8 PM. Please choose a valid time.", {}
 
             time_str = f"{hour_24:02d}:00"
             from datetime import datetime
@@ -443,19 +434,18 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id]["time"] = parsed_time.strftime("%I:%M %p")
             user_state[user_id] = "confirming"
             d = user_data[user_id]
-            return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
+            return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?", {}
 
-        # Fallback: try dateparser if number_words didn't match
         parsed = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
         if parsed:
             if not (8 <= parsed.hour <= 20):
-                return "Sorry, appointments are only available between 8 AM and 8 PM. Please choose a valid time."
+                return "Sorry, appointments are only available between 8 AM and 8 PM. Please choose a valid time.", {}
             user_data[user_id]["time"] = parsed.strftime("%I:%M %p")
             user_state[user_id] = "confirming"
             d = user_data[user_id]
-            return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?"
+            return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?", {}
 
-        return "Sorry, I didn't catch the time. Please say it again, like '11 AM' or '3 in the afternoon'."
+        return "Sorry, I didn't catch the time. Please say it again, like '11 AM' or '3 in the afternoon'.", {}
 
     elif state == "confirming":
         confirm_words = ["yes", "confirm", "ok", "okay", "ha", "haa", "haan", "ho", "hou", "theek", "bilkul", "sure"]
@@ -474,19 +464,20 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             if aid is None:
                 user_state[user_id] = "idle"
                 user_data[user_id] = {}
-                return "You already have an appointment with this doctor on that date. Please choose a different date."
+                return "You already have an appointment with this doctor on that date. Please choose a different date.", {}
             user_state[user_id] = "idle"
             user_data[user_id] = {}
-            return f"Appointment confirmed! Your booking ID is {aid}."
+            msg = f"Appointment confirmed! Your booking ID is {aid}."
+            return msg, {"booked": True, "success_message": msg}
 
         elif any(w in text for w in cancel_words):
             user_state[user_id] = "idle"
             user_data[user_id] = {}
-            return "Appointment cancelled. Say 'book appointment' to start again."
+            return "Appointment cancelled. Say 'book appointment' to start again.", {}
 
-        return "Please say yes to confirm or no to cancel."
+        return "Please say yes to confirm or no to cancel.", {}
 
-    return "Sorry, I didn't understand. Please try again."
+    return "Sorry, I didn't understand. Please try again.", {}
 
 # ------------------ MAIN API ------------------
 
@@ -501,9 +492,14 @@ async def process_audio(
     with open(path, "wb") as f:
         f.write(await audio.read())
 
+    user_text = ""
+    reply = ""
+    meta = {}
+
     try:
         original = speech_to_text(path)
         english = gt_to_english(original) if lang != "en" else original
+        user_text = original
         print(f"ORIGINAL: {original}")
         print(f"TRANSLATED: {english}")
         print(f"USER STATE: {user_state.get(str(patient_id), 'NOT FOUND')}")
@@ -513,27 +509,31 @@ async def process_audio(
 
     except TimeoutError:
         final = "Sorry, the system is taking too long. Please try again."
-        meta = {}
+        reply = final
 
     except Exception as e:
         print("ERROR in process_audio:", e)
         final = "Sorry, something went wrong. Please try again."
-        meta = {}
+        reply = final
 
     finally:
         if os.path.exists(path):
             os.remove(path)
 
-    # If meta has a special intent, return JSON so frontend can show popup
-    if meta.get("intent"):
-        out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
-        gTTS(text=final, lang=lang).save(out)
-        audio_url = f"/temp-audio/{os.path.basename(out)}"
-        return JSONResponse({"intent": meta["intent"], "data": meta.get("data", {}), "message": final, "audio_path": audio_url})
-
-    out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+    out_filename = f"{uuid.uuid4()}.mp3"
+    out = f"{TEMP_DIR}/{out_filename}"
     gTTS(text=final, lang=lang).save(out)
-    return FileResponse(out, media_type="audio/mpeg")
+    audio_url = f"http://127.0.0.1:8000/temp-audio/{out_filename}"
+
+    return JSONResponse({
+        "user_text": user_text,
+        "text": reply,
+        "audio_url": audio_url,
+        "intent": meta.get("intent"),
+        "data": meta.get("data", {}),
+        "booked": meta.get("booked", False),
+        "success_message": meta.get("success_message")
+    })
 
 # ------------------ TEXT API ------------------
 
@@ -555,19 +555,36 @@ class AddDoctorRequest(BaseModel):
 @app.post("/process-text")
 def process_text(data: TextInput):
     english = gt_to_english(data.text)
-    reply = generate_reply(english, user_id=str(data.patient_id), lang=data.lang, original=data.text)
+    reply, meta = generate_reply(english, user_id=str(data.patient_id), lang=data.lang, original=data.text)
     final = gt_from_english(reply, data.lang)
 
-    out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+    out_filename = f"{uuid.uuid4()}.mp3"
+    out = f"{TEMP_DIR}/{out_filename}"
     gTTS(text=final, lang=data.lang).save(out)
+    audio_url = f"http://127.0.0.1:8000/temp-audio/{out_filename}"
 
-    return FileResponse(out, media_type="audio/mpeg")
+    return JSONResponse({
+        "user_text": data.text,
+        "text": reply,
+        "audio_url": audio_url,
+        "intent": meta.get("intent"),
+        "data": meta.get("data", {}),
+        "booked": meta.get("booked", False),
+        "success_message": meta.get("success_message")
+    })
 
 # ------------------ TEST APIs ------------------
 
 @app.get("/")
 async def root():
     return {"status": "Running"}
+
+@app.get("/temp-audio/{filename}")
+async def serve_temp_audio(filename: str):
+    path = f"{TEMP_DIR}/{filename}"
+    if os.path.exists(path):
+        return FileResponse(path, media_type="audio/mpeg")
+    return JSONResponse({"error": "File not found"}, status_code=404)
 
 @app.get("/doctors")
 async def get_all_doctors():
@@ -711,7 +728,7 @@ def get_admin_appointments(patient_id: int = None):
 @app.post("/doctor/login")
 def doctor_login(doc_id: str = Form(...), password: str = Form(...)):
     conn = get_db_connection()
-    doctor = conn.execute("SELECT * FROM doctors WHERE doc_id=?", (doc_id,)).fetchone()    
+    doctor = conn.execute("SELECT * FROM doctors WHERE doc_id=?", (doc_id,)).fetchone()
     conn.close()
     if not doctor:
         return {"status": "not_found"}
@@ -738,7 +755,7 @@ def doctor_dashboard(doctor_id: int):
     today = date.today().strftime("%Y-%m-%d")
 
     appointments_today = conn.execute("""
-        SELECT COUNT(*) FROM appointments 
+        SELECT COUNT(*) FROM appointments
         WHERE doctor_id=? AND appointment_date=?
     """, (doctor_id, today)).fetchone()[0]
 
@@ -759,7 +776,7 @@ def doctor_dashboard(doctor_id: int):
 def doctor_appointments(doctor_id: int):
     conn = get_db_connection()
     rows = conn.execute("""
-        SELECT 
+        SELECT
             a.appointment_id AS id,
             p.name AS patient_name,
             a.appointment_date AS date,
@@ -833,15 +850,16 @@ def add_doctor(req: AddDoctorRequest):
     if existing:
         conn.close()
         return {"success": False, "message": f"A doctor with ID '{req.doc_id}' already exists."}
-    
+
     clean = req.name.lower().replace("dr.", "").replace("dr ", "").strip()
     parts = clean.split()
-    email = ".".join(parts) + "@hospital.com" 
+    email = ".".join(parts) + "@hospital.com"
     contact_phone = "9" + str(random.randint(100000000, 999999999))
-    
+
     conn.execute(
         """INSERT INTO doctors
-   (name, department, qualification, experience_years, available_days, doc_id, password_hash, email, contact_phone)""",
+           (name, department, qualification, experience_years, available_days, doc_id, password_hash, email, contact_phone)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (req.name, req.department, req.qualification, req.experience_years,
          req.available_days, req.doc_id, hash_password(req.password), email, contact_phone)
     )
@@ -857,10 +875,3 @@ def doctors_by_region(region: str):
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
-
-@app.get("/temp-audio/{filename}")
-async def serve_temp_audio(filename: str):
-    path = f"{TEMP_DIR}/{filename}"
-    if os.path.exists(path):
-        return FileResponse(path, media_type="audio/mpeg")
-    return JSONResponse({"error": "File not found"}, status_code=404)
