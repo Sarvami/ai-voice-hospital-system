@@ -1,10 +1,8 @@
 const API = "http://127.0.0.1:8000";
 
-/* ── All doctors cache for filtering ── */
 let allDoctors      = [];
 let allAppointments = [];
 
-/* ── Section titles ── */
 const sectionTitles = {
   overview:     'Overview',
   patients:     'Patients',
@@ -16,25 +14,17 @@ const sectionTitles = {
   voice:        'Voice Notes',
 };
 
-/* ── SWITCH SECTION ── */
 function showSection(section, liEl) {
   document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
   document.getElementById(section).classList.remove('hidden');
-
-  /* Update active sidebar item */
   document.querySelectorAll('.sidebar li').forEach(l => l.classList.remove('active'));
   if (liEl) liEl.classList.add('active');
-
-  /* Update page title bar */
   document.getElementById('currentPageTitle').textContent = sectionTitles[section] || '';
-
-  /* Load data for section */
   if (section === 'patients')     loadPatients();
   if (section === 'viewDoctors')  loadDoctors();
   if (section === 'appointments') loadAppointments();
 }
 
-/* ── DOCTOR SUBMENU TOGGLE ── */
 function toggleDoctorMenu(liEl) {
   const submenu = document.getElementById('doctorSubmenu');
   const arrow   = document.getElementById('doctorArrow');
@@ -89,11 +79,10 @@ async function loadDoctors() {
   try {
     const res  = await fetch(`${API}/admin/doctors`);
     const data = await res.json();
-    console.log("FIRST DOCTOR:", data[0]);
     allDoctors = data;
     renderDoctors(allDoctors);
   } catch(e) {
-    table.innerHTML = `<tr><td colspan="8" class="empty-row">Could not load</td></tr>`;
+    table.innerHTML = `<tr><td colspan="9" class="empty-row">Could not load</td></tr>`;
   }
 }
 
@@ -101,10 +90,16 @@ function renderDoctors(list) {
   const table = document.getElementById('doctorsTable');
   table.innerHTML = '';
   if (!list.length) {
-    table.innerHTML = `<tr><td colspan="8" class="empty-row">No doctors found</td></tr>`;
+    table.innerHTML = `<tr><td colspan="9" class="empty-row">No doctors found</td></tr>`;
     return;
   }
   list.forEach(d => {
+    const hours = d.available_hours || '8:00 AM - 8:00 PM';
+    const isSpecial = hours !== '8:00 AM - 8:00 PM';
+    const hoursBadge = isSpecial
+      ? `<span class="hours-badge hours-special">${hours}</span>`
+      : `<span class="hours-badge">${hours}</span>`;
+
     table.innerHTML += `
       <tr>
         <td>${d.doctor_id || '—'}</td>
@@ -115,12 +110,12 @@ function renderDoctors(list) {
         <td>${d.qualification || '—'}</td>
         <td>${d.experience_years ?? '—'} yrs</td>
         <td>${d.available_days || '—'}</td>
+        <td>${hoursBadge}</td>
       </tr>`;
   });
-
 }
 
-/* ── DEPARTMENT FILTER (Doctors) ── */
+/* ── DEPARTMENT FILTER ── */
 function filterDoctors() {
   const dept = document.getElementById('deptFilter').value;
   if (dept === 'all') { renderDoctors(allDoctors); return; }
@@ -132,35 +127,54 @@ function filterDoctors() {
 /* ── CREATE DOCTOR ── */
 async function createDoctor() {
   const name    = document.getElementById('newDoctorName').value.trim();
-  const contact = document.getElementById('newDoctorContact').value.trim();
-  const email   = document.getElementById('newDoctorEmail').value.trim();
   const dept    = document.getElementById('newDoctorDept').value;
   const qual    = document.getElementById('newDoctorQual').value.trim();
   const exp     = document.getElementById('newDoctorExp').value;
   const days    = document.getElementById('newDoctorDays').value.trim();
+  const hours   = document.getElementById('newDoctorHours').value.trim() || '8:00 AM - 8:00 PM';
+  const docId   = document.getElementById('newDoctorId').value.trim();
+  const pass    = document.getElementById('newDoctorPass').value.trim();
   const msgEl   = document.getElementById('createDoctorMsg');
 
   msgEl.style.color = '#ef9a9a';
-  if (!name || !contact || !email || !dept || !qual || !exp || !days) {
-    msgEl.innerText = 'Please fill in all fields.'; return;
+  if (!name || !dept || !qual || !exp || !days || !docId || !pass) {
+    msgEl.innerText = 'Please fill in all required fields.'; return;
+  }
+
+  const hoursPattern = /^\d{1,2}:\d{2} (AM|PM) - \d{1,2}:\d{2} (AM|PM)$/;
+  if (!hoursPattern.test(hours)) {
+    msgEl.innerText = 'Hours format must be: H:MM AM/PM - H:MM AM/PM  e.g. 6:00 PM - 8:00 PM';
+    return;
   }
 
   try {
-    const res  = await fetch(`${API}/admin/create-doctor`, {
+    const res = await fetch(`${API}/admin/add-doctor`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, contact, email, department: dept, qualification: qual, experience_years: parseInt(exp), available_days: days }),
+      body:    JSON.stringify({
+        name,
+        department:       dept,
+        qualification:    qual,
+        experience_years: parseInt(exp),
+        available_days:   days,
+        available_hours:  hours,
+        doc_id:           docId,
+        password:         pass,
+      }),
     });
     const data = await res.json();
-    msgEl.style.color = '#69f0ae';
-    msgEl.innerText = data.message || `✓ Doctor created! Default password: doctor123`;
-    document.getElementById('newDoctorName').value    = '';
-    document.getElementById('newDoctorContact').value = '';
-    document.getElementById('newDoctorEmail').value   = '';
-    document.getElementById('newDoctorDept').value    = '';
-    document.getElementById('newDoctorQual').value    = '';
-    document.getElementById('newDoctorExp').value     = '';
-    document.getElementById('newDoctorDays').value    = '';
+    if (data.success) {
+      msgEl.style.color = '#69f0ae';
+      msgEl.innerText = `✓ Doctor created!  ID: ${docId}   Password: ${pass}`;
+      ['newDoctorName','newDoctorQual','newDoctorExp',
+       'newDoctorDays','newDoctorHours','newDoctorId','newDoctorPass'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      document.getElementById('newDoctorDept').value = '';
+    } else {
+      msgEl.innerText = data.message || 'Something went wrong.';
+    }
   } catch(e) {
     msgEl.innerText = 'Could not connect to server.';
   }
@@ -208,7 +222,6 @@ function filterAppointments() {
   const status = document.getElementById('apptStatusFilter').value;
 
   let filtered = allAppointments;
-
   if (dept !== 'all')
     filtered = filtered.filter(a => (a.department || a.specialization || '').toLowerCase() === dept.toLowerCase());
   if (date)
