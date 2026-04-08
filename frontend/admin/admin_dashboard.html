@@ -9,6 +9,23 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="../dark-toggle.css">
 
+<style>
+  .hours-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    background: rgba(255,255,255,0.08);
+    white-space: nowrap;
+  }
+  .hours-special {
+    background: rgba(255, 167, 38, 0.18);
+    color: #ffa726;
+    font-weight: 600;
+    border: 1px solid rgba(255, 167, 38, 0.35);
+  }
+</style>
+
 </head>
 <body>
  
@@ -29,7 +46,6 @@
       <i class="fa fa-user"></i> Patients
     </li>
 
-    <!-- DOCTORS with sub-menu -->
     <li onclick="toggleDoctorMenu(this)" class="has-submenu">
       <i class="fa fa-user-md"></i> Doctors
       <i class="fa fa-chevron-down submenu-arrow" id="doctorArrow"></i>
@@ -62,7 +78,6 @@
 <!-- MAIN -->
 <div class="main">
 
-  <!-- Page title bar -->
   <div class="page-titlebar">
     <span id="currentPageTitle">Overview</span>
   </div>
@@ -115,7 +130,6 @@
   <div id="viewDoctors" class="section hidden">
     <h2>View Doctors</h2>
 
-    <!-- Department filter -->
     <div class="filter-bar">
       <label>Filter by Department:</label>
       <select id="deptFilter" onchange="filterDoctors()">
@@ -144,6 +158,7 @@
           <th>Qualification</th>
           <th>Experience</th>
           <th>Available Days</th>
+          <th>Available Hours</th>
         </tr>
       </thead>
       <tbody id="doctorsTable"></tbody>
@@ -155,9 +170,9 @@
     <h2>Create Doctor</h2>
     <div class="form-card">
       <h3>Add New Doctor</h3>
-      <input type="text"   id="newDoctorName"    placeholder="Full Name (e.g. Dr. Arjun Mehta)">
-      <input type="text"   id="newDoctorContact" placeholder="Contact Number (e.g. 9876543210)">
-      <input type="email"  id="newDoctorEmail"   placeholder="Email (e.g. doctor@hospital.com)">
+
+      <input type="text"     id="newDoctorName"  placeholder="Full Name (e.g. Dr. Arjun Mehta)">
+
       <select id="newDoctorDept">
         <option value="">Select Department</option>
         <option value="Cardiology">Cardiology</option>
@@ -171,9 +186,18 @@
         <option value="Pediatrics">Pediatrics</option>
         <option value="Ophthalmology">Ophthalmology</option>
       </select>
-      <input type="text"   id="newDoctorQual"    placeholder="Qualification (e.g. MD Cardiology)">
-      <input type="number" id="newDoctorExp"     placeholder="Experience (years)">
-      <input type="text"   id="newDoctorDays"    placeholder="Available Days (e.g. Mon-Fri)">
+
+      <input type="text"     id="newDoctorQual"  placeholder="Qualification (e.g. MD Cardiology)">
+      <input type="number"   id="newDoctorExp"   placeholder="Experience (years)">
+      <input type="text"     id="newDoctorDays"  placeholder="Available Days (e.g. Mon-Fri)">
+
+      <!-- NEW field -->
+      <input type="text"     id="newDoctorHours"
+             placeholder="Available Hours (e.g. 6:00 PM - 8:00 PM)  —  leave blank for full day">
+
+      <input type="text"     id="newDoctorId"    placeholder="Doctor ID (e.g. DOC70)">
+      <input type="password" id="newDoctorPass"  placeholder="Password">
+
       <button onclick="createDoctor()">Create Doctor</button>
       <p class="msg" id="createDoctorMsg"></p>
     </div>
@@ -183,7 +207,6 @@
   <div id="appointments" class="section hidden">
     <h2>Appointments</h2>
 
-    <!-- Filters -->
     <div class="filter-bar">
       <select id="apptDeptFilter" onchange="filterAppointments()">
         <option value="all">All Departments</option>
@@ -199,7 +222,7 @@
         <option value="Ophthalmology">Ophthalmology</option>
       </select>
 
-      <input type="date" id="apptDateFilter" onchange="filterAppointments()" placeholder="Filter by Date">
+      <input type="date" id="apptDateFilter" onchange="filterAppointments()">
 
       <select id="apptStatusFilter" onchange="filterAppointments()">
         <option value="all">All Statuses</option>
