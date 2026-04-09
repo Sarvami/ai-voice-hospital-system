@@ -367,7 +367,7 @@ body::after {
   width: 80px; height: 80px;
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: rgba(15,25,60,0.7);
+  background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 20px rgba(0,0,0,0.3);
   cursor: pointer;
@@ -386,21 +386,21 @@ body::after {
 }
 
 .bubble:hover:not(.active) {
-  --s: 1.05;
   z-index: 5;
-  background: rgba(79,195,247,0.2);
+  background: rgba(255,255,255,0.12);
   border-color: var(--accent);
 }
 
 .bubble.active {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  background: var(--accent);
   color: #0a0f1e;
-  border: 2px solid rgba(255,255,255,0.3);
-  box-shadow: 0 0 0 4px rgba(79,195,247,0.3), 0 15px 35px rgba(0,0,0,0.3);
-  --s: 1.15; z-index: 10;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 25px var(--accent), 0 15px 35px rgba(0,0,0,0.4);
+  transform: translate(var(--tx),var(--ty)) scale(1.15);
+  z-index: 20;
 }
 
-.bubble.active span { color: #0a0f1e; opacity: 0.9; }
+.bubble.active span { color: #0a0f1e; opacity: 1; font-weight: 700; }
 
 .top         { top: 0;      left: 50%; --tx: -50%; }
 .right       { top: 25%;    right: 0; }
@@ -429,7 +429,7 @@ body::after {
 
 .mic-orb:hover  { transform: translate(-50%,-50%) scale(1.05); box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(79,195,247,0.5); }
 .mic-orb:active { transform: translate(-50%,-50%) scale(0.96); }
-.mic-orb.recording { background: #ef5350 !important; border-color: rgba(239,83,80,0.5); animation: pulse 1.5s infinite; }
+.mic-orb.recording { background: linear-gradient(135deg, #26a69a, #4db6ac) !important; border-color: rgba(38,166,154,0.5); animation: pulse 1.5s infinite; }
 
 .mic-orb::before {
   content: "";
@@ -755,9 +755,15 @@ body.light-theme .bubble:hover:not(.active) {
 body.light-theme .bubble.active {
   background: linear-gradient(135deg, #2563eb, #4f46e5);
   color: white;
-  border: none;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.4);
+  transform: translate(var(--tx),var(--ty)) scale(1.2);
 }
-body.light-theme .bubble.active span { color: rgba(255,255,255,0.9); }
+body.light-theme .bubble.active span { color: rgba(255,255,255,0.95); }
+body.light-theme .bubble.active::after {
+  background: var(--accent);
+  color: #fff;
+}
 
 body.light-theme #subtitleBar { 
   background: rgba(255,255,255,0.9); 

@@ -16,20 +16,23 @@ def run_migration():
 
     regions = [
         "Bibewadi", "Kalyani Nagar", "Ravet", 
-        "PCMC", "Sangamwadi", "Wanowrie", "Hadapsar"
+        "PCMC", "Sangamvadi", "Wanowrie", "Hadapsar"
     ]
 
-    cursor.execute("SELECT doctor_id FROM doctors")
+    cursor.execute("SELECT doctor_id, department FROM doctors ORDER BY department, doctor_id")
     doctors = cursor.fetchall()
 
     if not doctors:
         print("No doctors found to update.")
     else:
-        for (doc_id,) in doctors:
-            assigned_region = random.choice(regions)
+        dept_counts = {}
+        for (doc_id, dept) in doctors:
+            idx = dept_counts.get(dept, 0)
+            assigned_region = regions[idx % len(regions)]
             cursor.execute("UPDATE doctors SET region = ? WHERE doctor_id = ?", (assigned_region, doc_id))
+            dept_counts[dept] = idx + 1
         
-        print(f"Randomly assigned regions to {len(doctors)} doctors.")
+        print(f"Deterministically assigned regions to {len(doctors)} doctors across all departments.")
     
     conn.commit()
     conn.close()

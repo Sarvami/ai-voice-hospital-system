@@ -1,5 +1,5 @@
 # database.py
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 import datetime
@@ -40,6 +40,8 @@ class Doctor(Base):
     contact_phone = Column(String)
     email = Column(String)
     region = Column(String)
+    rating = Column(Float, default=4.5)
+    rating_count = Column(Integer, default=10)
     appointments = relationship("Appointment", back_populates="doctor")
     
     def __repr__(self):
@@ -75,6 +77,7 @@ class Appointment(Base):
     reason = Column(Text)
     booking_source = Column(String, default="voice")
     language_used = Column(String, default="en")
+    rating = Column(Integer) # Patient rating for this appointment
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     patient = relationship("Patient", back_populates="appointments")

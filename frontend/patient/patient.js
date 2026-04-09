@@ -38,9 +38,20 @@ async function loadAppointments() {
       else if (status.toLowerCase() === "cancelled") statusClass = "status-cancelled";
       else if (status.toLowerCase() === "completed") statusClass = "status-completed";
       
+      const apptId = a.appointment_id || a.id;
+      let actionHtml = "-";
+      
+      if (status.toLowerCase() === "completed") {
+        if (a.rating) {
+          actionHtml = `<span style="color:#f5a623">★ ${a.rating}/5</span>`;
+        } else {
+          actionHtml = `<button class="btn-rate" onclick="openRating(${apptId}, '${a.doctor || a.doctor_name}')">Rate Doctor</button>`;
+        }
+      }
+      
       table.innerHTML += `
         <tr>
-          <td>${a.appointment_id || a.id || "-"}</td>
+          <td>${apptId || "-"}</td>
           <td>${a.doctor || a.doctor_name || "-"}</td>
           <td>${a.doctor_phone || a.contact_phone || "-"}</td>
           <td>${a.doctor_email || a.email || "-"}</td>
@@ -48,6 +59,7 @@ async function loadAppointments() {
           <td>${a.date || "-"}</td>
           <td>${a.time || "-"}</td>
           <td><span class="status-badge ${statusClass}">${status}</span></td>
+          <td>${actionHtml}</td>
         </tr>
       `;
     });
@@ -55,7 +67,7 @@ async function loadAppointments() {
     document.getElementById("appointmentCount").innerText = list.length;
 
   } catch (err) {
-    table.innerHTML = `<tr><td colspan="7" class="empty-row">Could not load appointments.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="9" class="empty-row">Could not load appointments.</td></tr>`;
     console.error("Failed to load appointments:", err);
   }
 }
@@ -160,9 +172,9 @@ function openRating(apptId, doctorName) {
           <span onclick="setRating(4)">★</span>
           <span onclick="setRating(5)">★</span>
         </div>
-        <textarea id="reviewText" placeholder="Write your review (optional)..." rows="3"></textarea>
+        <p style="text-align:center; color:#a0aec0; margin-bottom:15px">Tap a star to rate</p>
         <div class="modal-buttons">
-          <button onclick="submitRating()" class="btn-submit">Submit</button>
+          <button onclick="submitRating()" class="btn-submit">Submit Rating</button>
           <button onclick="closeRating()" class="btn-cancel">Cancel</button>
         </div>
       </div>
@@ -171,7 +183,6 @@ function openRating(apptId, doctorName) {
   }
   
   document.getElementById('ratingDoctorName').textContent = doctorName;
-  document.getElementById('reviewText').value = '';
   highlightStars(0);
   modal.style.display = 'flex';
 }
@@ -190,6 +201,7 @@ function highlightStars(val) {
   const stars = document.querySelectorAll('#stars span');
   stars.forEach((s, i) => {
     s.style.color = i < val ? '#f5a623' : '#555';
+    s.style.transform = i < val ? 'scale(1.2)' : 'scale(1)';
   });
 }
 
@@ -199,58 +211,27 @@ async function submitRating() {
     return;
   }
   
-  const review = document.getElementById('reviewText').value;
-  
   try {
-    const response = await fetch(`${BACKEND}/patient/rate`, {
+    const response = await fetch(`${BACKEND}/patient/rate-appointment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         appointment_id: currentRatingApptId,
-        rating: currentRating,
-        review: review
+        rating: currentRating
       })
     });
     
-    if (response.ok) {
-      alert('Thank you for your feedback!');
+    const data = await response.json();
+    if (data.success) {
+      alert('Thank you! Your rating has been submitted.');
       closeRating();
+      loadAppointments(); // Refresh list
     } else {
-      alert('Failed to submit rating. Please try again.');
+      alert(data.message || 'Failed to submit rating.');
     }
   } catch(e) {
     console.error("Rating error:", e);
     alert('Could not submit rating. Please try again later.');
-  }
-  closeRating();
-}
-
-/* ── Add rating button to appointments (optional) ── */
-// This function adds rate buttons for completed appointments
-async function addRatingButtons() {
-  const patientId = localStorage.getItem("patient_id");
-  if (!patientId) return;
-  
-  try {
-    const res = await fetch(`${BACKEND}/patient/appointments?patient_id=${patientId}`);
-    const data = await res.json();
-    const list = data.appointments || data;
-    
-    if (list && list.length) {
-      list.forEach(async (a) => {
-        if (a.status && a.status.toLowerCase() === 'completed') {
-          // Check if already rated
-          const ratingCheck = await fetch(`${BACKEND}/patient/check-rating?appointment_id=${a.appointment_id || a.id}`);
-          const ratingData = await ratingCheck.json();
-          
-          if (!ratingData.rated) {
-            // Add rate button logic here if needed
-          }
-        }
-      });
-    }
-  } catch(e) {
-    console.error("Error checking ratings:", e);
   }
 }
 

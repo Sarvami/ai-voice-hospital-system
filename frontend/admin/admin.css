@@ -269,6 +269,37 @@ body.light-theme select option { background: #fff; color: #1e293b; }
 .filter-bar input[type="date"]:focus { border-color: var(--accent); }
 .filter-bar select option { background: #0d1b2e; }
 
+.clear-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.clear-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+body.light-theme .clear-btn {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+body.light-theme .clear-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+  border-color: var(--accent);
+}
+
 /* ── TABLES ── */
 table { width: 100%; border-collapse: collapse; margin-top: 4px; overflow: hidden; border-radius: 8px; }
 

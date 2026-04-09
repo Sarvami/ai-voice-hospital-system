@@ -133,12 +133,12 @@ def get_doctors_by_department(dept, region=None):
     cursor = conn.cursor()
     if region:
         cursor.execute(
-            "SELECT name FROM doctors WHERE LOWER(department)=LOWER(?) AND LOWER(region)=LOWER(?)",
+            "SELECT name, rating FROM doctors WHERE LOWER(department)=LOWER(?) AND LOWER(region)=LOWER(?)",
             (dept, region)
         )
     else:
-        cursor.execute("SELECT name FROM doctors WHERE LOWER(department)=LOWER(?)", (dept,))
-    doctors = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT name, rating FROM doctors WHERE LOWER(department)=LOWER(?)", (dept,))
+    doctors = [{"name": row[0], "rating": row[1]} for row in cursor.fetchall()]
     conn.close()
     return doctors
 
@@ -263,8 +263,11 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
     if user_id not in user_state:
         conn = get_db_connection()
-        patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (user_id,)).fetchone()
+        # Ensure user_id is handled as int if possible for SQLite matching
+        db_uid = int(user_id) if str(user_id).isdigit() else user_id
+        patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (db_uid,)).fetchone()
         conn.close()
+        
         user_data[user_id] = {}
         if patient:
             user_data[user_id]["name"] = patient["name"]
@@ -296,45 +299,70 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         if matched_dept:
             user_data[user_id]["dept"] = matched_dept
             region = user_data[user_id].get("region")
+            
+            # Double-check DB if region is missing in session
+            if not region:
+                conn = get_db_connection()
+                db_uid = int(user_id) if str(user_id).isdigit() else user_id
+                p_row = conn.execute("SELECT region FROM patients WHERE patient_id=?", (db_uid,)).fetchone()
+                conn.close()
+                if p_row and p_row["region"]:
+                    region = p_row["region"]
+                    user_data[user_id]["region"] = region
+
+            print(f"DEBUG: Filtering doctors for dept={matched_dept} in region={region}")
             doctors = get_doctors_by_department(matched_dept, region)
+            
+            reply_prefix = "Available doctors"
+            if not doctors:
+                # Fallback: if no doctors in region, search all regions
+                doctors = get_doctors_by_department(matched_dept, None)
+                if doctors:
+                    reply_prefix = f"I couldn't find any {matched_dept} specialists in your specific area, but here are some available nearby"
+            
             if not doctors:
                 return "Sorry, no doctors available for that department right now.", {}
+            
             user_data[user_id]["available_doctors"] = doctors
             user_state[user_id] = "waiting_doctor"
-            doctor_names = [d.replace("Dr.", "Doctor") for d in doctors]
-            reply = f"Available doctors: {', '.join(doctor_names)}. Any preference?"
+            
+            # Format names with ratings for the voice response
+            doctor_names = [f"{d['name'].replace('Dr.', 'Doctor')} (Rating {d['rating']})" for d in doctors]
+            
+            reply = f"{reply_prefix}: {', '.join(doctor_names)}. Any preference?"
             return reply, {"intent": "select_doctor", "data": {"doctors": doctors}}
 
         return "Sorry, I didn't catch that. Please describe your problem.", {}
 
     elif state == "waiting_doctor":
-        available = user_data[user_id].get("available_doctors", [])
+        available = user_data[user_id].get("available_doctors", []) # List of dicts: [{"name":..., "rating":...}]
         chosen = None
-        print(f"TEXT: {text}")
-        print(f"AVAILABLE: {available}")
-
-        for doc in available:
-            parts = doc.lower().replace("dr.", "").replace("dr", "").strip().split()
+        
+        # Exact/Simple match
+        for doc_obj in available:
+            doc_name = doc_obj["name"]
+            parts = doc_name.lower().replace("dr.", "").replace("dr", "").strip().split()
             for part in parts:
                 if part in text.lower():
-                    chosen = doc
+                    chosen = doc_name
                     break
-            if chosen:
-                break
+            if chosen: break
 
+        # Fuzzy match
         if not chosen:
-            for doc in available:
-                parts = doc.lower().replace("dr.", "").strip().split()
+            for doc_obj in available:
+                doc_name = doc_obj["name"]
+                parts = doc_name.lower().replace("dr.", "").strip().split()
                 for part in parts:
                     matches = difflib.get_close_matches(part, text.lower().split(), 1, 0.6)
                     if matches:
-                        chosen = doc
+                        chosen = doc_name
                         break
-                if chosen:
-                    break
+                if chosen: break
 
         if not chosen:
-            return f"Sorry, I didn't catch that. Available doctors are: {', '.join(available)}. Please say a name.", {}
+            names_only = [d["name"] for d in available]
+            return f"Sorry, I didn't catch that. Available doctors are: {', '.join(names_only)}. Please say a name.", {}
 
         conn = get_db_connection()
         doctor_row = conn.execute(
@@ -870,6 +898,43 @@ def translate_text_api(req: TranslateRequest):
         print("Translation error:", e)
         return {"success": False, "message": str(e)}
 
+class RateRequest(BaseModel):
+    appointment_id: int
+    rating: int
+
+@app.post("/patient/rate-appointment")
+def rate_appointment(req: RateRequest):
+    conn = get_db_connection()
+    appt = conn.execute("SELECT * FROM appointments WHERE appointment_id=?", (req.appointment_id,)).fetchone()
+    if not appt:
+        conn.close()
+        return {"success": False, "message": "Appointment not found"}
+    
+    if appt["status"] != "Completed":
+        conn.close()
+        return {"success": False, "message": "Only completed appointments can be rated."}
+    
+    if appt["rating"]:
+        conn.close()
+        return {"success": False, "message": "Already rated."}
+
+    # Update appt
+    conn.execute("UPDATE appointments SET rating = ? WHERE appointment_id = ?", (req.rating, req.appointment_id))
+    
+    # Update doctor avg
+    did = appt["doctor_id"]
+    doc = conn.execute("SELECT rating, rating_count FROM doctors WHERE doctor_id=?", (did,)).fetchone()
+    
+    old_r = doc["rating"] or 4.5
+    old_c = doc["rating_count"] or 0
+    new_c = old_c + 1
+    new_r = ((old_r * old_c) + req.rating) / new_c
+    
+    conn.execute("UPDATE doctors SET rating = ?, rating_count = ? WHERE doctor_id = ?", (new_r, new_c, did))
+    conn.commit()
+    conn.close()
+    return {"success": True, "avg": round(new_r, 1)}
+
 @app.get("/admin/appointments")
 def get_admin_appointments(patient_id: int = None):
     conn = get_db_connection()
@@ -920,7 +985,7 @@ def doctor_login(doc_id: str = Form(...), password: str = Form(...)):
 @app.get("/doctor/dashboard")
 def doctor_dashboard(doctor_id: int):
     conn = get_db_connection()
-    doctor = conn.execute("SELECT * FROM doctors WHERE doctor_id=?", (doctor_id,)).fetchone()
+    doctor = conn.execute("SELECT name, department, rating FROM doctors WHERE doctor_id=?", (doctor_id,)).fetchone()
     if not doctor:
         conn.close()
         return {"error": "Doctor not found"}
@@ -943,8 +1008,21 @@ def doctor_dashboard(doctor_id: int):
         "specialization": doctor["department"],
         "appointments_today": appointments_today,
         "total_patients": total_patients,
-        "rating": 4
+        "rating": round(doctor["rating"] or 4.5, 1)
     }
+
+@app.get("/doctor/ratings")
+def get_doctor_ratings(doctor_id: int):
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT p.name AS patient_name, a.rating, a.appointment_date AS date
+        FROM appointments a
+        JOIN patients p ON a.patient_id = p.patient_id
+        WHERE a.doctor_id = ? AND a.rating IS NOT NULL
+        ORDER BY a.appointment_date DESC
+    """, (doctor_id,)).fetchall()
+    conn.close()
+    return {"ratings": [dict(r) for r in rows]}
 
 @app.get("/doctor/appointments")
 def doctor_appointments(doctor_id: int):
@@ -970,9 +1048,9 @@ def patient_appointments(patient_id: int):
     conn = get_db_connection()
     rows = conn.execute("""
         SELECT a.appointment_id, d.name AS doctor,
-               d.email, d.contact_phone,
+               d.email, d.contact_phone, d.region,
                a.appointment_date AS date, a.appointment_time AS time,
-               a.status, a.reason
+               a.status, a.reason, a.rating
         FROM appointments a
         JOIN doctors d ON a.doctor_id = d.doctor_id
         WHERE a.patient_id = ?
@@ -1011,7 +1089,7 @@ def get_admin_doctors():
     rows = conn.execute(
         """SELECT doctor_id, doc_id, name, department, qualification,
                   experience_years, available_days, available_hours,
-                  email, contact_phone, region
+                  email, contact_phone, region, rating
            FROM doctors ORDER BY doctor_id DESC"""
     ).fetchall()
     conn.close()
