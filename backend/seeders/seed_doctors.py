@@ -1,6 +1,10 @@
 import sqlite3
 
+<<<<<<< HEAD:backend/seeders/seed_doctors.py
 DB_PATH = "../data/hospital.db"
+=======
+conn = sqlite3.connect('data/hospital.db')
+>>>>>>> 51b82dc250ca40e90aff583da5bc12ba29c34696:backend/seed_doctors.py
 
 doctors = [
     # Cardiology (5)
