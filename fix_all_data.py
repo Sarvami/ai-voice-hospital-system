@@ -1,14 +1,27 @@
 import os
 import subprocess
 import sys
+import sqlite3
 
 # Move to backend directory
-os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"))
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+os.chdir(os.path.join(ROOT_DIR, "backend"))
+DB_PATH = os.path.join(ROOT_DIR, "backend", "data", "hospital.db")
 
 print("--- AI Voice Hospital System: One-Click Fix ---")
 
+# 0. Cleanup malformed tables
+print("\n[0/4] Cleaning up old data...")
+if os.path.exists(DB_PATH):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("DROP TABLE IF EXISTS doctors")
+    conn.execute("DROP TABLE IF EXISTS patients")
+    conn.execute("DROP TABLE IF EXISTS appointments")
+    conn.commit()
+    conn.close()
+
 # 1. Run database initialization
-print("\n[1/3] Initializing Database Schema...")
+print("\n[1/4] Initializing Database Schema...")
 subprocess.run([sys.executable, "database.py"])
 
 # 2. Run Doctor Seeder
