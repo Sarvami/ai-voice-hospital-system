@@ -34,6 +34,7 @@ class Doctor(Base):
     qualification = Column(String)
     experience_years = Column(Integer)
     available_days = Column(String)
+    available_hours = Column(String)
     doc_id = Column(String, unique=True)
     password_hash = Column(String)
     contact_phone = Column(String)
