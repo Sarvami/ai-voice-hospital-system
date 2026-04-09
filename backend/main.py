@@ -953,7 +953,7 @@ def get_admin_overview():
 def get_admin_patients():
     conn = get_db_connection()
     rows = conn.execute(
-        "SELECT name, age, phone, preferred_language, created_at FROM patients ORDER BY patient_id DESC"
+        "SELECT patient_id, name, age, gender, phone, preferred_language, created_at FROM patients ORDER BY patient_id DESC"
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
