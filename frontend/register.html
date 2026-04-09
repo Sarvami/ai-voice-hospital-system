@@ -20,6 +20,21 @@
       --success: #69f0ae;
     }
 
+    body.light-theme {
+      --bg: #f8fbff;
+      --card: rgba(255, 255, 255, 0.9);
+      --border: rgba(0, 0, 0, 0.08);
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent2: #4f46e5;
+    }
+
+    body.light-theme::before, body.light-theme::after { opacity: 0.1; }
+    body.light-theme input, body.light-theme select { background: rgba(0,0,0,0.03) !important; color: #1e293b !important; }
+    body.light-theme .btn { color: #ffffff; }
+    body.light-theme .strength-bar { background: rgba(0,0,0,0.05); }
+
     body {
       font-family: 'Sora', sans-serif;
       background: var(--bg);
