@@ -80,6 +80,7 @@
 
   <div class="page-titlebar">
     <span id="currentPageTitle">Overview</span>
+    <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">🌙</button>
   </div>
 
   <!-- OVERVIEW -->
@@ -123,7 +124,6 @@
           <th>Gender</th>
           <th>Phone</th>
           <th>Language</th>
-          <th>Joined</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -211,6 +211,7 @@
           <th>Available Days</th>
           <th>Available Hours</th>
           <th>Region</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="doctorsTable"></tbody>
@@ -330,6 +331,88 @@
   <div id="voice" class="section hidden">
     <h2>Voice Notes</h2>
     <ul id="voiceList"></ul>
+  </div>
+
+  <!-- EDIT DOCTOR MODAL -->
+  <div id="editDoctorModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Doctor Detail</h3>
+        <span class="close-modal" onclick="closeEditDoctorModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editDoctorIdInternal">
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" id="editDoctorName">
+        </div>
+        <div class="form-row">
+            <div class="input-group">
+                <label>Department</label>
+                <select id="editDoctorDept">
+                    <option value="Cardiology">Cardiology</option>
+                    <option value="General">General</option>
+                    <option value="ENT">ENT</option>
+                    <option value="Dentist">Dentist</option>
+                    <option value="Orthopedics">Orthopedics</option>
+                    <option value="Neurology">Neurology</option>
+                    <option value="Gynecology">Gynecology</option>
+                    <option value="Dermatology">Dermatology</option>
+                    <option value="Pediatrics">Pediatrics</option>
+                    <option value="Ophthalmology">Ophthalmology</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Region</label>
+                <select id="editDoctorRegion">
+                    <option value="Bibewadi">Bibewadi</option>
+                    <option value="Kalyani Nagar">Kalyani Nagar</option>
+                    <option value="Ravet">Ravet</option>
+                    <option value="PCMC">PCMC</option>
+                    <option value="Sangamvadi">Sangamvadi</option>
+                    <option value="Wanowrie">Wanowrie</option>
+                    <option value="Hadapsar">Hadapsar</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="input-group">
+                <label>Qualification</label>
+                <input type="text" id="editDoctorQual">
+            </div>
+            <div class="input-group">
+                <label>Experience (Yrs)</label>
+                <input type="number" id="editDoctorExp">
+            </div>
+        </div>
+        <div class="input-group">
+          <label>Doctor ID (Username)</label>
+          <input type="text" id="editDoctorIdPublic">
+        </div>
+        <div class="input-group">
+          <label>Phone</label>
+          <input type="text" id="editDoctorPhone">
+        </div>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="text" id="editDoctorEmail">
+        </div>
+        <div class="form-row">
+            <div class="input-group">
+                <label>Available Days</label>
+                <input type="text" id="editDoctorDays">
+            </div>
+            <div class="input-group">
+                <label>Available Hours</label>
+                <input type="text" id="editDoctorHours">
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="save-btn" onclick="saveDoctorEdit()">Save Changes</button>
+        <button class="cancel-btn" onclick="closeEditDoctorModal()">Cancel</button>
+      </div>
+    </div>
   </div>
 
 </div><!-- /main -->

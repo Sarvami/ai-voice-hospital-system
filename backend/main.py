@@ -619,6 +619,19 @@ class AddDoctorRequest(BaseModel):
     available_days: str = ""
     available_hours: str = "8:00 AM - 8:00 PM"
 
+class UpdateDoctorRequest(BaseModel):
+    doctor_id: int
+    name: str
+    department: str
+    qualification: str
+    experience_years: int
+    doc_id: str
+    region: str
+    available_days: str
+    available_hours: str
+    contact_phone: str
+    email: str
+
 
 @app.post("/process-text")
 def process_text(data: TextInput):
@@ -1031,6 +1044,25 @@ def add_doctor(req: AddDoctorRequest):
     conn.commit()
     conn.close()
     return {"success": True}
+
+@app.put("/admin/update-doctor")
+def update_doctor(req: UpdateDoctorRequest):
+    try:
+        conn = get_db_connection()
+        conn.execute("""
+            UPDATE doctors
+            SET name=?, department=?, qualification=?, experience_years=?,
+                doc_id=?, region=?, available_days=?, available_hours=?,
+                contact_phone=?, email=?
+            WHERE doctor_id=?
+        """, (req.name, req.department, req.qualification, req.experience_years,
+              req.doc_id, req.region, req.available_days, req.available_hours,
+              req.contact_phone, req.email, req.doctor_id))
+        conn.commit()
+        conn.close()
+        return {"success": True, "message": "Doctor updated successfully"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 @app.get("/doctors/by-region/{region}")
 def doctors_by_region(region: str):

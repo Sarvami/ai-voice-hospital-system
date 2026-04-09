@@ -89,11 +89,23 @@ for i, doc in enumerate(doctors, 1):
     email = f"{clean_name}@hospital.com"
     phone = f"9823{random.randint(100000, 999999)}"
     
+    # Assign specialist hours to ~15% of doctors
+    available_hours = "8:00 AM - 8:00 PM"
+    if random.random() < 0.15:
+        special_slots = [
+            "10:00 AM - 1:00 PM",
+            "2:00 PM - 5:00 PM",
+            "9:00 AM - 12:00 PM",
+            "4:00 PM - 7:00 PM",
+            "11:00 AM - 3:00 PM"
+        ]
+        available_hours = random.choice(special_slots)
+
     conn.execute("""
         INSERT INTO doctors (name, department, qualification, experience_years, available_days, 
                             doc_id, email, contact_phone, password_hash, available_hours)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pbkdf2:sha256:260000$yS6v8mFz$bf8b31...', '8:00 AM - 8:00 PM')
-    """, (*doc, doc_id, email, phone))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pbkdf2:sha256:260000$yS6v8mFz$bf8b31...', ?)
+    """, (*doc, doc_id, email, phone, available_hours))
 
 conn.commit()
 
