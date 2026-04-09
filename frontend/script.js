@@ -162,11 +162,48 @@ function t(key, ...args) {
     if (!captionContainer) return;
     captionContainer.innerHTML = '';
     captionHistory.forEach(msg => {
-      const div = document.createElement('div');
-      div.className = msg.type === 'user' ? 'caption-user' : 'caption-ai';
-      div.innerHTML = `<span class="caption-time">${msg.time}</span> ${escapeHtml(msg.text)}`;
-      captionContainer.appendChild(div);
-    });
+  const div = document.createElement('div');
+  div.className = msg.type === 'user' ? 'caption-user' : 'caption-ai';
+  div.innerHTML = `<span class="caption-time">${msg.time}</span> ${escapeHtml(msg.text)}`;
+
+  // Add translate button only for AI captions and non-English languages
+  if (msg.type === 'ai' && selectedLang !== 'en') {
+    const btn = document.createElement('button');
+    btn.className = 'translate-btn';
+    btn.textContent = 'See translation';
+    btn.onclick = async () => {
+      btn.textContent = 'Translating...';
+      btn.disabled = true;
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 200,
+            messages: [{
+              role: 'user',
+              content: `Translate this to English. Reply with ONLY the translation, nothing else: "${msg.text}"`
+            }]
+          })
+        });
+        const data = await res.json();
+        const translation = data.content?.[0]?.text || 'Could not translate';
+        const transDiv = document.createElement('div');
+        transDiv.className = 'translation-text';
+        transDiv.textContent = '🇬🇧 ' + translation;
+        div.appendChild(transDiv);
+        btn.remove();
+      } catch(e) {
+  btn.textContent = 'Translation failed';
+  btn.disabled = false;  // ← add this
+}
+    };
+    div.appendChild(btn);
+  }
+
+  captionContainer.appendChild(div);
+});
     // Auto-scroll to bottom
     if (subtitleBar) subtitleBar.scrollTop = subtitleBar.scrollHeight;
   }
