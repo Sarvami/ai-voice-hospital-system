@@ -347,11 +347,11 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         user_state[user_id] = "waiting_date"
 
         # Mention special hours to the patient upfront
-        hours_note = f" (available {avail_hours})" if avail_hours != "8:00 AM - 8:00 PM" else ""
-        return f"Great, {chosen}{hours_note}. What date would you like?", {
-         "intent": "ask_date",
-         "data": {"doctor": chosen}
-         }
+        base_reply = f"Great, {chosen}. What date would you like?"
+        return base_reply, {
+        "intent": "ask_date",
+        "data": {"doctor": chosen, "available_hours": avail_hours}
+}
 
     elif state == "waiting_date":
         date_number_words = {
@@ -415,7 +415,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
             user_state[user_id] = "waiting_time"
             avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
-            return f"Got it, {user_data[user_id]['date']}. At what time? ({avail_hours})", {}
+            reply = f"Got it, {user_data[user_id]['date']}. At what time?"
+            return reply, {"data": {"available_hours": avail_hours}}
         else:
          return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'.", {}
 
@@ -498,6 +499,10 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         cancel_words  = ["no", "cancel", "nahi", "nako", "band", "nahii", "mat", "don't"]
         if any(w in text for w in confirm_words):
             d = user_data[user_id]
+            if not d.get("name") or not d.get("doctor_id") or not d.get("date"):
+             user_state[user_id] = "idle"
+             user_data[user_id] = {}
+             return "Sorry, your session expired. Please say 'book appointment' to start again.", {}
             patient = get_or_create_patient(d["name"], d["phone"], lang)
             aid = create_appointment(
                 patient["patient_id"],
@@ -553,6 +558,10 @@ async def process_audio(
         reply, meta = generate_reply(english, user_id=str(patient_id), lang=lang, original=original)
         print(f"REPLY: {reply}")
         final = gt_from_english(reply, lang)
+        if meta.get("data", {}).get("available_hours"):
+         hours = meta["data"]["available_hours"]
+         if hours != "8:00 AM - 8:00 PM":
+          final += f" ({hours})"
 
     except TimeoutError:
         final = "Sorry, the system is taking too long. Please try again."
@@ -881,7 +890,7 @@ def get_admin_patients():
 def get_admin_doctors():
     conn = get_db_connection()
     rows = conn.execute(
-        """SELECT doctor_id, name, department, qualification,
+        """SELECT doctor_id, doc_id, name, department, qualification,
                   experience_years, available_days, available_hours,
                   email, contact_phone
            FROM doctors ORDER BY doctor_id DESC"""
@@ -940,8 +949,9 @@ async def set_appointment_date(request: Request):
     user_state[patient_id] = "waiting_time"
 
     avail_hours = user_data[patient_id].get("available_hours", "8:00 AM - 8:00 PM")
-    reply = f"Got it, {date}. At what time? ({avail_hours})"
+    reply = f"Got it, {date}. At what time?"
     final = gt_from_english(reply, lang)
+    final += f" ({avail_hours})"  # append AFTER translation
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
     gTTS(text=final, lang=lang).save(out)

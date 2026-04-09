@@ -308,6 +308,12 @@ if (aiText) {
   aiText.includes("दिवस") ||
   json.intent === "ask_date"
 )){
+                if (json.audio_url && audioPlayer) {
+        audioPlayer.src = json.audio_url;
+        audioPlayer.load();
+        audioPlayer.play();
+        if (playBtn) playBtn.textContent = "❚❚";
+    }
                 pendingIntent = "date";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
@@ -333,11 +339,14 @@ if (aiText) {
                       addCaptionToHistory(dateResult.text, 'ai');
                     }
                     if (dateResult.audio_url && audioPlayer) {
-                      audioPlayer.src = dateResult.audio_url;
-                      audioPlayer.load();
-                      audioPlayer.play();
-                      if (playBtn) playBtn.textContent = "❚❚";
-                    }
+    const fullUrl = dateResult.audio_url.startsWith("http") 
+        ? dateResult.audio_url 
+        : `http://127.0.0.1:8000${dateResult.audio_url}`;
+    audioPlayer.src = fullUrl;
+    audioPlayer.load();
+    audioPlayer.play();
+    if (playBtn) playBtn.textContent = "❚❚";
+}
                     if (dateResult.booked) {
                       showSuccessPopup(dateResult.success_message || "Your appointment has been successfully booked!");
                     }
