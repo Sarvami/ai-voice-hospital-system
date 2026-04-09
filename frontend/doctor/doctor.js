@@ -13,27 +13,36 @@ function showSection(section) {
   event.currentTarget.classList.add("active");
 }
 
-async function loadDoctor(){
-    try {
-        const doctorId = localStorage.getItem("doctor_id");
-        const res = await fetch(`${API}/doctor/dashboard?doctor_id=${doctorId}`);
-        const data = await res.json();
+async function loadDoctor() {
+  try {
+    const doctorId = localStorage.getItem("doctor_id");
+    const res  = await fetch(`${API}/doctor/dashboard?doctor_id=${doctorId}`);
+    const data = await res.json();
 
-        const table = document.getElementById("doctorTable");
-        table.innerHTML = `
-            <tr>
-                <td>${data.name}</td>
-                <td>${data.phone || '—'}</td>
-                <td>${data.email || '—'}</td>
-                <td>${data.specialization}</td>
-                <td>${data.appointments_today}</td>
-                <td>${data.total_patients}</td>
-                <td>${renderStars(data.rating)}</td>
-            </tr>
-        `;
-    } catch(e) {
-        console.log("Error loading doctor:", e);
-    }
+    document.getElementById('profileName').textContent  = data.name || '—';
+    document.getElementById('profileSpec').textContent  = data.specialization || data.department || '—';
+    document.getElementById('profilePhone').textContent = data.phone || '—';
+    document.getElementById('profileEmail').textContent = data.email || '—';
+    document.getElementById('profileDays').textContent  = data.available_days || '—';
+    document.getElementById('profileQual').textContent  = data.qualification || '—';
+    document.getElementById('profileRegion').textContent = data.region || '—';
+
+    document.getElementById('statToday').textContent    = data.appointments_today ?? '—';
+    document.getElementById('statPatients').textContent = data.total_patients ?? '—';
+
+    const rating = data.rating || 0;
+    document.getElementById('statRating').innerHTML =
+      `${Number(rating).toFixed(1)} <span style="font-size:16px; color:#f5a623;">${'★'.repeat(Math.round(rating))}${'☆'.repeat(5 - Math.round(rating))}</span>`;
+
+    const avatar = document.getElementById('profileAvatar');
+    if (avatar && data.name) avatar.innerHTML = `<span>${data.name.charAt(0).toUpperCase()}</span>`;
+
+    const idBadge = document.getElementById('profileIdBadge');
+    if (idBadge) idBadge.textContent = `ID: ${doctorId}`;
+
+  } catch(e) {
+    console.log("Error loading doctor:", e);
+  }
 }
 
 async function loadAppointments(){  // ✅ fixed: was "aasync"

@@ -27,7 +27,7 @@ async function loadAppointments() {
     table.innerHTML = "";
 
     if (!list || !list.length) {
-      table.innerHTML = `<tr><td colspan="7" class="empty-row">No appointments found.</td></tr>`;
+      table.innerHTML = `<tr><td colspan="8" class="empty-row">No appointments found.</td></tr>`;
       return;
     }
 
@@ -44,6 +44,7 @@ async function loadAppointments() {
           <td>${a.doctor || a.doctor_name || "-"}</td>
           <td>${a.doctor_phone || a.contact_phone || "-"}</td>
           <td>${a.doctor_email || a.email || "-"}</td>
+          <td>${a.region || "-"}</td>
           <td>${a.date || "-"}</td>
           <td>${a.time || "-"}</td>
           <td><span class="status-badge ${statusClass}">${status}</span></td>
