@@ -415,7 +415,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
             user_state[user_id] = "waiting_time"
             avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
-            return f"Got it, {user_data[user_id]['date']}. At what time? ({avail_hours})", {}
+            reply = f"Got it, {user_data[user_id]['date']}. At what time?"
+            return reply, {"data": {"available_hours": avail_hours}}
         else:
          return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'.", {}
 
@@ -948,8 +949,9 @@ async def set_appointment_date(request: Request):
     user_state[patient_id] = "waiting_time"
 
     avail_hours = user_data[patient_id].get("available_hours", "8:00 AM - 8:00 PM")
-    reply = f"Got it, {date}. At what time? ({avail_hours})"
+    reply = f"Got it, {date}. At what time?"
     final = gt_from_english(reply, lang)
+    final += f" ({avail_hours})"  # append AFTER translation
 
     out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
     gTTS(text=final, lang=lang).save(out)
