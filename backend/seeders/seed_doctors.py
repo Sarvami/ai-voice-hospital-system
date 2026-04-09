@@ -1,4 +1,5 @@
 import sqlite3
+import random
 
 DB_PATH = "../data/hospital.db"
 
@@ -80,12 +81,19 @@ conn = sqlite3.connect(DB_PATH)
 conn.execute("DELETE FROM doctors")
 conn.commit()
 
-# Insert fresh doctors
-for doc in doctors:
+# Insert fresh doctors with full details
+for i, doc in enumerate(doctors, 1):
+    doc_id = f"DOC{i:02d}"
+    # Generate simple email/phone
+    clean_name = doc[0].lower().replace("dr.", "").strip().replace(" ", ".")
+    email = f"{clean_name}@hospital.com"
+    phone = f"9823{random.randint(100000, 999999)}"
+    
     conn.execute("""
-        INSERT INTO doctors (name, department, qualification, experience_years, available_days)
-        VALUES (?, ?, ?, ?, ?)
-    """, doc)
+        INSERT INTO doctors (name, department, qualification, experience_years, available_days, 
+                            doc_id, email, contact_phone, password_hash, available_hours)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pbkdf2:sha256:260000$yS6v8mFz$bf8b31...', '8:00 AM - 8:00 PM')
+    """, (*doc, doc_id, email, phone))
 
 conn.commit()
 
