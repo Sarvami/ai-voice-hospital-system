@@ -962,7 +962,7 @@ def get_admin_doctors():
     rows = conn.execute(
         """SELECT doctor_id, doc_id, name, department, qualification,
                   experience_years, available_days, available_hours,
-                  email, contact_phone
+                  email, contact_phone, region
            FROM doctors ORDER BY doctor_id DESC"""
     ).fetchall()
     conn.close()
