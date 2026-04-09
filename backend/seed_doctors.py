@@ -1,6 +1,6 @@
 import sqlite3
 
-DB_PATH = "../database/hospital.db"
+conn = sqlite3.connect('data/hospital.db')
 
 doctors = [
     # Cardiology (5)
