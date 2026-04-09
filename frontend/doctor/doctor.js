@@ -299,6 +299,22 @@ async function loadRatings() {
   }
 }
 
+/* THEME */
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('doctorTheme', isLight ? 'light' : 'dark');
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = isLight ? '🌙' : '☀️';
+}
+
+(function initTheme() {
+  const saved = localStorage.getItem('doctorTheme') || 'dark';
+  const isLight = saved === 'light';
+  document.body.classList.toggle('light-theme', isLight);
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = isLight ? '🌙' : '☀️';
+})();
+
 /* INIT */
 loadDoctor();
-loadAppointments();
+loadAppointments();

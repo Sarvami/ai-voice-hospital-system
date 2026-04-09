@@ -1,7 +1,8 @@
 import os
 import uuid
 import random
-from fastapi import APIRouter, Request, JSONResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from gtts import gTTS
 from database import get_db_connection
 from models import DateRequest, RegionRequest, RateRequest

@@ -235,6 +235,22 @@ async function submitRating() {
   }
 }
 
+/* ── THEME ── */
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('patientTheme', isLight ? 'light' : 'dark');
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = isLight ? '🌙' : '☀️';
+}
+
+(function initTheme() {
+  const saved = localStorage.getItem('patientTheme') || 'dark';
+  const isLight = saved === 'light';
+  document.body.classList.toggle('light-theme', isLight);
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = isLight ? '🌙' : '☀️';
+})();
+
 /* ── Initialize everything on page load ── */
 document.addEventListener("DOMContentLoaded", () => {
   loadAppointments();
@@ -249,3 +265,4 @@ window.openRating = openRating;
 window.closeRating = closeRating;
 window.setRating = setRating;
 window.submitRating = submitRating;
+window.toggleTheme = toggleTheme;
