@@ -1001,11 +1001,32 @@ def add_doctor(req: AddDoctorRequest):
 @app.get("/doctors/by-region/{region}")
 def doctors_by_region(region: str):
     conn = get_db_connection()
-    rows = conn.execute(
-        "SELECT * FROM doctors WHERE LOWER(region)=LOWER(?)", (region,)
-    ).fetchall()
+    rows = conn.execute("SELECT * FROM doctors WHERE region = ?", (region,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+class UpdatePatientRequest(BaseModel):
+    patient_id: int
+    name: str
+    age: int
+    gender: str
+    phone: str
+    preferred_language: str
+
+@app.put("/admin/update-patient")
+def update_patient(req: UpdatePatientRequest):
+    try:
+        conn = get_db_connection()
+        conn.execute("""
+            UPDATE patients 
+            SET name=?, age=?, gender=?, phone=?, preferred_language=?
+            WHERE patient_id=?
+        """, (req.name, req.age, req.gender, req.phone, req.preferred_language, req.patient_id))
+        conn.commit()
+        conn.close()
+        return {"success": True, "message": "Patient updated successfully"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 @app.post("/set-appointment-date")
 async def set_appointment_date(request: Request):

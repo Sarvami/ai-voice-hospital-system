@@ -49,18 +49,21 @@ async function loadOverview() {
   }
 }
 
-/* ── PATIENTS ── */
+let allPatients = [];
+
 async function loadPatients() {
   const table = document.getElementById('patientsTable');
   try {
     const res  = await fetch(`${API}/admin/patients`);
     const data = await res.json();
+    allPatients = data;
     table.innerHTML = '';
     if (!data.length) {
-      table.innerHTML = `<tr><td colspan="3" class="empty-row">No patients found</td></tr>`;
+      table.innerHTML = `<tr><td colspan="8" class="empty-row">No patients found</td></tr>`;
       return;
     }
     data.forEach(p => {
+      // Ensure we use the correct keys from the backend (patient_id, name, etc)
       table.innerHTML += `
         <tr>
           <td>${p.patient_id || '—'}</td>
@@ -70,10 +73,57 @@ async function loadPatients() {
           <td>${p.phone || '—'}</td>
           <td>${p.preferred_language || '—'}</td>
           <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>
+          <td>
+            <i class="fa-solid fa-pen-to-square edit-btn" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
+          </td>
         </tr>`;
     });
   } catch(e) {
-    table.innerHTML = `<tr><td colspan="3" class="empty-row">Could not load</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8" class="empty-row">Could not load</td></tr>`;
+  }
+}
+
+function openEditModal(id) {
+  const p = allPatients.find(item => item.patient_id === id);
+  if (!p) return;
+  
+  document.getElementById('editPatientId').value = p.patient_id;
+  document.getElementById('editPatientName').value = p.name;
+  document.getElementById('editPatientAge').value = p.age;
+  document.getElementById('editPatientGender').value = p.gender || 'Male';
+  document.getElementById('editPatientPhone').value = p.phone;
+  document.getElementById('editPatientLang').value = p.preferred_language || 'en';
+  
+  document.getElementById('editPatientModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editPatientModal').classList.add('hidden');
+}
+
+async function savePatientEdit() {
+  const patient_id = document.getElementById('editPatientId').value;
+  const name = document.getElementById('editPatientName').value;
+  const age = document.getElementById('editPatientAge').value;
+  const gender = document.getElementById('editPatientGender').value;
+  const phone = document.getElementById('editPatientPhone').value;
+  const preferred_language = document.getElementById('editPatientLang').value;
+
+  try {
+    const res = await fetch(`${API}/admin/update-patient`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_id: parseInt(patient_id), name, age: parseInt(age), gender, phone, preferred_language })
+    });
+    const result = await res.json();
+    if (result.success) {
+      closeEditModal();
+      loadPatients(); // refresh data
+    } else {
+      alert("Update failed: " + result.message);
+    }
+  } catch(e) {
+    alert("Error updating patient.");
   }
 }
 
