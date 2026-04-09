@@ -90,7 +90,7 @@ function renderDoctors(list) {
   const table = document.getElementById('doctorsTable');
   table.innerHTML = '';
   if (!list.length) {
-    table.innerHTML = `<tr><td colspan="9" class="empty-row">No doctors found</td></tr>`;
+    table.innerHTML = `<tr><td colspan="10" class="empty-row">No doctors found</td></tr>`;
     return;
   }
   list.forEach(d => {
@@ -111,6 +111,7 @@ function renderDoctors(list) {
         <td>${d.experience_years ?? '—'} yrs</td>
         <td>${d.available_days || '—'}</td>
         <td>${hoursBadge}</td>
+        <td>${d.region || '—'}</td>
       </tr>`;
   });
 }
@@ -197,7 +198,7 @@ function renderAppointments(list) {
   const table = document.getElementById('appointmentsTable');
   table.innerHTML = '';
   if (!list.length) {
-    table.innerHTML = `<tr><td colspan="7" class="empty-row">No appointments found</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8" class="empty-row">No appointments found</td></tr>`;
     return;
   }
   list.forEach(a => {
@@ -208,6 +209,7 @@ function renderAppointments(list) {
         <td>${a.patient || a.patient_name || '—'}</td>
         <td>${a.doctor  || a.doctor_name  || '—'}</td>
         <td>${a.department || a.specialization || '—'}</td>
+        <td>${a.region || '—'}</td>
         <td>${a.date || '—'}</td>
         <td>${a.time || '—'}</td>
         <td><span class="badge badge-${status.toLowerCase()}">${status}</span></td>
