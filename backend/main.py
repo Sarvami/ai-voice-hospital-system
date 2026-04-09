@@ -326,10 +326,19 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id]["available_doctors"] = doctors
             user_state[user_id] = "waiting_doctor"
             
-            # Format names with ratings for the voice response
-            doctor_names = [f"{d['name'].replace('Dr.', 'Doctor')} (Rating {d['rating']})" for d in doctors]
-            
-            reply = f"{reply_prefix}: {', '.join(doctor_names)}. Any preference?"
+            if len(doctors) == 1:
+                d = doctors[0]
+                name = d['name'].replace('Dr.', 'Doctor')
+                rating = d['rating']
+                if "nearby" in reply_prefix:
+                    reply = f"{name} (Rating {rating}) is available nearby. Book now?"
+                else:
+                    reply = f"{name} (Rating {rating}) is available. Book now, or see nearby doctors?"
+            else:
+                # Format names with ratings for the voice response
+                doctor_names = [f"{d['name'].replace('Dr.', 'Doctor')} (Rating {d['rating']})" for d in doctors]
+                reply = f"{reply_prefix}: {', '.join(doctor_names)}. Any preference?"
+                
             return reply, {"intent": "select_doctor", "data": {"doctors": doctors}}
 
         return "Sorry, I didn't catch that. Please describe your problem.", {}
@@ -338,15 +347,28 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         available = user_data[user_id].get("available_doctors", []) # List of dicts: [{"name":..., "rating":...}]
         chosen = None
         
-        # Exact/Simple match
-        for doc_obj in available:
-            doc_name = doc_obj["name"]
-            parts = doc_name.lower().replace("dr.", "").replace("dr", "").strip().split()
-            for part in parts:
-                if part in text.lower():
-                    chosen = doc_name
-                    break
-            if chosen: break
+        # Scenario: User wants to see neighboring areas
+        if any(w in text.lower() for w in ["nearby", "other area", "neighbor", "neighbour", "next area"]):
+            matched_dept = user_data[user_id].get("dept")
+            all_nearby = get_doctors_by_department(matched_dept, None)
+            user_data[user_id]["available_doctors"] = all_nearby
+            doc_names = [f"{d['name'].replace('Dr.', 'Doctor')} (Rating {d['rating']})" for d in all_nearby]
+            return f"Understood. Here are {matched_dept} specialists from nearby areas: {', '.join(doc_names)}. Any preference?", {"intent": "select_doctor", "data": {"doctors": all_nearby}}
+
+        # Scenario: Confirmation (for single-doctor list)
+        if len(available) == 1 and any(w in text.lower() for w in ["yes", "book", "confirm", "okay", "sure", "that's fine"]):
+            chosen = available[0]["name"]
+
+        if not chosen:
+            # Exact/Simple match
+            for doc_obj in available:
+                doc_name = doc_obj["name"]
+                parts = doc_name.lower().replace("dr.", "").replace("dr", "").strip().split()
+                for part in parts:
+                    if part in text.lower():
+                        chosen = doc_name
+                        break
+                if chosen: break
 
         # Fuzzy match
         if not chosen:
@@ -362,7 +384,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
         if not chosen:
             names_only = [d["name"] for d in available]
-            return f"Sorry, I didn't catch that. Available doctors are: {', '.join(names_only)}. Please say a name.", {}
+            return f"Sorry, I didn't catch that. Available doctors are: {', '.join(names_only)}. Please say a name or ask for nearby areas.", {}
 
         conn = get_db_connection()
         doctor_row = conn.execute(
@@ -385,7 +407,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         user_state[user_id] = "waiting_date"
 
         # Mention special hours to the patient upfront
-        base_reply = f"Great, {chosen}. What date would you like?"
+        base_reply = f"Great, {chosen}. What date would you like? Note that the doctor is available {avail_hours}."
         return base_reply, {
         "intent": "ask_date",
         "data": {"doctor": chosen, "available_hours": avail_hours, "doctor_id": user_data[user_id]["doctor_id"]}
@@ -453,7 +475,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
             user_state[user_id] = "waiting_time"
             avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
-            reply = f"Got it, {user_data[user_id]['date']}. At what time?"
+            reply = f"Got it, {user_data[user_id]['date']}. At what time? Note that {user_data[user_id]['doctor']} is available {avail_hours}."
             return reply, {"data": {"available_hours": avail_hours}}
         else:
          return "Sorry, I didn't catch the date. Please say just the date, like 'April 10' or 'tomorrow'.", {}

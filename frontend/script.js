@@ -226,16 +226,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const progress = document.getElementById("progress");
   const timeText = document.getElementById("time");
 
-  let mediaRecorder;
-  let audioChunks = [];
-  let pendingIntent = null;
-  let pendingDoctorId = null;
-  let recordingTimeout = null;
-
   if (recordBtn) {
+    let maxTimer = null;
+
     recordBtn.addEventListener("click", async () => {
+      // Toggle logic: If already recording, stop it
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        return;
+      }
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // --- Silence Detection Setup ---
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
         mediaRecorder.start();
@@ -243,22 +255,50 @@ document.addEventListener("DOMContentLoaded", () => {
         if (statusText) statusText.innerText = "🎙️ Listening... Speak now!";
         recordBtn.classList.add("recording");
 
-        // Clear previous timeout if exists
-        if (recordingTimeout) clearTimeout(recordingTimeout);
+        let lastSpeakTime = Date.now();
 
-        recordingTimeout = setTimeout(() => {
-          if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-            stream.getTracks().forEach(t => t.stop());
-            if (statusText) statusText.innerText = "⏳ Processing your request...";
-            recordBtn.classList.remove("recording");
+        const checkSilence = () => {
+          if (!mediaRecorder || mediaRecorder.state !== "recording") {
+            return;
           }
-        }, 5000);
+          
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for(let i=0; i<bufferLength; i++) sum += dataArray[i];
+          let average = sum / bufferLength;
+
+          // Threshold for "speaking" (tweak as needed)
+          if (average > 10) {
+            lastSpeakTime = Date.now();
+          }
+
+          // If silent for more than 1.5 seconds, stop
+          if (Date.now() - lastSpeakTime > 1500) {
+            console.log("Stopping due to silence...");
+            mediaRecorder.stop();
+          } else {
+            requestAnimationFrame(checkSilence);
+          }
+        };
+        requestAnimationFrame(checkSilence);
+
+        // Absolute maximum timeout (e.g., 20 seconds)
+        maxTimer = setTimeout(() => {
+          if (mediaRecorder && mediaRecorder.state === "recording") {
+            console.log("Stopping due to max duration...");
+            mediaRecorder.stop();
+          }
+        }, 20000);
 
         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
         mediaRecorder.onstop = async () => {
-          if (recordingTimeout) clearTimeout(recordingTimeout);
+          if (maxTimer) clearTimeout(maxTimer);
+          stream.getTracks().forEach(t => t.stop());
+          audioContext.close();
+          
+          if (statusText) statusText.innerText = "⏳ Processing your request...";
+          recordBtn.classList.remove("recording");
 
           const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
           const formData = new FormData();
@@ -267,10 +307,10 @@ document.addEventListener("DOMContentLoaded", () => {
           formData.append("patient_id", localStorage.getItem("patient_id"));
 
           showLoader();
-
           try {
             const res = await fetch(`${BACKEND}/process-audio`, { method: "POST", body: formData });
             hideLoader();
+
 
             if (!res.ok) {
               if (statusText) statusText.innerText = "❌ Backend error";

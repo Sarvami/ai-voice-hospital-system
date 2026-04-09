@@ -253,6 +253,8 @@ function toggleTheme() {
     } else {
         document.body.classList.add('dark-theme');
         document.body.classList.remove('light-theme');
+        const btn = document.getElementById('themeToggleBtn');
+        if (btn) btn.textContent = '☀️';
     }
 })();
 
