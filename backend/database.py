@@ -28,16 +28,21 @@ Base = declarative_base()
 class Doctor(Base):
     __tablename__ = "doctors"
     
-    id = Column(Integer, primary_key=True, index=True)
+    doctor_id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     department = Column(String, nullable=False)
     qualification = Column(String)
     experience_years = Column(Integer)
     available_days = Column(String)
+    doc_id = Column(String, unique=True)
+    password_hash = Column(String)
+    contact_phone = Column(String)
+    email = Column(String)
+    region = Column(String)
     appointments = relationship("Appointment", back_populates="doctor")
     
     def __repr__(self):
-        return f"<Doctor(id={self.id}, name={self.name}, department={self.department})>"
+        return f"<Doctor(doctor_id={self.doctor_id}, name={self.name}, department={self.department})>"
 
 class Patient(Base):
     __tablename__ = "patients"
@@ -59,9 +64,9 @@ class Patient(Base):
 class Appointment(Base):
     __tablename__ = "appointments"
     
-    id = Column(Integer, primary_key=True, index=True)
+    appointment_id = Column(Integer, primary_key=True, index=True)
     patient_id = Column(Integer, ForeignKey("patients.patient_id"))
-    doctor_id = Column(Integer, ForeignKey("doctors.id"))
+    doctor_id = Column(Integer, ForeignKey("doctors.doctor_id"))
     appointment_date = Column(String, nullable=False)
     appointment_time = Column(String, nullable=False)
     status = Column(String, default="Booked")
@@ -74,7 +79,7 @@ class Appointment(Base):
     doctor = relationship("Doctor", back_populates="appointments")
     
     def __repr__(self):
-        return f"<Appointment(id={self.id}, patient_id={self.patient_id}, doctor_id={self.doctor_id})>"
+        return f"<Appointment(appointment_id={self.appointment_id}, patient_id={self.patient_id}, doctor_id={self.doctor_id})>"
 
 # Create tables
 Base.metadata.create_all(bind=engine)

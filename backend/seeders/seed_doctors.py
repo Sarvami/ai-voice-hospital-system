@@ -1,6 +1,6 @@
 import sqlite3
 
-DB_PATH = "../database/hospital.db"
+DB_PATH = "../data/hospital.db"
 
 doctors = [
     # Cardiology (5)
@@ -83,8 +83,8 @@ conn.commit()
 # Insert fresh doctors
 for doc in doctors:
     conn.execute("""
-        INSERT INTO doctors (name, department, qualification, experience_years, available_days, is_active)
-        VALUES (?, ?, ?, ?, ?, 1)
+        INSERT INTO doctors (name, department, qualification, experience_years, available_days)
+        VALUES (?, ?, ?, ?, ?)
     """, doc)
 
 conn.commit()

@@ -3,78 +3,78 @@ document.addEventListener("DOMContentLoaded", () => {
   const BACKEND = "http://127.0.0.1:8000";
 
   const UI_TEXT = {
-  en: {
-    welcome: "Hello! I'm your AI hospital assistant. Tap the microphone and tell me how I can help you today.",
-    langSwitched: lang => `Language switched to ${lang}`,
-    selectDate: "Please select your preferred appointment date from the calendar",
-    dateCancelled: "Date selection was cancelled.",
-    selectRegion: "Please select your preferred region from the list",
-    regionCancelled: "Region selection was cancelled.",
-    regionSet: region => `Region set to: ${region}`,
-    dateSelected: date => `Selected date: ${date}`,
-    regionSelected: region => `Selected region: ${region}`,
-    dateError: "Sorry, there was an error setting the date.",
-    regionError: "Sorry, there was an error setting the region.",
-    serverError: "Sorry, there was an error processing your request.",
-    connectError: "Sorry, I'm having trouble connecting to the server.",
-  },
-  hi: {
-    welcome: "नमस्ते! मैं आपका AI अस्पताल सहायक हूँ। माइक्रोफोन दबाएं और बताएं मैं आपकी कैसे मदद कर सकता हूँ।",
-    langSwitched: lang => `भाषा बदली: ${lang}`,
-    selectDate: "कृपया कैलेंडर से अपनी पसंदीदा तारीख चुनें",
-    dateCancelled: "तारीख चयन रद्द किया गया।",
-    selectRegion: "कृपया सूची से अपना क्षेत्र चुनें",
-    regionCancelled: "क्षेत्र चयन रद्द किया गया।",
-    regionSet: region => `क्षेत्र सेट हुआ: ${region}`,
-    dateSelected: date => `चुनी गई तारीख: ${date}`,
-    regionSelected: region => `चुना गया क्षेत्र: ${region}`,
-    dateError: "क्षमा करें, तारीख सेट करने में त्रुटि हुई।",
-    regionError: "क्षमा करें, क्षेत्र सेट करने में त्रुटि हुई।",
-    serverError: "क्षमा करें, आपका अनुरोध प्रोसेस करने में त्रुटि हुई।",
-    connectError: "क्षमा करें, सर्वर से कनेक्ट करने में समस्या है।",
-  },
-  mr: {
-    welcome: "नमस्कार! मी तुमचा AI रुग्णालय सहाय्यक आहे। मायक्रोफोन दाबा आणि सांगा मी तुम्हाला कशी मदत करू शकतो।",
-    langSwitched: lang => `भाषा बदलली: ${lang}`,
-    selectDate: "कृपया कॅलेंडरमधून तुमची पसंतीची तारीख निवडा",
-    dateCancelled: "तारीख निवड रद्द केली.",
-    selectRegion: "कृपया यादीतून तुमचा प्रदेश निवडा",
-    regionCancelled: "प्रदेश निवड रद्द केली.",
-    regionSet: region => `प्रदेश सेट झाला: ${region}`,
-    dateSelected: date => `निवडलेली तारीख: ${date}`,
-    regionSelected: region => `निवडलेला प्रदेश: ${region}`,
-    dateError: "माफ करा, तारीख सेट करताना त्रुटी आली.",
-    regionError: "माफ करा, प्रदेश सेट करताना त्रुटी आली.",
-    serverError: "माफ करा, तुमची विनंती प्रक्रिया करताना त्रुटी आली.",
-    connectError: "माफ करा, सर्व्हरशी कनेक्ट करण्यात समस्या आहे.",
-  }
-};
+    en: {
+      welcome: "Hello! I'm your AI hospital assistant. Tap the microphone and tell me how I can help you today.",
+      langSwitched: lang => `Language switched to ${lang}`,
+      selectDate: "Please select your preferred appointment date from the calendar",
+      dateCancelled: "Date selection was cancelled.",
+      selectRegion: "Please select your preferred region from the list",
+      regionCancelled: "Region selection was cancelled.",
+      regionSet: region => `Region set to: ${region}`,
+      dateSelected: date => `Selected date: ${date}`,
+      regionSelected: region => `Selected region: ${region}`,
+      dateError: "Sorry, there was an error setting the date.",
+      regionError: "Sorry, there was an error setting the region.",
+      serverError: "Sorry, there was an error processing your request.",
+      connectError: "Sorry, I'm having trouble connecting to the server.",
+    },
+    hi: {
+      welcome: "नमस्ते! मैं आपका AI अस्पताल सहायक हूँ। माइक्रोफोन दबाएं और बताएं मैं आपकी कैसे मदद कर सकता हूँ।",
+      langSwitched: lang => `भाषा बदली: ${lang}`,
+      selectDate: "कृपया कैलेंडर से अपनी पसंदीदा तारीख चुनें",
+      dateCancelled: "तारीख चयन रद्द किया गया।",
+      selectRegion: "कृपया सूची से अपना क्षेत्र चुनें",
+      regionCancelled: "क्षेत्र चयन रद्द किया गया।",
+      regionSet: region => `क्षेत्र सेट हुआ: ${region}`,
+      dateSelected: date => `चुनी गई तारीख: ${date}`,
+      regionSelected: region => `चुना गया क्षेत्र: ${region}`,
+      dateError: "क्षमा करें, तारीख सेट करने में त्रुटि हुई।",
+      regionError: "क्षमा करें, क्षेत्र सेट करने में त्रुटि हुई।",
+      serverError: "क्षमा करें, आपका अनुरोध प्रोसेस करने में त्रुटि हुई।",
+      connectError: "क्षमा करें, सर्वर से कनेक्ट करने में समस्या है।",
+    },
+    mr: {
+      welcome: "नमस्कार! मी तुमचा AI रुग्णालय सहाय्यक आहे। मायक्रोफोन दाबा आणि सांगा मी तुम्हाला कशी मदत करू शकतो।",
+      langSwitched: lang => `भाषा बदलली: ${lang}`,
+      selectDate: "कृपया कॅलेंडरमधून तुमची पसंतीची तारीख निवडा",
+      dateCancelled: "तारीख निवड रद्द केली.",
+      selectRegion: "कृपया यादीतून तुमचा प्रदेश निवडा",
+      regionCancelled: "प्रदेश निवड रद्द केली.",
+      regionSet: region => `प्रदेश सेट झाला: ${region}`,
+      dateSelected: date => `निवडलेली तारीख: ${date}`,
+      regionSelected: region => `निवडलेला प्रदेश: ${region}`,
+      dateError: "माफ करा, तारीख सेट करताना त्रुटी आली.",
+      regionError: "माफ करा, प्रदेश सेट करताना त्रुटी आली.",
+      serverError: "माफ करा, तुमची विनंती प्रक्रिया करताना त्रुटी आली.",
+      connectError: "माफ करा, सर्व्हरशी कनेक्ट करण्यात समस्या आहे.",
+    }
+  };
 
-function t(key, ...args) {
-  const lang = selectedLang || 'en';
-  const entry = (UI_TEXT[lang] || UI_TEXT['en'])[key];
-  return typeof entry === 'function' ? entry(...args) : entry;
-}
+  function t(key, ...args) {
+    const lang = selectedLang || 'en';
+    const entry = (UI_TEXT[lang] || UI_TEXT['en'])[key];
+    return typeof entry === 'function' ? entry(...args) : entry;
+  }
 
   /* ── PROFILE SECTION ── */
-  const nameEl  = document.getElementById("name");
+  const nameEl = document.getElementById("name");
   const phoneEl = document.getElementById("phone-display");
-  const langEl  = document.getElementById("language");
-  if (nameEl)  nameEl.innerText  = localStorage.getItem("name")  || "Unknown";
+  const langEl = document.getElementById("language");
+  if (nameEl) nameEl.innerText = localStorage.getItem("name") || "Unknown";
   if (phoneEl) phoneEl.innerText = localStorage.getItem("phone") || "Not available";
-  if (langEl)  langEl.innerText  = localStorage.getItem("lang")  || "Not set";
+  if (langEl) langEl.innerText = localStorage.getItem("lang") || "Not set";
 
   /* ── REGISTER ── */
   const registerBtn = document.getElementById("registerBtn");
   if (registerBtn) {
     registerBtn.addEventListener("click", async () => {
-      const name     = document.getElementById("reg-name")?.value.trim();
-      const age      = document.getElementById("reg-age")?.value.trim();
-      const gender   = document.getElementById("reg-gender")?.value;
-      const phone    = document.getElementById("reg-phone")?.value.trim();
+      const name = document.getElementById("reg-name")?.value.trim();
+      const age = document.getElementById("reg-age")?.value.trim();
+      const gender = document.getElementById("reg-gender")?.value;
+      const phone = document.getElementById("reg-phone")?.value.trim();
       const password = document.getElementById("reg-password")?.value.trim();
       const language = document.getElementById("reg-language")?.value;
-      const msg      = document.getElementById("reg-msg");
+      const msg = document.getElementById("reg-msg");
 
       if (!name || !age || !gender || !phone || !password) {
         msg.className = "msg error";
@@ -95,11 +95,11 @@ function t(key, ...args) {
         formData.append("password", password);
         formData.append("language", language);
 
-        const res  = await fetch(`${BACKEND}/register`, { method: "POST", body: formData });
+        const res = await fetch(`${BACKEND}/register`, { method: "POST", body: formData });
         const json = await res.json();
         alert("Backend returned: " + JSON.stringify(json));
 
-        if (data.error) { msg.className = "msg error"; msg.innerText = data.error; return; }
+        if (!json.success) { msg.className = "msg error"; msg.innerText = json.message || "Registration failed"; return; }
         msg.className = "msg success";
         msg.innerText = "Account created! Redirecting to login...";
         setTimeout(() => window.location.href = "login.html", 1500);
@@ -162,48 +162,48 @@ function t(key, ...args) {
     if (!captionContainer) return;
     captionContainer.innerHTML = '';
     captionHistory.forEach(msg => {
-  const div = document.createElement('div');
-  div.className = msg.type === 'user' ? 'caption-user' : 'caption-ai';
-  div.innerHTML = `<span class="caption-time">${msg.time}</span> ${escapeHtml(msg.text)}`;
+      const div = document.createElement('div');
+      div.className = msg.type === 'user' ? 'caption-user' : 'caption-ai';
+      div.innerHTML = `<span class="caption-time">${msg.time}</span> ${escapeHtml(msg.text)}`;
 
-  // Add translate button only for AI captions and non-English languages
-  if (msg.type === 'ai' && selectedLang !== 'en') {
-    const btn = document.createElement('button');
-    btn.className = 'translate-btn';
-    btn.textContent = 'See translation';
-    btn.onclick = async () => {
-      btn.textContent = 'Translating...';
-      btn.disabled = true;
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 200,
-            messages: [{
-              role: 'user',
-              content: `Translate this to English. Reply with ONLY the translation, nothing else: "${msg.text}"`
-            }]
-          })
-        });
-        const data = await res.json();
-        const translation = data.content?.[0]?.text || 'Could not translate';
-        const transDiv = document.createElement('div');
-        transDiv.className = 'translation-text';
-        transDiv.textContent = '🇬🇧 ' + translation;
-        div.appendChild(transDiv);
-        btn.remove();
-      } catch(e) {
-  btn.textContent = 'Translation failed';
-  btn.disabled = false;  // ← add this
-}
-    };
-    div.appendChild(btn);
-  }
+      // Add translate button only for AI captions and non-English languages
+      if (msg.type === 'ai' && selectedLang !== 'en') {
+        const btn = document.createElement('button');
+        btn.className = 'translate-btn';
+        btn.textContent = 'See translation';
+        btn.onclick = async () => {
+          btn.textContent = 'Translating...';
+          btn.disabled = true;
+          try {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 200,
+                messages: [{
+                  role: 'user',
+                  content: `Translate this to English. Reply with ONLY the translation, nothing else: "${msg.text}"`
+                }]
+              })
+            });
+            const data = await res.json();
+            const translation = data.content?.[0]?.text || 'Could not translate';
+            const transDiv = document.createElement('div');
+            transDiv.className = 'translation-text';
+            transDiv.textContent = '🇬🇧 ' + translation;
+            div.appendChild(transDiv);
+            btn.remove();
+          } catch (e) {
+            btn.textContent = 'Translation failed';
+            btn.disabled = false;  // ← add this
+          }
+        };
+        div.appendChild(btn);
+      }
 
-  captionContainer.appendChild(div);
-});
+      captionContainer.appendChild(div);
+    });
     // Auto-scroll to bottom
     if (subtitleBar) subtitleBar.scrollTop = subtitleBar.scrollHeight;
   }
@@ -211,7 +211,7 @@ function t(key, ...args) {
   // Helper to escape HTML
   function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
+    return str.replace(/[&<>]/g, function (m) {
       if (m === '&') return '&amp;';
       if (m === '<') return '&lt;';
       if (m === '>') return '&gt;';
@@ -220,15 +220,15 @@ function t(key, ...args) {
   }
 
   /* ── VOICE ASSISTANT ── */
-  const recordBtn   = document.getElementById("recordBtn");
-  const statusText  = document.getElementById("status");
+  const recordBtn = document.getElementById("recordBtn");
+  const statusText = document.getElementById("status");
   const audioPlayer = document.getElementById("audioPlayer");
-  const playBtn     = document.getElementById("playBtn");
-  const progress    = document.getElementById("progress");
-  const timeText    = document.getElementById("time");
-  
+  const playBtn = document.getElementById("playBtn");
+  const progress = document.getElementById("progress");
+  const timeText = document.getElementById("time");
+
   let mediaRecorder;
-  let audioChunks   = [];
+  let audioChunks = [];
   let pendingIntent = null;
   let pendingDoctorId = null;
   let recordingTimeout = null;
@@ -238,7 +238,7 @@ function t(key, ...args) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
-        audioChunks   = [];
+        audioChunks = [];
         mediaRecorder.start();
 
         if (statusText) statusText.innerText = "🎙️ Listening... Speak now!";
@@ -246,7 +246,7 @@ function t(key, ...args) {
 
         // Clear previous timeout if exists
         if (recordingTimeout) clearTimeout(recordingTimeout);
-        
+
         recordingTimeout = setTimeout(() => {
           if (mediaRecorder && mediaRecorder.state === "recording") {
             mediaRecorder.stop();
@@ -260,9 +260,9 @@ function t(key, ...args) {
 
         mediaRecorder.onstop = async () => {
           if (recordingTimeout) clearTimeout(recordingTimeout);
-          
+
           const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-          const formData  = new FormData();
+          const formData = new FormData();
           formData.append("audio", audioBlob, "recording.wav");
           formData.append("lang", selectedLang);
           formData.append("patient_id", localStorage.getItem("patient_id"));
@@ -283,42 +283,42 @@ function t(key, ...args) {
 
             if (contentType.includes("application/json")) {
               const json = await res.json();
-              
+
               // DEBUG: Log the response
               console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
               console.log("BACKEND RESPONSE:", json);
               console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-          
 
-/* Show AI reply in THEIR language (GREEN) */
-const aiText = json.reply_in_lang || json.text || json.subtitle || json.reply;
-if (aiText) {
-  addCaptionToHistory(aiText, 'ai');
-}
+
+              /* Show AI reply in THEIR language (GREEN) */
+              const aiText = json.reply_in_lang || json.text || json.subtitle || json.reply;
+              if (aiText) {
+                addCaptionToHistory(aiText, 'ai');
+              }
 
               /* Handle date request */
               if (aiText && (
-  aiText.toLowerCase().includes("what date") ||
-  aiText.toLowerCase().includes("which date") ||
-  aiText.toLowerCase().includes("pick a date") ||
-  aiText.toLowerCase().includes("select date") ||
-  aiText.includes("तारीख") ||
-  aiText.includes("दिनांक") ||
-  aiText.includes("दिवस") ||
-  json.intent === "ask_date"
-)){
+                aiText.toLowerCase().includes("what date") ||
+                aiText.toLowerCase().includes("which date") ||
+                aiText.toLowerCase().includes("pick a date") ||
+                aiText.toLowerCase().includes("select date") ||
+                aiText.includes("तारीख") ||
+                aiText.includes("दिनांक") ||
+                aiText.includes("दिवस") ||
+                json.intent === "ask_date"
+              )) {
                 if (json.audio_url && audioPlayer) {
-        audioPlayer.src = json.audio_url;
-        audioPlayer.load();
-        audioPlayer.play();
-        if (playBtn) playBtn.textContent = "❚❚";
-    }
+                  audioPlayer.src = json.audio_url;
+                  audioPlayer.load();
+                  audioPlayer.play();
+                  if (playBtn) playBtn.textContent = "❚❚";
+                }
                 pendingIntent = "date";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
                 addCaptionToHistory(t('selectDate'), 'ai');
-                
+
                 const selectedDate = await openCalendarPopup();
                 if (selectedDate) {
                   addCaptionToHistory(t('dateSelected', selectedDate), 'user');
@@ -339,18 +339,18 @@ if (aiText) {
                       addCaptionToHistory(dateResult.text, 'ai');
                     }
                     if (dateResult.audio_url && audioPlayer) {
-    const fullUrl = dateResult.audio_url.startsWith("http") 
-        ? dateResult.audio_url 
-        : `http://127.0.0.1:8000${dateResult.audio_url}`;
-    audioPlayer.src = fullUrl;
-    audioPlayer.load();
-    audioPlayer.play();
-    if (playBtn) playBtn.textContent = "❚❚";
-}
+                      const fullUrl = dateResult.audio_url.startsWith("http")
+                        ? dateResult.audio_url
+                        : `http://127.0.0.1:8000${dateResult.audio_url}`;
+                      audioPlayer.src = fullUrl;
+                      audioPlayer.load();
+                      audioPlayer.play();
+                      if (playBtn) playBtn.textContent = "❚❚";
+                    }
                     if (dateResult.booked) {
                       showSuccessPopup(dateResult.success_message || "Your appointment has been successfully booked!");
                     }
-                  } catch(e) { 
+                  } catch (e) {
                     console.error("Date error:", e);
                     addCaptionToHistory(t('serverError'), 'ai');
                   }
@@ -364,19 +364,19 @@ if (aiText) {
 
               /* Handle region request */
               if (aiText && (
-  aiText.toLowerCase().includes("region") ||
-  aiText.toLowerCase().includes("location") ||
-  aiText.toLowerCase().includes("area") ||
-  aiText.includes("क्षेत्र") ||
-  aiText.includes("इलाका") ||
-  aiText.includes("प्रदेश") ||
-  json.intent === "ask_region"
-)) {
+                aiText.toLowerCase().includes("region") ||
+                aiText.toLowerCase().includes("location") ||
+                aiText.toLowerCase().includes("area") ||
+                aiText.includes("क्षेत्र") ||
+                aiText.includes("इलाका") ||
+                aiText.includes("प्रदेश") ||
+                json.intent === "ask_region"
+              )) {
                 pendingIntent = "region";
                 if (json.doctor_id) pendingDoctorId = json.doctor_id;
 
                 addCaptionToHistory(t('selectRegion'), 'ai');
-                
+
                 const selectedRegion = await openRegionPopup();
                 if (selectedRegion) {
                   addCaptionToHistory(t('regionSelected', selectedRegion), 'user');
@@ -405,7 +405,7 @@ if (aiText) {
                     if (regResult.booked) {
                       showSuccessPopup(regResult.success_message || "Your appointment has been successfully booked!");
                     }
-                  } catch(e) { 
+                  } catch (e) {
                     console.error("Region error:", e);
                     addCaptionToHistory(t('dateError'), 'ai');
                   }
@@ -463,12 +463,12 @@ if (aiText) {
   /* ── AUDIO PLAYER ── */
   if (audioPlayer && playBtn) {
     playBtn.addEventListener("click", () => {
-      if (audioPlayer.paused) { 
-        audioPlayer.play(); 
-        playBtn.textContent = "❚❚"; 
-      } else { 
-        audioPlayer.pause(); 
-        playBtn.textContent = "▶"; 
+      if (audioPlayer.paused) {
+        audioPlayer.play();
+        playBtn.textContent = "❚❚";
+      } else {
+        audioPlayer.pause();
+        playBtn.textContent = "▶";
       }
     });
 
@@ -490,7 +490,7 @@ if (aiText) {
   }
 
   /* ── PROFILE DROPDOWN ── */
-  const profileIcon     = document.getElementById("profileIcon");
+  const profileIcon = document.getElementById("profileIcon");
   const profileDropdown = document.getElementById("profileDropdown");
 
   if (profileIcon && profileDropdown) {
@@ -508,19 +508,19 @@ if (aiText) {
   /* ── UPDATE PROFILE INFO ── */
   function updateProfileInfo() {
     const patient = JSON.parse(localStorage.getItem("patient") || "{}");
-    const name    = localStorage.getItem("name") || patient.name || "";
+    const name = localStorage.getItem("name") || patient.name || "";
 
-    const profileIconEl  = document.getElementById("profileIcon");
+    const profileIconEl = document.getElementById("profileIcon");
     const dropdownAvatar = document.getElementById("dropdownAvatar");
-    const dropdownName   = document.getElementById("dropdownName");
-    const dropdownEmail  = document.getElementById("dropdownEmail");
+    const dropdownName = document.getElementById("dropdownName");
+    const dropdownEmail = document.getElementById("dropdownEmail");
 
     if (name) {
       const initial = name.charAt(0).toUpperCase();
-      const gender  = (patient.gender || "").toLowerCase();
+      const gender = (patient.gender || "").toLowerCase();
       let avatar = "👤";
       let gradient = "linear-gradient(135deg, #4FC3F7, #7C4DFF)";
-      
+
       if (gender === "female") {
         avatar = "👩";
         gradient = "linear-gradient(135deg, #FF8E8E, #FF6B6B)";
@@ -539,10 +539,10 @@ if (aiText) {
         dropdownAvatar.textContent = avatar;
         dropdownAvatar.style.background = gradient;
       }
-      if (dropdownName)   dropdownName.textContent = name;
-      if (dropdownEmail)  dropdownEmail.textContent = localStorage.getItem("phone") || "No phone number";
+      if (dropdownName) dropdownName.textContent = name;
+      if (dropdownEmail) dropdownEmail.textContent = localStorage.getItem("phone") || "No phone number";
     } else {
-      if (dropdownName)  dropdownName.textContent = "Guest User";
+      if (dropdownName) dropdownName.textContent = "Guest User";
       if (dropdownEmail) dropdownEmail.textContent = "Not signed in";
     }
   }
@@ -601,7 +601,7 @@ function showSuccessPopup(msg) {
   if (successMsg && msg) successMsg.textContent = msg;
   const popup = document.getElementById("successPopup");
   if (popup) popup.classList.add("show");
-  
+
   // Auto-hide after 3 seconds
   setTimeout(() => {
     closeSuccessPopup();
@@ -613,7 +613,7 @@ function closeSuccessPopup() {
 }
 
 /* ── CALENDAR POPUP ── */
-let calPopupDate    = new Date();
+let calPopupDate = new Date();
 let calPopupResolve = null;
 
 function openCalendarPopup() {
@@ -637,10 +637,10 @@ function calChangeMonth(dir) {
 }
 
 function renderCalPopup() {
-  const year  = calPopupDate.getFullYear();
+  const year = calPopupDate.getFullYear();
   const month = calPopupDate.getMonth();
-  const today = new Date(); 
-  today.setHours(0,0,0,0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   const labelEl = document.getElementById("calPopupLabel");
   if (labelEl) {
@@ -651,14 +651,14 @@ function renderCalPopup() {
   if (!grid) return;
   grid.innerHTML = "";
 
-  ["Su","Mo","Tu","We","Th","Fr","Sa"].forEach(d => {
+  ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].forEach(d => {
     const h = document.createElement("div");
-    h.className = "ch"; 
-    h.textContent = d; 
+    h.className = "ch";
+    h.textContent = d;
     grid.appendChild(h);
   });
 
-  const firstDay    = new Date(year, month, 1).getDay();
+  const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   for (let i = 0; i < firstDay; i++) {
@@ -668,12 +668,12 @@ function renderCalPopup() {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const cell     = document.createElement("div");
+    const cell = document.createElement("div");
     cell.className = "cd";
     cell.textContent = d;
 
     const thisDate = new Date(year, month, d);
-    const dateStr  = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
     if (thisDate.getTime() === today.getTime()) cell.classList.add("today");
     if (thisDate < today) cell.classList.add("past");
@@ -720,9 +720,9 @@ if (!savedRegion) {
 function confirmRegion() {
   const selectEl = document.getElementById("regionSelect");
   const val = selectEl ? selectEl.value : "";
-  if (!val) { 
-    alert("Please select a region."); 
-    return; 
+  if (!val) {
+    alert("Please select a region.");
+    return;
   }
   localStorage.setItem("selected_region", val); // ← ADD THIS
   closeRegionPopup();
