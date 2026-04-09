@@ -55,6 +55,7 @@ class Patient(Base):
     phone = Column(String, unique=True, index=True)
     preferred_language = Column(String, default="en")
     password_hash = Column(String, nullable=False)
+    region = Column(String) # Current selected region
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     appointments = relationship("Appointment", back_populates="patient")

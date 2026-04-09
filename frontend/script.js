@@ -595,6 +595,44 @@ function hideLoader() {
   if (loader) loader.classList.remove("show");
 }
 
+/* ── REGION SELECTOR ── */
+async function updateRegion(region) {
+  if (!region) return;
+  const patientId = localStorage.getItem('patient_id') || 'user1';
+  const lang = localStorage.getItem('lang') || 'en';
+
+  try {
+    const res = await fetch(`${BACKEND}/set-region`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_id: patientId, region: region, lang: lang })
+    });
+    const data = await res.json();
+    localStorage.setItem('region', region);
+    
+    // Sync the selector UI if it exists
+    const selector = document.getElementById('regionSelector');
+    if (selector) selector.value = region;
+
+    addCaptionToHistory(data.text, 'ai');
+    
+    // Play the audio confirmation
+    if (data.audio_url) {
+      const player = document.getElementById("audioPlayer");
+      player.src = data.audio_url;
+      player.play();
+    }
+  } catch (e) {
+    console.error("Error setting region:", e);
+  }
+}
+
+// Initialize region on load if available
+const initialRegion = localStorage.getItem('region');
+if (initialRegion) {
+  setTimeout(() => updateRegion(initialRegion), 1000);
+}
+
 /* ── SUCCESS POPUP ── */
 function showSuccessPopup(msg) {
   const successMsg = document.getElementById("successMsg");
@@ -706,16 +744,15 @@ function closeRegionPopup() {
   if (popup) popup.classList.remove("show");
 }
 // ── ASK REGION ON FIRST LOAD ──
-const savedRegion = localStorage.getItem("selected_region");
-if (!savedRegion) {
+const sessionRegion = localStorage.getItem("region");
+if (!sessionRegion) {
   // Small delay so page loads first
   setTimeout(async () => {
-    const region = await openRegionPopup();
-    if (region) {
-      localStorage.setItem("selected_region", region);
-      addCaptionToHistory(t('regionSet', region), 'ai');
+    const r = await openRegionPopup();
+    if (r) {
+      updateRegion(r); // This handles localStorage and backend sync
     }
-  }, 800);
+  }, 1200);
 }
 function confirmRegion() {
   const selectEl = document.getElementById("regionSelect");
@@ -724,7 +761,6 @@ function confirmRegion() {
     alert("Please select a region.");
     return;
   }
-  localStorage.setItem("selected_region", val); // ← ADD THIS
   closeRegionPopup();
   if (regionResolve) regionResolve(val);
   regionResolve = null;

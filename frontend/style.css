@@ -118,6 +118,29 @@ body::after {
 
 .theme-btn { font-size: 16px; padding: 7px 10px; }
 
+.nav-select {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  font-family: 'Sora', sans-serif;
+  transition: all 0.2s;
+}
+
+.nav-select:hover {
+  background: rgba(79,195,247,0.1);
+  border-color: var(--accent);
+}
+
+.nav-select option {
+  background: #0d1b2e;
+  color: #fff;
+}
+
 /* ── PROFILE DROPDOWN ── */
 .profile-container { position: relative; }
 

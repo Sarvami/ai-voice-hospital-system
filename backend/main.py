@@ -128,10 +128,16 @@ problem_map = {
 
 # ------------------ DATABASE FUNCTIONS ------------------
 
-def get_doctors_by_department(dept):
+def get_doctors_by_department(dept, region=None):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM doctors WHERE LOWER(department)=LOWER(?)", (dept,))
+    if region:
+        cursor.execute(
+            "SELECT name FROM doctors WHERE LOWER(department)=LOWER(?) AND LOWER(region)=LOWER(?)",
+            (dept, region)
+        )
+    else:
+        cursor.execute("SELECT name FROM doctors WHERE LOWER(department)=LOWER(?)", (dept,))
     doctors = [row[0] for row in cursor.fetchall()]
     conn.close()
     return doctors
@@ -264,6 +270,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id]["name"] = patient["name"]
             user_data[user_id]["phone"] = patient["phone"]
             user_data[user_id]["patient_id"] = patient["patient_id"]
+            user_data[user_id]["region"] = patient["region"] # Load from DB
         user_state[user_id] = "idle"
 
     state = user_state[user_id]
@@ -288,7 +295,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
         if matched_dept:
             user_data[user_id]["dept"] = matched_dept
-            doctors = get_doctors_by_department(matched_dept)
+            region = user_data[user_id].get("region")
+            doctors = get_doctors_by_department(matched_dept, region)
             if not doctors:
                 return "Sorry, no doctors available for that department right now.", {}
             user_data[user_id]["available_doctors"] = doctors
@@ -817,11 +825,22 @@ class RegionRequest(BaseModel):
 
 @app.post("/set-region")
 def set_region(req: RegionRequest):
+    # Update session
+    if req.patient_id not in user_data:
+        user_data[req.patient_id] = {}
+    user_data[req.patient_id]["region"] = req.region
+    
+    # Update Database permanently
+    conn = get_db_connection()
+    conn.execute("UPDATE patients SET region = ? WHERE patient_id = ?", (req.region, req.patient_id))
+    conn.commit()
+    conn.close()
+
     text = f"Region set to {req.region}. I can help you book an appointment in that region."
     final = gt_from_english(text, req.lang)
-    out_filename = f"{uuid.uuid4()}.mp3"
-    out = f"{TEMP_DIR}/{out_filename}"
-    gTTS(text=final, lang=req.lang).save(out)
+    out_filename = f"reply_{uuid.uuid4().hex}.mp3"
+    tts = gTTS(final, lang=req.lang)
+    tts.save(os.path.join(TEMP_DIR, out_filename))
     return {"text": final, "audio_url": f"http://127.0.0.1:8000/temp-audio/{out_filename}"}
 
 @app.get("/admin/appointments")

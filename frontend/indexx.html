@@ -60,6 +60,18 @@
       <!-- Theme toggle -->
       <button class="nav-btn theme-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
 
+      <!-- Region Selector -->
+      <select id="regionSelector" class="nav-select" onchange="updateRegion(this.value)">
+        <option value="">🗺️ Location</option>
+        <option value="Bibewadi">📍 Bibewadi</option>
+        <option value="Kalyani Nagar">📍 Kalyani Nagar</option>
+        <option value="Ravet">📍 Ravet</option>
+        <option value="PCMC">📍 PCMC</option>
+        <option value="Sangamvadi">📍 Sangamvadi</option>
+        <option value="Wanowrie">📍 Wanowrie</option>
+        <option value="Hadapsar">📍 Hadapsar</option>
+      </select>
+
       <!-- Profile dropdown -->
       <div class="profile-container">
         <div class="profile-icon" id="profileIcon">👤</div>
@@ -162,7 +174,7 @@
         <option value="Kalyani Nagar">Kalyani Nagar</option>
         <option value="Ravet">Ravet</option>
         <option value="PCMC">PCMC</option>
-        <option value="Sangamwadi">Sangamwadi</option>
+        <option value="Sangamvadi">Sangamvadi</option>
         <option value="Wanowrie">Wanowrie</option>
         <option value="Hadapsar">Hadapsar</option>
       </select>
