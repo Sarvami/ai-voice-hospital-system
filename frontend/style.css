@@ -734,3 +734,30 @@ body.light-theme .loader-text { color: #1a2744; }
   .glass-card { width: 520px; }
   .orbital { width: 300px; height: 300px; }
 }
+/* Translate button */
+.translate-btn {
+  display: inline-block;
+  margin-top: 6px;
+  background: none;
+  border: none;
+  color: #69f0ae;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0.7;
+  font-family: 'Sora', sans-serif;
+  padding: 0;
+  text-decoration: underline;
+  width: auto;
+  margin-top: 4px;
+}
+.translate-btn:hover { opacity: 1; }
+
+/* Translation text */
+.translation-text {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #a5d6a7;
+  font-style: italic;
+  border-top: 1px solid rgba(105,240,174,0.2);
+  padding-top: 6px;
+}
