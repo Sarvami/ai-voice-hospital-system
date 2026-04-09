@@ -95,7 +95,7 @@
     label.id = 'themeToggleLabel';
 
     const current = localStorage.getItem('theme') || 'dark';
-    label.textContent = current === 'dark' ? 'Dark' : 'Light';
+    label.textContent = current === 'dark' ? '☀️ Light' : '🌙 Dark';
 
     track.appendChild(knob);
     wrap.appendChild(track);
@@ -108,7 +108,7 @@
       const next = now === 'dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
-      label.textContent = next === 'dark' ? 'Dark' : 'Light';
+      label.textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
     });
 
   });
