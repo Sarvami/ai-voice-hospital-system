@@ -240,6 +240,17 @@
     <input id="age" type="text" placeholder="e.g. 34">
   </div>
 
+  <!-- Gender -->
+  <div class="field">
+    <label for="gender">Gender</label>
+    <select id="gender">
+      <option value="">Select Gender</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+      <option value="Other">Other</option>
+    </select>
+  </div>
+
   <!-- Preferred Language -->
   <div class="field">
     <label for="lang">Preferred Language</label>
@@ -322,6 +333,7 @@
     const name     = document.getElementById('name').value.trim();
     const phone    = document.getElementById('phone').value.trim();
     const age      = document.getElementById('age').value.trim();
+    const gender   = document.getElementById('gender').value;
     const lang     = document.getElementById('lang').value;
     const region   = document.getElementById('regRegion').value;
     const password = document.getElementById('password').value;
@@ -331,9 +343,9 @@
     msgEl.className = 'msg';
     msgEl.textContent = '';
 
-    if (!name || !phone || !age || !lang || !region || !password || !confirm) {
+    if (!name || !phone || !age || !gender || !lang || !region || !password || !confirm) {
       msgEl.className = 'msg error';
-      msgEl.textContent = 'Please fill in all fields (including Region).';
+      msgEl.textContent = 'Please fill in all fields (including Region and Gender).';
       return;
     }
 
@@ -364,7 +376,10 @@
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name, phone, age: parseInt(age),
+          name, 
+          age: parseInt(age),
+          gender: gender,
+          phone, 
           preferred_language: lang,
           region: region,
           password,

@@ -740,6 +740,7 @@ async def register_patient(request: Request):
         password = data.get("password", "")
         language = data.get("preferred_language", "en")
         gender   = data.get("gender", "Unknown")
+        region   = data.get("region", "Unknown")
 
         if not name or not phone or not password:
             return {"success": False, "message": "Missing required fields"}
@@ -751,9 +752,9 @@ async def register_patient(request: Request):
             return {"success": False, "message": "Patient already exists"}
 
         conn.execute("""
-            INSERT INTO patients (name, age, gender, phone, preferred_language, password_hash)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (name, age, gender, phone, language, hash_password(password)))
+            INSERT INTO patients (name, age, gender, phone, preferred_language, region, password_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (name, age, gender, phone, language, region, hash_password(password)))
 
         conn.commit()
         conn.close()
