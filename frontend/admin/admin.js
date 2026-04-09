@@ -63,9 +63,13 @@ async function loadPatients() {
     data.forEach(p => {
       table.innerHTML += `
         <tr>
+          <td>${p.patient_id || '—'}</td>
           <td>${p.name || '—'}</td>
           <td>${p.age  || '—'}</td>
-          <td>${p.preferred_language || p.language || '—'}</td>
+          <td>${p.gender || '—'}</td>
+          <td>${p.phone || '—'}</td>
+          <td>${p.preferred_language || '—'}</td>
+          <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>
         </tr>`;
     });
   } catch(e) {
