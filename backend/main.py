@@ -56,7 +56,7 @@ STT_POLL_INTERVAL = 1
 
 # ------------------ DB CONNECTION ------------------
 
-DB_PATH = "../database/hospital.db"
+DB_PATH = "data/hospital.db"
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -350,8 +350,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         base_reply = f"Great, {chosen}. What date would you like?"
         return base_reply, {
         "intent": "ask_date",
-        "data": {"doctor": chosen, "available_hours": avail_hours}
-}
+        "data": {"doctor": chosen, "available_hours": avail_hours, "doctor_id": user_data[user_id]["doctor_id"]}
+        }
 
     elif state == "waiting_date":
         date_number_words = {
@@ -587,7 +587,8 @@ async def process_audio(
         "reply_in_lang": final,
         "user_text": original,
         "audio_url": audio_url,
-        "booked": meta.get("booked", False)
+        "booked": meta.get("booked", False),
+        "doctor_id": meta.get("data", {}).get("doctor_id")
     })
 
 # ------------------ TEXT API ------------------
@@ -625,7 +626,8 @@ def process_text(data: TextInput):
         "reply_in_lang": final,
         "user_text": english,
         "audio_url": audio_url,
-        "booked": meta.get("booked", False)
+        "booked": meta.get("booked", False),
+        "doctor_id": meta.get("data", {}).get("doctor_id")
     })
 
 # ------------------ TEST APIs ------------------
@@ -751,13 +753,81 @@ async def register_patient(request: Request):
         return {"success": False, "message": str(e)}
 
 
+@app.get("/patient/appointments")
+def get_patient_appointments(patient_id: int):
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT a.appointment_id, p.name AS patient,
+                d.name AS doctor, d.contact_phone, d.email, d.region, a.appointment_date AS date,
+                a.appointment_time AS time, a.status, a.reason
+        FROM appointments a
+        JOIN patients p ON a.patient_id = p.patient_id
+        JOIN doctors d ON a.doctor_id = d.doctor_id
+        WHERE a.patient_id = ?
+        ORDER BY a.appointment_date DESC
+    """, (patient_id,)).fetchall()
+    conn.close()
+    return {"appointments": [dict(r) for r in rows]}
+
+@app.get("/patient/records")
+def get_patient_records(patient_id: int):
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT d.name AS doctor, a.reason AS diagnosis, a.appointment_date AS date
+        FROM appointments a
+        JOIN doctors d ON a.doctor_id = d.doctor_id
+        WHERE a.patient_id = ? AND a.status = 'Completed'
+        ORDER BY a.appointment_date DESC
+    """, (patient_id,)).fetchall()
+    conn.close()
+    return {"records": [dict(r) for r in rows]}
+
+class DateRequest(BaseModel):
+    patient_id: str
+    date: str
+    doctor_id: int = None
+    lang: str = "en"
+
+@app.post("/set-appointment-date")
+def set_appointment_date(req: DateRequest):
+    user_id = req.patient_id
+    if user_id not in user_state:
+        user_state[user_id] = "waiting_time"
+        user_data[user_id] = {"doctor_id": req.doctor_id, "date": req.date}
+    else:
+        user_state[user_id] = "waiting_time"
+        user_data[user_id]["date"] = req.date
+        if req.doctor_id:
+            user_data[user_id]["doctor_id"] = req.doctor_id
+    text = "Great! At what time?"
+    final = gt_from_english(text, req.lang)
+    out_filename = f"{uuid.uuid4()}.mp3"
+    out = f"{TEMP_DIR}/{out_filename}"
+    gTTS(text=final, lang=req.lang).save(out)
+    return {"text": final, "audio_url": f"http://127.0.0.1:8000/temp-audio/{out_filename}"}
+
+class RegionRequest(BaseModel):
+    patient_id: str
+    region: str
+    doctor_id: int = None
+    lang: str = "en"
+
+@app.post("/set-region")
+def set_region(req: RegionRequest):
+    text = f"Region set to {req.region}. I can help you book an appointment in that region."
+    final = gt_from_english(text, req.lang)
+    out_filename = f"{uuid.uuid4()}.mp3"
+    out = f"{TEMP_DIR}/{out_filename}"
+    gTTS(text=final, lang=req.lang).save(out)
+    return {"text": final, "audio_url": f"http://127.0.0.1:8000/temp-audio/{out_filename}"}
+
 @app.get("/admin/appointments")
 def get_admin_appointments(patient_id: int = None):
     conn = get_db_connection()
     if patient_id:
         rows = conn.execute("""
-            SELECT a.appointment_id, p.name AS patient,
-                   d.name AS doctor, a.appointment_date AS date,
+            SELECT a.appointment_id AS id, p.name AS patient,
+                   d.name AS doctor, d.department, d.region, a.appointment_date AS date,
                    a.appointment_time AS time, a.status, a.reason
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
@@ -767,8 +837,8 @@ def get_admin_appointments(patient_id: int = None):
         """, (patient_id,)).fetchall()
     else:
         rows = conn.execute("""
-            SELECT a.appointment_id, p.name AS patient,
-                   d.name AS doctor, a.appointment_date AS date,
+            SELECT a.appointment_id AS id, p.name AS patient,
+                   d.name AS doctor, d.department, d.region, a.appointment_date AS date,
                    a.appointment_time AS time, a.status, a.reason
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
