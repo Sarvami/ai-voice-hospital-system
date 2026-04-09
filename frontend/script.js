@@ -662,7 +662,12 @@ async function updateRegion(region) {
     
     // Sync the selector UI if it exists
     const selector = document.getElementById('regionSelector');
-    if (selector) selector.value = region;
+    if (selector) {
+      selector.value = region;
+      // Update the placeholder to show current region
+      const placeholder = selector.querySelector('option[value=""]');
+      if (placeholder) placeholder.textContent = region;
+    }
 
     addCaptionToHistory(data.text, 'ai');
     

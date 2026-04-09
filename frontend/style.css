@@ -141,6 +141,43 @@ body::after {
   color: #fff;
 }
 
+/* ── LOCATION SELECTOR ── */
+.location-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.location-wrapper:hover {
+  background: rgba(239,154,154,0.1);
+  border-color: #ef5350;
+}
+
+.nav-pin {
+  width: 18px;
+  height: 18px;
+}
+
+.location-wrapper .nav-select {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-weight: 500;
+  height: auto;
+  min-width: 80px;
+}
+
+.location-wrapper .nav-select:hover {
+  background: transparent;
+}
+
 /* ── PROFILE DROPDOWN ── */
 .profile-container { position: relative; }
 

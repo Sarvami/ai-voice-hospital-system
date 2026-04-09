@@ -61,16 +61,21 @@
       <button class="nav-btn theme-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
 
       <!-- Region Selector -->
-      <select id="regionSelector" class="nav-select" onchange="updateRegion(this.value)">
-        <option value="">🗺️ Location</option>
-        <option value="Bibewadi">📍 Bibewadi</option>
-        <option value="Kalyani Nagar">📍 Kalyani Nagar</option>
-        <option value="Ravet">📍 Ravet</option>
-        <option value="PCMC">📍 PCMC</option>
-        <option value="Sangamvadi">📍 Sangamvadi</option>
-        <option value="Wanowrie">📍 Wanowrie</option>
-        <option value="Hadapsar">📍 Hadapsar</option>
-      </select>
+      <div class="location-wrapper" onclick="document.getElementById('regionSelector').click()">
+        <svg class="nav-pin" viewBox="0 0 24 24" fill="#ef5350">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        <select id="regionSelector" class="nav-select no-arrow" onchange="updateRegion(this.value)">
+          <option value="">Location</option>
+          <option value="Bibewadi">Bibewadi</option>
+          <option value="Kalyani Nagar">Kalyani Nagar</option>
+          <option value="Ravet">Ravet</option>
+          <option value="PCMC">PCMC</option>
+          <option value="Sangamvadi">Sangamvadi</option>
+          <option value="Wanowrie">Wanowrie</option>
+          <option value="Hadapsar">Hadapsar</option>
+        </select>
+      </div>
 
       <!-- Profile dropdown -->
       <div class="profile-container">
