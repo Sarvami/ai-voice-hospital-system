@@ -844,6 +844,19 @@ def set_region(req: RegionRequest):
     tts.save(os.path.join(TEMP_DIR, out_filename))
     return {"text": final, "audio_url": f"http://127.0.0.1:8000/temp-audio/{out_filename}"}
 
+class TranslateRequest(BaseModel):
+    text: str
+    target_lang: str = "en"
+
+@app.post("/translate-text")
+def translate_text_api(req: TranslateRequest):
+    try:
+        translated = translator.translate(req.text, dest=req.target_lang).text
+        return {"success": True, "translation": translated}
+    except Exception as e:
+        print("Translation error:", e)
+        return {"success": False, "message": str(e)}
+
 @app.get("/admin/appointments")
 def get_admin_appointments(patient_id: int = None):
     conn = get_db_connection()

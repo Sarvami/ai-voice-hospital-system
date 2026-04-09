@@ -175,28 +175,27 @@ document.addEventListener("DOMContentLoaded", () => {
           btn.textContent = 'Translating...';
           btn.disabled = true;
           try {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
+            const res = await fetch(`${BACKEND}/translate-text`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 200,
-                messages: [{
-                  role: 'user',
-                  content: `Translate this to English. Reply with ONLY the translation, nothing else: "${msg.text}"`
-                }]
+                text: msg.text,
+                target_lang: 'en'
               })
             });
             const data = await res.json();
-            const translation = data.content?.[0]?.text || 'Could not translate';
-            const transDiv = document.createElement('div');
-            transDiv.className = 'translation-text';
-            transDiv.textContent = '🇬🇧 ' + translation;
-            div.appendChild(transDiv);
-            btn.remove();
+            if (data.success) {
+              const transDiv = document.createElement('div');
+              transDiv.className = 'translation-text';
+              transDiv.textContent = '🇬🇧 ' + data.translation;
+              div.appendChild(transDiv);
+              btn.remove();
+            } else {
+              throw new Error(data.message);
+            }
           } catch (e) {
             btn.textContent = 'Translation failed';
-            btn.disabled = false;  // ← add this
+            btn.disabled = false;
           }
         };
         div.appendChild(btn);
@@ -550,12 +549,14 @@ document.addEventListener("DOMContentLoaded", () => {
   updateProfileInfo();
 
   /* ── APPLY SAVED THEME ON LOAD ── */
-  const savedTheme = localStorage.getItem("theme");
+  const savedTheme = localStorage.getItem("theme") || "dark";
   if (savedTheme === "light") {
+    document.body.classList.remove("dark-theme");
     document.body.classList.add("light-theme");
     const btn = document.getElementById("themeToggleBtn");
     if (btn) btn.textContent = "🌙";
   } else {
+    document.body.classList.remove("light-theme");
     document.body.classList.add("dark-theme");
     const btn = document.getElementById("themeToggleBtn");
     if (btn) btn.textContent = "☀️";
@@ -573,7 +574,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function toggleTheme() {
   const isLight = document.body.classList.toggle("light-theme");
-  localStorage.setItem("theme", isLight ? "light" : "dark");
+  const isDark = !isLight;
+  
+  if (isLight) {
+    document.body.classList.remove("dark-theme");
+    localStorage.setItem("theme", "light");
+  } else {
+    document.body.classList.add("dark-theme");
+    localStorage.setItem("theme", "dark");
+  }
+  
   const btn = document.getElementById("themeToggleBtn");
   if (btn) btn.textContent = isLight ? "🌙" : "☀️";
 }
