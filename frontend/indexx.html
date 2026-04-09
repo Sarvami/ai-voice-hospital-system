@@ -61,20 +61,23 @@
       <button class="nav-btn theme-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
 
       <!-- Region Selector -->
-      <div class="location-wrapper" onclick="document.getElementById('regionSelector').click()">
-        <svg class="nav-pin" viewBox="0 0 24 24" fill="#ef5350">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-        <select id="regionSelector" class="nav-select no-arrow" onchange="updateRegion(this.value)">
-          <option value="">Location</option>
-          <option value="Bibewadi">Bibewadi</option>
-          <option value="Kalyani Nagar">Kalyani Nagar</option>
-          <option value="Ravet">Ravet</option>
-          <option value="PCMC">PCMC</option>
-          <option value="Sangamvadi">Sangamvadi</option>
-          <option value="Wanowrie">Wanowrie</option>
-          <option value="Hadapsar">Hadapsar</option>
-        </select>
+      <div class="custom-dropdown" id="regionDropdown">
+        <div class="dropdown-trigger" onclick="toggleRegionDropdown()">
+          <svg class="nav-pin" viewBox="0 0 24 24" fill="#ef5350">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <span id="selectedRegion">Location</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        </div>
+        <div class="dropdown-menu" id="regionMenu">
+          <div class="dropdown-item" onclick="selectRegion('Bibewadi')">Bibewadi</div>
+          <div class="dropdown-item" onclick="selectRegion('Kalyani Nagar')">Kalyani Nagar</div>
+          <div class="dropdown-item" onclick="selectRegion('Ravet')">Ravet</div>
+          <div class="dropdown-item" onclick="selectRegion('PCMC')">PCMC</div>
+          <div class="dropdown-item" onclick="selectRegion('Sangamvadi')">Sangamvadi</div>
+          <div class="dropdown-item" onclick="selectRegion('Wanowrie')">Wanowrie</div>
+          <div class="dropdown-item" onclick="selectRegion('Hadapsar')">Hadapsar</div>
+        </div>
       </div>
 
       <!-- Profile dropdown -->
