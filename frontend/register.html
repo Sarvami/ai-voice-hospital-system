@@ -257,6 +257,22 @@
     <p class="field-hint">The AI voice assistant will speak in this language</p>
   </div>
 
+  <!-- Region -->
+  <div class="field">
+    <label for="regRegion">Region</label>
+    <select id="regRegion">
+      <option value="">Select your region</option>
+      <option value="Bibewadi">Bibewadi</option>
+      <option value="Kalyani Nagar">Kalyani Nagar</option>
+      <option value="Ravet">Ravet</option>
+      <option value="PCMC">PCMC</option>
+      <option value="Sangamvadi">Sangamvadi</option>
+      <option value="Wanowrie">Wanowrie</option>
+      <option value="Hadapsar">Hadapsar</option>
+    </select>
+    <p class="field-hint">Helps us find doctors near you</p>
+  </div>
+
   <hr class="divider">
 
   <!-- Password -->
@@ -307,6 +323,7 @@
     const phone    = document.getElementById('phone').value.trim();
     const age      = document.getElementById('age').value.trim();
     const lang     = document.getElementById('lang').value;
+    const region   = document.getElementById('regRegion').value;
     const password = document.getElementById('password').value;
     const confirm  = document.getElementById('confirm').value;
     const msgEl    = document.getElementById('msg');
@@ -314,9 +331,9 @@
     msgEl.className = 'msg';
     msgEl.textContent = '';
 
-    if (!name || !phone || !age || !password || !confirm) {
+    if (!name || !phone || !age || !lang || !region || !password || !confirm) {
       msgEl.className = 'msg error';
-      msgEl.textContent = 'Please fill in all fields.';
+      msgEl.textContent = 'Please fill in all fields (including Region).';
       return;
     }
 
@@ -349,6 +366,7 @@
         body: JSON.stringify({
           name, phone, age: parseInt(age),
           preferred_language: lang,
+          region: region,
           password,
           role: 'patient',
         }),
