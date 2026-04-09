@@ -183,6 +183,7 @@ function filterDoctors() {
 async function createDoctor() {
   const name    = document.getElementById('newDoctorName').value.trim();
   const dept    = document.getElementById('newDoctorDept').value;
+  const region  = document.getElementById('newDoctorRegion').value;
   const qual    = document.getElementById('newDoctorQual').value.trim();
   const exp     = document.getElementById('newDoctorExp').value;
   const days    = document.getElementById('newDoctorDays').value.trim();
@@ -192,8 +193,8 @@ async function createDoctor() {
   const msgEl   = document.getElementById('createDoctorMsg');
 
   msgEl.style.color = '#ef9a9a';
-  if (!name || !dept || !qual || !exp || !days || !docId || !pass) {
-    msgEl.innerText = 'Please fill in all required fields.'; return;
+  if (!name || !dept || !region || !qual || !exp || !days || !docId || !pass) {
+    msgEl.innerText = 'Please fill in all required fields (including Region).'; return;
   }
 
   const hoursPattern = /^\d{1,2}:\d{2} (AM|PM) - \d{1,2}:\d{2} (AM|PM)$/;
@@ -209,6 +210,7 @@ async function createDoctor() {
       body:    JSON.stringify({
         name,
         department:       dept,
+        region:           region,
         qualification:    qual,
         experience_years: parseInt(exp),
         available_days:   days,
@@ -220,13 +222,14 @@ async function createDoctor() {
     const data = await res.json();
     if (data.success) {
       msgEl.style.color = '#69f0ae';
-      msgEl.innerText = `✓ Doctor created!  ID: ${docId}   Password: ${pass}`;
+      msgEl.innerText = `✓ Doctor created in ${region}!  ID: ${docId}   Password: ${pass}`;
       ['newDoctorName','newDoctorQual','newDoctorExp',
        'newDoctorDays','newDoctorHours','newDoctorId','newDoctorPass'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
       document.getElementById('newDoctorDept').value = '';
+      document.getElementById('newDoctorRegion').value = '';
     } else {
       msgEl.innerText = data.message || 'Something went wrong.';
     }
