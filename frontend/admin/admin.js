@@ -72,14 +72,13 @@ async function loadPatients() {
           <td>${p.gender || '—'}</td>
           <td>${p.phone || '—'}</td>
           <td>${p.preferred_language || '—'}</td>
-          <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>
           <td>
             <i class="fa-solid fa-pen-to-square edit-btn" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
           </td>
         </tr>`;
     });
   } catch(e) {
-    table.innerHTML = `<tr><td colspan="8" class="empty-row">Could not load</td></tr>`;
+    table.innerHTML = `<tr><td colspan="7" class="empty-row">Could not load</td></tr>`;
   }
 }
 
@@ -136,7 +135,7 @@ async function loadDoctors() {
     allDoctors = data;
     renderDoctors(allDoctors);
   } catch(e) {
-    table.innerHTML = `<tr><td colspan="9" class="empty-row">Could not load</td></tr>`;
+    table.innerHTML = `<tr><td colspan="11" class="empty-row">Could not load</td></tr>`;
   }
 }
 
@@ -144,7 +143,7 @@ function renderDoctors(list) {
   const table = document.getElementById('doctorsTable');
   table.innerHTML = '';
   if (!list.length) {
-    table.innerHTML = `<tr><td colspan="10" class="empty-row">No doctors found</td></tr>`;
+    table.innerHTML = `<tr><td colspan="11" class="empty-row">No doctors found</td></tr>`;
     return;
   }
   list.forEach(d => {
@@ -166,9 +165,96 @@ function renderDoctors(list) {
         <td>${d.available_days || '—'}</td>
         <td>${hoursBadge}</td>
         <td>${d.region || '—'}</td>
+        <td>
+            <i class="fa-solid fa-pen-to-square edit-btn" title="Edit Doctor" onclick="openEditDoctorModal(${d.doctor_id})"></i>
+        </td>
       </tr>`;
   });
 }
+
+function openEditDoctorModal(id) {
+    const d = allDoctors.find(item => item.doctor_id === id);
+    if (!d) return;
+    
+    document.getElementById('editDoctorIdInternal').value = d.doctor_id;
+    document.getElementById('editDoctorName').value = d.name;
+    document.getElementById('editDoctorDept').value = d.department;
+    document.getElementById('editDoctorRegion').value = d.region;
+    document.getElementById('editDoctorQual').value = d.qualification;
+    document.getElementById('editDoctorExp').value = d.experience_years;
+    document.getElementById('editDoctorIdPublic').value = d.doc_id;
+    document.getElementById('editDoctorPhone').value = d.contact_phone;
+    document.getElementById('editDoctorEmail').value = d.email;
+    document.getElementById('editDoctorDays').value = d.available_days;
+    document.getElementById('editDoctorHours').value = d.available_hours || '8:00 AM - 8:00 PM';
+    
+    document.getElementById('editDoctorModal').classList.remove('hidden');
+}
+
+function closeEditDoctorModal() {
+    document.getElementById('editDoctorModal').classList.add('hidden');
+}
+
+async function saveDoctorEdit() {
+    const payload = {
+        doctor_id: parseInt(document.getElementById('editDoctorIdInternal').value),
+        name: document.getElementById('editDoctorName').value,
+        department: document.getElementById('editDoctorDept').value,
+        region: document.getElementById('editDoctorRegion').value,
+        qualification: document.getElementById('editDoctorQual').value,
+        experience_years: parseInt(document.getElementById('editDoctorExp').value),
+        doc_id: document.getElementById('editDoctorIdPublic').value,
+        contact_phone: document.getElementById('editDoctorPhone').value,
+        email: document.getElementById('editDoctorEmail').value,
+        available_days: document.getElementById('editDoctorDays').value,
+        available_hours: document.getElementById('editDoctorHours').value
+    };
+
+    try {
+        const res = await fetch(`${API}/admin/update-doctor`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.success) {
+            closeEditDoctorModal();
+            loadDoctors();
+        } else {
+            alert("Update failed: " + result.message);
+        }
+    } catch(e) {
+        alert("Error updating doctor.");
+    }
+}
+
+/* ── THEME TOGGLE ── */
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  if (isLight) {
+    document.body.classList.remove('dark-theme');
+    localStorage.setItem('adminTheme', 'light');
+  } else {
+    document.body.classList.add('dark-theme');
+    localStorage.setItem('adminTheme', 'dark');
+  }
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = isLight ? '🌙' : '☀️';
+}
+
+// Initial theme check
+(function initTheme() {
+    const saved = localStorage.getItem('adminTheme') || 'dark';
+    if (saved === 'light') {
+        document.body.classList.add('light-theme');
+        document.body.classList.remove('dark-theme');
+        const btn = document.getElementById('themeToggleBtn');
+        if (btn) btn.textContent = '🌙';
+    } else {
+        document.body.classList.add('dark-theme');
+        document.body.classList.remove('light-theme');
+    }
+})();
 
 /* ── DEPARTMENT FILTER ── */
 function filterDoctors() {
