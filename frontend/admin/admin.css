@@ -378,11 +378,16 @@ tbody tr:last-child td { border-bottom: none; }
 .input-group input, .input-group select {
   width: 100%;
   padding: 10px;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0,0,0,0.4);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
   color: #fff;
   outline: none;
+}
+
+.input-group select option {
+  background: #1e3a6d;
+  color: #fff;
 }
 
 .modal-footer {

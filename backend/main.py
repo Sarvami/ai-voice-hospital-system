@@ -603,10 +603,11 @@ class TextInput(BaseModel):
 class AddDoctorRequest(BaseModel):
     name: str
     department: str
-    qualification: str = ""
-    experience_years: int = 0
+    qualification: str
+    experience_years: int
     doc_id: str
     password: str
+    region: str
     available_days: str = ""
     available_hours: str = "8:00 AM - 8:00 PM"
 
@@ -988,11 +989,11 @@ def add_doctor(req: AddDoctorRequest):
     conn.execute(
         """INSERT INTO doctors
            (name, department, qualification, experience_years,
-            available_days, available_hours, doc_id, password_hash, email, contact_phone)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            available_days, available_hours, doc_id, password_hash, email, contact_phone, region)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (req.name, req.department, req.qualification, req.experience_years,
          req.available_days, req.available_hours,
-         req.doc_id, hash_password(req.password), email, contact_phone)
+         req.doc_id, hash_password(req.password), email, contact_phone, req.region)
     )
     conn.commit()
     conn.close()
