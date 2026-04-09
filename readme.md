@@ -1,6 +1,6 @@
-﻿# AI Voice Hospital System 🎙️🏥
+# AI Voice Hospital System 🎙️🏥
 
-An AI-powered multilingual voice assistant that simplifies hospital appointment booking. Patients can speak in Hindi, Marathi, or English to book appointments, view their history, and interact with the system hands-free.
+An AI-powered multilingual voice assistant that simplifies hospital appointment booking. Patients can speak in Hindi, Marathi, or English to book appointments, manage their health, and interact with the system hands-free.
 
 ---
 
@@ -14,15 +14,13 @@ An AI-powered multilingual voice assistant that simplifies hospital appointment 
 
 ## ✨ Features
 
-- 🎙️ **Voice-to-text** via AssemblyAI — speak naturally to book appointments
-- 🌐 **Multilingual support** — English, Hindi, and Marathi
-- 💬 **Multilingual subtitles** — UI captions display in the user's selected language
-- 📅 **Calendar popup** — visual date picker for appointment selection
-- 🗺️ **Region-based doctor filtering** — find doctors near you
-- 👨‍⚕️ **Doctor dashboard** — doctors can view their appointments and patient stats
-- 🛠️ **Admin dashboard** — manage patients, doctors, and appointments
-- 🔐 **Auth system** — separate login for patients, doctors, and admin
-- 🔊 **Text-to-speech replies** — bot responds with audio in the chosen language
+- 🎙️ **Voice-to-text** via AssemblyAI — speak naturally to book appointments.
+- 🌐 **Multilingual support** — English, Hindi, and Marathi.
+- 🗺️ **Region-based doctor filtering** — find doctors specifically in your city/area (Bibewadi, PCMC, etc.).
+- 👨‍⚕️ **Doctor dashboard** — view appointments and patient stats.
+- 🛠️ **Admin dashboard** — fully manage patients (view details, edit profiles) and doctors.
+- 🔐 **Secure Auth** — separate portals for patients, doctors, and hospital administrators.
+- 🔊 **Text-to-speech replies** — natural audio responses in the user's language.
 
 ---
 
@@ -30,51 +28,24 @@ An AI-powered multilingual voice assistant that simplifies hospital appointment 
 
 ### Prerequisites
 - Python 3.10+
-- Node.js (optional, for VS Code Live Server)
-- VS Code with Live Server extension (optional)
+- `.env` file in `backend/` with `ASSEMBLYAI_API_KEY`.
 
-### Step 1 — Clone the Repository
+### One-Click Setup & Fix
+If you are setting up for the first time or need to sync your database with the latest features, simply run:
 ```bash
-git clone https://github.com/Sarvami/ai-voice-hospital-system.git
-cd ai-voice-hospital-system
+python fix_all_data.py
 ```
+This script automatically initializes the database, seeds 50 doctors with full profiles, and ensures all columns are perfectly aligned.
 
-### Step 2 — Set Up the Backend
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate        # Windows
-source venv/bin/activate     # Mac/Linux
-pip install -r requirements.txt
-```
-
-### Step 3 — Set Up Environment Variables
-Create a `.env` file inside the `backend/` folder:
-```
-ASSEMBLYAI_API_KEY=your_assemblyai_key_here
-```
-Get your free API key from https://www.assemblyai.com
-
-### Step 4 — Set Up the Database (First Time Only)
-```bash
-cd backend
-python seed_doctors.py
-python setup_doctors.py
-```
-
-### Step 5 — Start the Backend Server
-```bash
-cd backend
-uvicorn main:app --reload
-```
-Backend runs at `http://127.0.0.1:8000`
-
-### Step 6 — Start the Frontend
-```bash
-cd frontend
-python -m http.server 5500
-```
-Then open `http://localhost:5500/login.html` in your browser.
+### Standard Execution
+1. **Start the Backend:**
+   ```bash
+   cd backend
+   venv\Scripts\activate
+   uvicorn main:app --reload
+   ```
+2. **Start the Frontend:**
+   Open `login.html` (in `frontend/`) using VS Code Live Server or any local server.
 
 ---
 
@@ -83,82 +54,49 @@ Then open `http://localhost:5500/login.html` in your browser.
 ```
 ai-voice-hospital-system/
 ├── backend/
-│   ├── main.py              # FastAPI app — all routes and voice logic
-│   ├── database.py          # SQLAlchemy models
-│   ├── seed_doctors.py      # Seeds doctor data into DB
-│   ├── setup_doctors.py     # Additional DB setup
-│   └── .env                 # API keys (not committed)
-├── database/
-│   └── hospital.db          # SQLite database
-└── frontend/
-    ├── login.html
-    ├── index.html           # Main patient voice interface
-    ├── admin.html           # Admin dashboard
-    ├── doctor.html          # Doctor dashboard
-    └── app.js               # Core frontend logic + subtitle system
+│   ├── main.py              # FastAPI app & Core Voice Logic
+│   ├── database.py          # SQLAlchemy Models & Schema
+│   └── seeders/             # Data seeding scripts
+├── frontend/
+│   ├── indexx.html          # Main Patient Voice Interface
+│   ├── admin/               # Admin Dashboard (admin_dashboard.html)
+│   ├── doctor/              # Doctor Dashboard (doctor_dashboard.html)
+│   └── script.js            # Core Voice Logic & Region Management
+└── fix_all_data.py          # Master Setup/Repair Script
 ```
 
 ---
 
-## 🔑 Default Login Credentials
+## 🔑 Login Credentials
 
 ### Admin
 - Email: `admin@gmail.com`
 - Password: `admin123`
 
-### Patient (Sample)
-- Phone: `9921523959`
-- Password: `hello123`
-
 ### Doctor
-- Doctor ID: `DOC20` through `DOC69`
+- Doctor ID: `DOC1` to `DOC50`
 - Password: `doctor123`
 
----
-
-## 🌐 Supported Languages
-
-| Code | Language |
-|------|----------|
-| `en` | English  |
-| `hi` | Hindi    |
-| `mr` | Marathi  |
-
-Voice input, bot replies, audio output, and UI subtitles all adapt to the selected language.
+### Patient
+- Register a new account on the `register.html` page to test the region-filtering features.
 
 ---
 
-## 🔌 API Endpoints
+## 🌐 Supported Regions
+Bibewadi, Kalyani Nagar, Ravet, PCMC, Sangamvadi, Wanowrie, Hadapsar.
+
+---
+
+## 🔌 Key API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/process-audio` | Upload audio, get voice reply |
-| POST | `/process-text` | Send text, get voice reply |
-| POST | `/register` | Register a new patient |
-| POST | `/login` | Login (patient / doctor / admin) |
-| GET | `/doctors` | List all doctors |
-| GET | `/admin/overview` | Patient, doctor, appointment counts |
-| GET | `/admin/appointments` | All appointments (admin view) |
-| GET | `/admin/patients` | All patients |
-| GET | `/admin/doctors` | All doctors |
-| POST | `/admin/add-doctor` | Add a new doctor |
-| GET | `/doctor/dashboard` | Doctor stats |
-| GET | `/doctor/appointments` | Doctor's appointments |
-| GET | `/patient/appointments` | Patient's appointments |
-| POST | `/set-appointment-date` | Set date from calendar picker |
-| POST | `/set-region` | Set region for doctor filtering |
+| POST | `/set-region` | Persist user location for filtering |
+| GET | `/admin/patients` | Fetch all patient details (Admin only) |
+| PUT | `/admin/update-patient` | Administratively edit patient data |
+| GET | `/doctors/by-region` | Get doctors filtered by location |
 
 ---
 
 ## 🛠️ Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Backend | FastAPI (Python) |
-| Database | SQLite |
-| Speech-to-Text | AssemblyAI |
-| Text-to-Speech | gTTS |
-| Translation | googletrans |
-| Date Parsing | dateparser |
-| Frontend | HTML, CSS, Vanilla JS |
-| Auth | bcrypt (passlib) |
+FastAPI, SQLite (SQLAlchemy), AssemblyAI (STT), gTTS (TTS), GoogleTrans, Vanilla JS/CSS.
