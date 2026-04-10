@@ -1,16 +1,31 @@
 const API = "http://127.0.0.1:8000";
 
 /* SWITCH */
-function showSection(section) {
+function showSection(section, element) {
   document.querySelectorAll(".section").forEach(s => {
     s.classList.add("hidden");
   });
-  document.getElementById(section).classList.remove("hidden");
+  const targetSection = document.getElementById(section);
+  if (targetSection) targetSection.classList.remove("hidden");
 
   if (section === 'ratings') loadRatings();
+  if (section === 'patients') loadPatients();
+  if (section === 'appointments') loadAppointments();
 
-  document.querySelectorAll(".sidebar ul li").forEach(l => l.classList.remove("active"));
-  event.currentTarget.classList.add("active");
+  // If element is not provided (e.g. clicked from a card), find the sidebar item manually
+  if (!element) {
+    const sidebarItems = document.querySelectorAll(".sidebar ul li");
+    if (section === 'dashboard') element = sidebarItems[0];
+    else if (section === 'appointments') element = sidebarItems[1];
+    else if (section === 'prescription') element = sidebarItems[2];
+    else if (section === 'ratings') element = sidebarItems[3];
+    else if (section === 'patients') element = sidebarItems[4];
+  }
+
+  if (element) {
+    document.querySelectorAll(".sidebar ul li").forEach(l => l.classList.remove("active"));
+    element.classList.add("active");
+  }
 }
 
 async function loadDoctor() {
@@ -295,7 +310,37 @@ async function loadRatings() {
     });
 
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="4" class="empty-row">Could not load ratings</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="empty-row">Could not load ratings</td></tr>`;
+  }
+}
+
+async function loadPatients() {
+  const doctorId = localStorage.getItem('doctor_id');
+  const tbody    = document.getElementById('patientsTable');
+
+  try {
+    const res  = await fetch(`${API}/doctor/patients?doctor_id=${doctorId}`);
+    const data = await res.json();
+
+    tbody.innerHTML = '';
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-row">No patients found</td></tr>`;
+      return;
+    }
+
+    data.forEach(p => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.patient_id}</td>
+          <td>${p.name}</td>
+          <td>${p.age}</td>
+          <td>${p.gender}</td>
+          <td>${p.phone}</td>
+        </tr>`;
+    });
+
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="empty-row">Could not load patients</td></tr>`;
   }
 }
 
