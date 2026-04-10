@@ -177,14 +177,36 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 
 </div>
 
+<!-- RATINGS -->
+<div id="ratings" class="section hidden">
+  <div class="appointments-card">
+    <h2>My Ratings</h2>
+    <div class="rating-summary">
+      <div class="avg-rating">
+        <div id="avgStars"></div>
+        <div id="avgScore">—</div>
+        <div id="totalReviews" style="font-size:0.8rem; color:#94a3b8; margin-top:4px;"></div>
+      </div>
+    </div>
+    <table class="appointment-table">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Rating</th>
+          <th>Review</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="ratingsTable"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- PATIENTS -->
 <div id="patients" class="section hidden">
-  <div class="card">
+  <div class="appointments-card">
     <h2>My Patients</h2>
     <p style="color: #a0aec0; margin-bottom: 20px;">List of unique patients you have treated.</p>
-    
     <table class="appointment-table">
       <thead>
         <tr>

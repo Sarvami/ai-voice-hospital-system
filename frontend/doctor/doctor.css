@@ -411,4 +411,33 @@ body.light-theme .card input { background: #f8fafc; border-color: #e2e8f0; color
   width: 100%; padding: 14px; background: linear-gradient(135deg, #38bdf8, #818cf8); 
   border: none; border-radius: 12px; color: #fff; font-weight: 700; cursor: pointer; 
 }
-
+
+
+/* APPOINTMENTS / PATIENTS / RATINGS CARD */
+.appointments-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 32px;
+  border-radius: 24px;
+  max-width: 900px;
+}
+
+body.light-theme .appointments-card {
+  background: #fff;
+  border-color: #e2e8f0;
+}
+
+.appointments-card h2 {
+  color: #f8fafc;
+  margin-bottom: 8px;
+}
+
+body.light-theme .appointments-card h2 {
+  color: #0f172a;
+}
+
+.empty-row {
+  text-align: center;
+  color: #64748b;
+  padding: 24px !important;
+}
