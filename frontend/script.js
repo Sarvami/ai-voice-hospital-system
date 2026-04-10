@@ -426,3 +426,11 @@ function updateProfileInfo() {
   const icon = document.getElementById("profileIcon");
   if (icon) icon.textContent = initial;
 }
+
+/* ── LOGOUT ── */
+function logout() {
+  if (confirm("Are you sure you want to logout?")) {
+    localStorage.clear();
+    window.location.href = "login.html";
+  }
+}
