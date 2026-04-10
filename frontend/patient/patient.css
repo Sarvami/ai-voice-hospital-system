@@ -429,3 +429,20 @@ th, td {
   opacity: 0.9;
   transform: translateY(-1px);
 }
+
+.main {
+  overflow-x: hidden;
+}
+.appointments-table-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.appointments-table-container table {
+  min-width: 900px;
+}
+
+.appointments-section {
+  width: 100%;
+  overflow: hidden;
+}
