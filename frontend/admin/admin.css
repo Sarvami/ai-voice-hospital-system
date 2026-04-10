@@ -445,3 +445,11 @@ body.light-theme .form-card input, body.light-theme .form-card select { backgrou
 
 .hidden { display: none; }
 
+/* Make table horizontally scrollable */
+#viewDoctors table {
+  min-width: 1200px;
+}
+
+#viewDoctors {
+  overflow-x: auto;
+}
