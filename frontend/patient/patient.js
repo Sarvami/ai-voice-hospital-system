@@ -27,7 +27,7 @@ async function loadAppointments() {
     table.innerHTML = "";
 
     if (!list || !list.length) {
-      table.innerHTML = `<tr><td colspan="8" class="empty-row">No appointments found.</td></tr>`;
+      table.innerHTML = `<tr><td colspan="9" class="empty-row">No appointments found.</td></tr>`;
       return;
     }
 
@@ -265,4 +265,4 @@ window.openRating = openRating;
 window.closeRating = closeRating;
 window.setRating = setRating;
 window.submitRating = submitRating;
-window.toggleTheme = toggleTheme;
+window.toggleTheme = toggleTheme;
