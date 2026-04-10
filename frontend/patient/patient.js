@@ -144,7 +144,7 @@ async function loadDashboardStats() {
 function logout() {
   if (confirm("Are you sure you want to logout?")) {
     localStorage.clear();
-    window.location.href = "../../pages/login.html";
+    window.location.href = "../pages/login.html";
   }
 }
 

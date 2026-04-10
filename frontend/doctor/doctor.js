@@ -174,7 +174,7 @@ function savePrescription() {
 /* LOGOUT */
 function logout(){
   localStorage.clear();
-  window.location.href = "../../pages/login.html";
+  window.location.href = "../pages/login.html";
 }
 
 /* CALENDAR */
