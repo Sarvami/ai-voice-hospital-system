@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Auth Guard
   if (document.getElementById("recordBtn") && !localStorage.getItem("patient_id")) {
-    window.location.href = "login.html";
+    window.location.href = "pages/login.html";
     return;
   }
 
@@ -439,7 +439,7 @@ function updateProfileInfo() {
 
 function logout() {
   localStorage.clear();
-  window.location.href = 'login.html';
+  window.location.href = 'pages/login.html';
 }
 
 function closeSuccessPopup() {

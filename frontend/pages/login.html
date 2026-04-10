@@ -539,9 +539,9 @@
 
         /* Redirect to correct dashboard */
         const redirectMap = {
-          patient: 'patient/patient_dashboard.html',
-          doctor: 'doctor/doctor_dashboard.html',
-          admin: 'admin/admin_dashboard.html',
+          patient: '../patient/patient_dashboard.html',
+          doctor: '../doctor/doctor_dashboard.html',
+          admin: '../admin/admin_dashboard.html',
         };
         window.location.href = redirectMap[role];
 
@@ -551,7 +551,7 @@
     }
   </script>
 
-  <script src="script.js"></script>
+  <script src="../shared/script.js"></script>
 </body>
 
 </html>
