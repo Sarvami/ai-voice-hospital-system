@@ -13,7 +13,8 @@ from voice_service import (
 from passlib.context import CryptContext
 
 router = APIRouter()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Support both bcrypt (patients/admin) and pbkdf2_sha256 (doctors seeder legacy)
+pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
 TEMP_DIR = "temp"
 
 def verify_password(password: str, hashed: str) -> bool:
@@ -59,6 +60,21 @@ async def login(request: Request):
                 "preferred_language": user["preferred_language"] or "en"
             }
         }
+    if role == "doctor":
+        user = conn.execute("SELECT * FROM doctors WHERE doc_id=?", (phone,)).fetchone()
+        conn.close()
+        if not user: return {"success": False, "message": "Doctor not found"}
+        if not verify_password(password, user["password_hash"]):
+            return {"success": False, "message": "Incorrect password"}
+        return {
+            "success": True,
+            "user": {
+                "id": user["doctor_id"],
+                "name": user["name"],
+                "role": "doctor"
+            }
+        }
+
     conn.close()
     return {"success": False, "message": "Invalid role or handled elsewhere"}
 
