@@ -125,7 +125,7 @@ for i, doc in enumerate(doctors, 1):
     conn.execute("""
         INSERT INTO doctors (name, department, qualification, experience_years, available_days, 
                             doc_id, email, contact_phone, password_hash, available_hours)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pbkdf2:sha256:260000$yS6v8mFz$bf8b31...', ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, '$2b$12$8rOxmDR4.fKircYEbdDSYem.1NC9rORJpXt.MAuLfHxRENu/eWq8C', ?)
     """, (*doc, doc_id, email, phone, available_hours))
 
 conn.commit()
