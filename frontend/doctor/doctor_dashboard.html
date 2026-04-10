@@ -42,6 +42,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <i class="fa fa-star"></i> My Ratings
 </li>
 
+<li onclick="showSection('patients', this)">
+<i class="fa fa-users"></i> Patients
+</li>
+
 <li onclick="logout()">
 <i class="fa fa-sign-out"></i> Logout
 </li>
@@ -104,12 +108,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
     </div>
 
     <div class="profile-stats">
-      <div class="stat-box">
+      <div class="stat-box" onclick="showSection('appointments', document.querySelector('.sidebar ul li:nth-child(2)'))" style="cursor: pointer;">
         <i class="fa fa-calendar-check"></i>
         <div class="stat-number" id="statToday">—</div>
         <div class="stat-label">Today's Appointments</div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" onclick="showSection('patients', document.querySelector('.sidebar ul li:nth-child(5)'))" style="cursor: pointer;">
         <i class="fa fa-users"></i>
         <div class="stat-number" id="statPatients">—</div>
         <div class="stat-label">Total Patients</div>
@@ -173,31 +177,27 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 
 </div>
 
-<!-- RATINGS -->
-<div id="ratings" class="section hidden">
-
-<h2>My Ratings & Reviews</h2>
-
-<div class="rating-summary">
-  <div class="avg-rating">
-    <div id="avgStars">★★★★★</div>
-    <p id="avgScore">0.0 / 5</p>
-    <small id="totalReviews">0 reviews</small>
-  </div>
 </div>
 
-<table class="appointment-table">
-<thead>
-<tr>
-<th>Patient</th>
-<th>Rating</th>
-<th>Review</th>
-<th>Date</th>
-</tr>
-</thead>
-<tbody id="ratingsTable"></tbody>
-</table>
-
+<!-- PATIENTS -->
+<div id="patients" class="section hidden">
+  <div class="card">
+    <h2>My Patients</h2>
+    <p style="color: #a0aec0; margin-bottom: 20px;">List of unique patients you have treated.</p>
+    
+    <table class="appointment-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Gender</th>
+          <th>Phone</th>
+        </tr>
+      </thead>
+      <tbody id="patientsTable"></tbody>
+    </table>
+  </div>
 </div>
 
 </div><!-- /main -->

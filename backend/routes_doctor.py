@@ -25,7 +25,11 @@ def doctor_login(doc_id: str = Form(...), password: str = Form(...)):
 @router.get("/doctor/dashboard")
 def doctor_dashboard(doctor_id: int):
     conn = get_db_connection()
-    doc = conn.execute("SELECT name, department, rating FROM doctors WHERE doctor_id=?", (doctor_id,)).fetchone()
+    doc = conn.execute("""
+        SELECT name, department, rating, qualification, available_days, contact_phone, email, region 
+        FROM doctors WHERE doctor_id=?
+    """, (doctor_id,)).fetchone()
+    
     if not doc:
         conn.close(); return {"error": "Not found"}
     
@@ -33,11 +37,31 @@ def doctor_dashboard(doctor_id: int):
     appt_today = conn.execute("SELECT COUNT(*) FROM appointments WHERE doctor_id=? AND appointment_date=?", (doctor_id, today_str)).fetchone()[0]
     total_p = conn.execute("SELECT COUNT(DISTINCT patient_id) FROM appointments WHERE doctor_id=?", (doctor_id,)).fetchone()[0]
     conn.close()
+    
     return {
-        "name": doc["name"], "specialization": doc["department"],
-        "appointments_today": appt_today, "total_patients": total_p,
+        "name": doc["name"], 
+        "specialization": doc["department"],
+        "qualification": doc["qualification"],
+        "available_days": doc["available_days"],
+        "phone": doc["contact_phone"],
+        "email": doc["email"],
+        "region": doc["region"],
+        "appointments_today": appt_today, 
+        "total_patients": total_p,
         "rating": round(doc["rating"] or 4.5, 1)
     }
+
+@router.get("/doctor/patients")
+def get_doctor_patients(doctor_id: int):
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT DISTINCT p.patient_id, p.name, p.age, p.gender, p.phone
+        FROM appointments a
+        JOIN patients p ON a.patient_id = p.patient_id
+        WHERE a.doctor_id = ?
+    """, (doctor_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 @router.get("/doctor/ratings")
 def get_doctor_ratings(doctor_id: int):
