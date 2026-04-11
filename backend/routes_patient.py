@@ -1,8 +1,8 @@
 import os
 import uuid
 import random
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Request, UploadFile, File, Form
+from fastapi.responses import JSONResponse, FileResponse
 from gtts import gTTS
 from database import get_db_connection
 from models import DateRequest, RegionRequest, RateRequest
@@ -13,6 +13,8 @@ from voice_service import (
 from passlib.context import CryptContext
 
 router = APIRouter()
+REPORTS_DIR = os.path.join(os.path.dirname(__file__), "reports")
+os.makedirs(REPORTS_DIR, exist_ok=True)
 # Support both bcrypt (patients/admin) and pbkdf2_sha256 (doctors seeder legacy)
 pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
 TEMP_DIR = "temp"
@@ -170,3 +172,52 @@ def doctors_by_region(region: str):
     rows = conn.execute("SELECT * FROM doctors WHERE region = ?", (region,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+@router.post("/patient/upload-report")
+async def upload_report(
+    patient_id: str = Form(...),
+    report_type: str = Form(...),
+    file: UploadFile = File(...)
+):
+    allowed = {".pdf", ".jpg", ".jpeg", ".png"}
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in allowed:
+        return {"success": False, "message": "Invalid file type. Use PDF, JPG, or PNG."}
+
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        return {"success": False, "message": "File too large. Max 5MB."}
+
+    safe_name = f"{uuid.uuid4()}{ext}"
+    save_path = os.path.join(REPORTS_DIR, safe_name)
+    with open(save_path, "wb") as f:
+        f.write(contents)
+
+    conn = get_db_connection()
+    conn.execute(
+        "INSERT INTO patient_reports (patient_id, report_type, filename, filepath, uploaded_at) VALUES (?,?,?,?,datetime('now'))",
+        (patient_id, report_type, file.filename, safe_name)
+    )
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+@router.get("/patient/reports")
+def get_patient_reports(patient_id: int):
+    conn = get_db_connection()
+    rows = conn.execute(
+        "SELECT * FROM patient_reports WHERE patient_id=? ORDER BY uploaded_at DESC",
+        (patient_id,)
+    ).fetchall()
+    conn.close()
+    return {"reports": [dict(r) for r in rows]}
+
+@router.get("/patient/report-file/{report_id}")
+def get_report_file(report_id: int):
+    conn = get_db_connection()
+    row = conn.execute("SELECT * FROM patient_reports WHERE id=?", (report_id,)).fetchone()
+    conn.close()
+    if not row:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    path = os.path.join(REPORTS_DIR, row["filepath"])
+    return FileResponse(path, filename=row["filename"])

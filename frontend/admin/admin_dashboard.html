@@ -131,6 +131,29 @@
     </table>
   </div>
 
+  <!-- PATIENT REPORTS MODAL -->
+  <div id="patientReportsModal" class="modal hidden">
+    <div class="modal-content" style="max-width:620px;">
+      <div class="modal-header">
+        <h3 id="reportsModalTitle">Patient Reports</h3>
+        <span class="close-modal" onclick="closeReportsModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <table style="width:100%;">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>File Name</th>
+              <th>Uploaded On</th>
+              <th>View</th>
+            </tr>
+          </thead>
+          <tbody id="reportsModalBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- EDIT PATIENT MODAL -->
   <div id="editPatientModal" class="modal hidden">
     <div class="modal-content">
