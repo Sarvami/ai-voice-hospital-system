@@ -252,6 +252,115 @@ async function submitRating() {
   }
 }
 
+/* ── Report Upload ── */
+function handleFileSelect(input) {
+  const file = input.files[0];
+  const content = document.getElementById('dropContent');
+  if (file) {
+    content.classList.add('has-file');
+    content.innerHTML = `<i class="fa fa-file-alt"></i><span>${file.name}</span><small>${(file.size/1024).toFixed(1)} KB</small>`;
+  }
+}
+
+// Drag-and-drop highlight
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('dropZone');
+  if (zone) {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); });
+  }
+});
+
+async function uploadReport() {
+  const patientId  = localStorage.getItem('patient_id');
+  const reportType = document.getElementById('reportType').value;
+  const fileInput  = document.getElementById('reportFile');
+  const msgEl      = document.getElementById('uploadMsg');
+  const btn        = document.querySelector('.upload-btn');
+
+  msgEl.className = 'upload-msg';
+  msgEl.textContent = '';
+
+  if (!reportType) { msgEl.className = 'upload-msg error'; msgEl.textContent = 'Please select a report type.'; return; }
+  if (!fileInput.files[0]) { msgEl.className = 'upload-msg error'; msgEl.textContent = 'Please choose a file.'; return; }
+
+  const file = fileInput.files[0];
+  if (file.size > 5 * 1024 * 1024) { msgEl.className = 'upload-msg error'; msgEl.textContent = 'File too large. Max 5MB.'; return; }
+
+  const formData = new FormData();
+  formData.append('patient_id', patientId);
+  formData.append('report_type', reportType);
+  formData.append('file', file);
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading…';
+
+  try {
+    const res  = await fetch(`${BACKEND}/patient/upload-report`, { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      msgEl.className = 'upload-msg success';
+      msgEl.textContent = '✓ Report uploaded successfully!';
+      fileInput.value = '';
+      document.getElementById('reportType').value = '';
+      document.getElementById('dropContent').classList.remove('has-file');
+      document.getElementById('dropContent').innerHTML = `
+        <i class="fa fa-cloud-upload-alt"></i>
+        <span>Drop file here or <u>browse</u></span>
+        <small>PDF, JPG, PNG — max 5MB</small>`;
+      loadUploadedReports();
+    } else {
+      msgEl.className = 'upload-msg error';
+      msgEl.textContent = data.message || 'Upload failed.';
+    }
+  } catch(e) {
+    msgEl.className = 'upload-msg error';
+    msgEl.textContent = 'Could not connect to server.';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa fa-upload"></i> Upload Report';
+}
+
+async function loadUploadedReports() {
+  const patientId = localStorage.getItem('patient_id');
+  const tbody = document.getElementById('uploadsTableBody');
+  if (!tbody) return;
+
+  try {
+    const res  = await fetch(`${BACKEND}/patient/reports?patient_id=${patientId}`);
+    const data = await res.json();
+    const list = data.reports || [];
+
+    tbody.innerHTML = '';
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-row">No uploaded reports yet.</td></tr>`;
+      return;
+    }
+
+    list.forEach(r => {
+      tbody.innerHTML += `
+        <tr>
+          <td><span class="badge-type">${r.report_type}</span></td>
+          <td>${r.filename}</td>
+          <td>${r.uploaded_at ? r.uploaded_at.split('T')[0] : '—'}</td>
+          <td><a class="view-link" href="${BACKEND}/patient/report-file/${r.id}" target="_blank">
+            <i class="fa fa-eye"></i> View
+          </a></td>
+        </tr>`;
+    });
+
+    // update stat card
+    const el = document.getElementById('reportCount');
+    if (el) el.textContent = list.length;
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-row">Could not load reports.</td></tr>`;
+  }
+}
+
 /* ── THEME ── */
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light-theme');
@@ -273,6 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAppointments();
   loadRecords();
   loadDashboardStats();
+  loadUploadedReports();
 });
 
 /* ── Make functions global for HTML onclick ── */
@@ -283,3 +393,5 @@ window.closeRating = closeRating;
 window.setRating = setRating;
 window.submitRating = submitRating;
 window.toggleTheme = toggleTheme;
+window.uploadReport = uploadReport;
+window.handleFileSelect = handleFileSelect;

@@ -106,24 +106,71 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 </div>
 
 <!-- RECORDS -->
-
 <div id="records" class="section hidden">
 
-<h2>Medical Records</h2>
+  <h2>Medical Records</h2>
 
-<table>
+  <!-- UPLOAD CARD -->
+  <div class="upload-card">
+    <h3><i class="fa fa-upload"></i> Upload a Report</h3>
+    <div class="upload-form">
+      <select id="reportType">
+        <option value="">— Select Report Type —</option>
+        <option value="Blood Test">🩸 Blood Test</option>
+        <option value="Urine Test">🧪 Urine Test</option>
+        <option value="X-Ray">🦴 X-Ray</option>
+        <option value="MRI Scan">🧠 MRI Scan</option>
+        <option value="CT Scan">🔬 CT Scan</option>
+        <option value="Ultrasound">📡 Ultrasound</option>
+        <option value="ECG">❤️ ECG / EKG</option>
+        <option value="Prescription">💊 Prescription</option>
+        <option value="Discharge Summary">🏥 Discharge Summary</option>
+        <option value="Vaccination Record">💉 Vaccination Record</option>
+        <option value="Other">📄 Other</option>
+      </select>
 
-<thead>
-<tr>
-<th>Doctor</th>
-<th>Diagnosis</th>
-<th>Date</th>
-</tr>
-</thead>
+      <label class="file-drop-zone" id="dropZone">
+        <input type="file" id="reportFile" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(this)">
+        <div class="drop-content" id="dropContent">
+          <i class="fa fa-cloud-upload-alt"></i>
+          <span>Drop file here or <u>browse</u></span>
+          <small>PDF, JPG, PNG — max 5MB</small>
+        </div>
+      </label>
 
-<tbody id="recordsTable"></tbody>
+      <button class="upload-btn" onclick="uploadReport()">
+        <i class="fa fa-upload"></i> Upload Report
+      </button>
+      <p id="uploadMsg" class="upload-msg"></p>
+    </div>
+  </div>
 
-</table>
+  <!-- UPLOADED REPORTS TABLE -->
+  <h3 style="margin: 28px 0 12px; color: var(--muted); font-size:14px; text-transform:uppercase; letter-spacing:1px;">Uploaded Reports</h3>
+  <table id="uploadsTable">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>File Name</th>
+        <th>Uploaded On</th>
+        <th>View</th>
+      </tr>
+    </thead>
+    <tbody id="uploadsTableBody"></tbody>
+  </table>
+
+  <!-- DOCTOR RECORDS TABLE -->
+  <h3 style="margin: 28px 0 12px; color: var(--muted); font-size:14px; text-transform:uppercase; letter-spacing:1px;">Doctor Records</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Doctor</th>
+        <th>Diagnosis</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="recordsTable"></tbody>
+  </table>
 
 </div>
 

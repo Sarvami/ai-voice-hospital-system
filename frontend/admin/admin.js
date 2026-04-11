@@ -76,6 +76,7 @@ async function loadPatients() {
           <td>${p.preferred_language || '—'}</td>
           <td>
             <i class="fa-solid fa-pen-to-square edit-btn" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
+            <i class="fa-solid fa-folder-open edit-btn" title="View Reports" style="margin-left:10px; color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${p.name}')"></i>
           </td>
         </tr>`;
     });
@@ -126,6 +127,44 @@ async function savePatientEdit() {
   } catch(e) {
     alert("Error updating patient.");
   }
+}
+
+/* ── PATIENT REPORTS MODAL ── */
+async function openReportsModal(patientId, patientName) {
+  document.getElementById('reportsModalTitle').textContent = `Reports — ${patientName}`;
+  const tbody = document.getElementById('reportsModalBody');
+  tbody.innerHTML = `<tr><td colspan="4" class="empty-row">Loading…</td></tr>`;
+  document.getElementById('patientReportsModal').classList.remove('hidden');
+
+  try {
+    const res  = await fetch(`${API}/patient/reports?patient_id=${patientId}`);
+    const data = await res.json();
+    const list = data.reports || [];
+
+    tbody.innerHTML = '';
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-row">No reports uploaded by this patient.</td></tr>`;
+      return;
+    }
+    list.forEach(r => {
+      tbody.innerHTML += `
+        <tr>
+          <td><span class="hours-badge">${r.report_type}</span></td>
+          <td>${r.filename}</td>
+          <td>${r.uploaded_at ? r.uploaded_at.split('T')[0] : '—'}</td>
+          <td><a href="${API}/patient/report-file/${r.id}" target="_blank"
+              style="color:#38bdf8; text-decoration:none; font-size:13px;">
+            <i class="fa fa-eye"></i> View
+          </a></td>
+        </tr>`;
+    });
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-row">Could not load reports.</td></tr>`;
+  }
+}
+
+function closeReportsModal() {
+  document.getElementById('patientReportsModal').classList.add('hidden');
 }
 
 /* ── DOCTORS ── */
