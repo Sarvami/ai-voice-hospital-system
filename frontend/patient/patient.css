@@ -477,12 +477,22 @@ th, td {
   padding: 11px 14px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: rgba(255,255,255,0.05);
+  background: #0d1b2e;
   color: var(--text);
   font-size: 14px;
   font-family: inherit;
   outline: none;
   cursor: pointer;
+}
+
+.upload-form select option {
+  background: #0d1b2e;
+  color: #e2e8f0;
+}
+
+body.light-theme .upload-form select option {
+  background: #ffffff;
+  color: #1e293b;
 }
 
 .upload-form select:focus {
