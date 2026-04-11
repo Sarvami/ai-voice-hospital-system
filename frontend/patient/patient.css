@@ -598,3 +598,18 @@ body.light-theme .upload-form select option {
   color: var(--accent);
   border: 1px solid rgba(56,189,248,0.2);
 }
+
+.delete-report-btn {
+  background: rgba(239, 83, 80, 0.12);
+  border: 1px solid rgba(239, 83, 80, 0.3);
+  color: #ef5350;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.delete-report-btn:hover {
+  background: rgba(239, 83, 80, 0.25);
+}
