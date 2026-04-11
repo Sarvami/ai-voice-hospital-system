@@ -349,6 +349,9 @@ async function loadUploadedReports() {
           <td><a class="view-link" href="${BACKEND}/patient/report-file/${r.id}" target="_blank">
             <i class="fa fa-eye"></i> View
           </a></td>
+          <td><button class="delete-report-btn" onclick="deleteReport(${r.id})">
+            <i class="fa fa-trash"></i>
+          </button></td>
         </tr>`;
     });
 
@@ -358,6 +361,18 @@ async function loadUploadedReports() {
 
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="4" class="empty-row">Could not load reports.</td></tr>`;
+  }
+}
+
+async function deleteReport(reportId) {
+  if (!confirm('Delete this report? This cannot be undone.')) return;
+  try {
+    const res  = await fetch(`${BACKEND}/patient/report/${reportId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) loadUploadedReports();
+    else alert(data.message || 'Could not delete report.');
+  } catch(e) {
+    alert('Could not connect to server.');
   }
 }
 
@@ -395,3 +410,4 @@ window.submitRating = submitRating;
 window.toggleTheme = toggleTheme;
 window.uploadReport = uploadReport;
 window.handleFileSelect = handleFileSelect;
+window.deleteReport = deleteReport;
