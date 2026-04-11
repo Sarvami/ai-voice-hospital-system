@@ -156,7 +156,6 @@ function openRating(apptId, doctorName) {
   currentRatingApptId = apptId;
   currentRating = 0;
   
-  // Create modal if it doesn't exist
   let modal = document.getElementById('ratingModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -173,6 +172,15 @@ function openRating(apptId, doctorName) {
           <span onclick="setRating(5)">★</span>
         </div>
         <p style="text-align:center; color:#a0aec0; margin-bottom:15px">Tap a star to rate</p>
+        <div id="reviewBox" style="display:none; margin-bottom:15px;">
+          <p style="color:#ef9a9a; font-size:13px; margin-bottom:8px;">⚠️ We're sorry to hear that. Please tell us what went wrong:</p>
+          <textarea id="reviewText" placeholder="Describe your experience..." style="
+            width:100%; min-height:90px; padding:10px 12px;
+            background:rgba(255,255,255,0.05); border:1px solid rgba(239,83,80,0.4);
+            border-radius:10px; color:#e2e8f0; font-size:13px; font-family:inherit;
+            resize:vertical; outline:none; box-sizing:border-box;
+          "></textarea>
+        </div>
         <div class="modal-buttons">
           <button onclick="submitRating()" class="btn-submit">Submit Rating</button>
           <button onclick="closeRating()" class="btn-cancel">Cancel</button>
@@ -183,6 +191,8 @@ function openRating(apptId, doctorName) {
   }
   
   document.getElementById('ratingDoctorName').textContent = doctorName;
+  document.getElementById('reviewBox').style.display = 'none';
+  if (document.getElementById('reviewText')) document.getElementById('reviewText').value = '';
   highlightStars(0);
   modal.style.display = 'flex';
 }
@@ -195,6 +205,8 @@ function closeRating() {
 function setRating(val) {
   currentRating = val;
   highlightStars(val);
+  const reviewBox = document.getElementById('reviewBox');
+  if (reviewBox) reviewBox.style.display = val <= 3 ? 'block' : 'none';
 }
 
 function highlightStars(val) {
@@ -210,14 +222,19 @@ async function submitRating() {
     alert('Please select a star rating.');
     return;
   }
-  
+
+  const review = (currentRating <= 3 && document.getElementById('reviewText'))
+    ? document.getElementById('reviewText').value.trim()
+    : '';
+
   try {
     const response = await fetch(`${BACKEND}/patient/rate-appointment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         appointment_id: currentRatingApptId,
-        rating: currentRating
+        rating: currentRating,
+        review: review
       })
     });
     
@@ -225,7 +242,7 @@ async function submitRating() {
     if (data.success) {
       alert('Thank you! Your rating has been submitted.');
       closeRating();
-      loadAppointments(); // Refresh list
+      loadAppointments();
     } else {
       alert(data.message || 'Failed to submit rating.');
     }

@@ -48,6 +48,7 @@ class TranslateRequest(BaseModel):
 class RateRequest(BaseModel):
     appointment_id: int
     rating: int
+    review: str = ""
 
 class UpdatePatientRequest(BaseModel):
     patient_id: int
