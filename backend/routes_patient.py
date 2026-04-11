@@ -221,3 +221,19 @@ def get_report_file(report_id: int):
         return JSONResponse({"error": "Not found"}, status_code=404)
     path = os.path.join(REPORTS_DIR, row["filepath"])
     return FileResponse(path, filename=row["filename"])
+
+@router.delete("/patient/report/{report_id}")
+def delete_report(report_id: int):
+    conn = get_db_connection()
+    row = conn.execute("SELECT * FROM patient_reports WHERE id=?", (report_id,)).fetchone()
+    if not row:
+        conn.close()
+        return {"success": False, "message": "Report not found"}
+    # delete file from disk
+    filepath = os.path.join(REPORTS_DIR, row["filepath"])
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    conn.execute("DELETE FROM patient_reports WHERE id=?", (report_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
