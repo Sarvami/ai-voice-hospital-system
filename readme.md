@@ -17,11 +17,12 @@ An AI-powered multilingual voice assistant that simplifies hospital appointment 
 - 🎙️ **Voice-to-text** via AssemblyAI — speak naturally to book appointments.
 - 🌐 **Multilingual support** — English, Hindi, and Marathi.
 - 🗺️ **Region-based doctor filtering** — find doctors specifically in your city/area (Bibewadi, PCMC, etc.).
-- 👨‍⚕️ **Doctor dashboard** — view appointments and patient stats.
-- 🛠️ **Admin dashboard** — fully manage patients & doctors (edit profiles, adjust timings, manage regions).
+- 👨‍⚕️ **Doctor dashboard** — view appointments, patient list, and ratings received.
+- 🛠️ **Admin dashboard** — fully manage patients & doctors (edit profiles, adjust timings, manage regions) and monitor all ratings & reviews.
 - 🔐 **Secure Auth** — separate portals for patients, doctors, and hospital administrators.
 - 🔊 **Text-to-speech replies** — natural audio responses in the user's language.
 - 🕒 **Specialist Scheduling** — supports varied doctor timings (e.g., 2-4 hour "Specialist Hours").
+- ⭐ **Doctor Rating System** — patients can rate their doctor after a completed appointment. Ratings of 3 stars or below prompt a mandatory comment box so patients can describe their experience. Low-rated reviews are flagged in red on both the doctor and admin dashboards.
 
 ---
 
@@ -46,7 +47,12 @@ This script automatically initializes the database, seeds 50 doctors with comple
    uvicorn main:app --reload
    ```
 2. **Start the Frontend:**
-   Open `login.html` (in `frontend/`) using VS Code Live Server or any local server.
+   Open `frontend/index.html` using VS Code Live Server or serve from inside the `frontend/` folder:
+   ```bash
+   cd frontend
+   python -m http.server 5500
+   ```
+   Then open `http://localhost:5500/pages/login.html`.
 
 ---
 
@@ -59,10 +65,12 @@ ai-voice-hospital-system/
 │   ├── database.py          # SQLAlchemy Models & Schema
 │   └── seeders/             # Data seeding scripts (Doctors, Regions, etc.)
 ├── frontend/
-│   ├── indexx.html          # Main Patient Voice Interface
+│   ├── index.html           # Main Patient Voice Interface
+│   ├── pages/               # login.html, register.html, profile.html
+│   ├── shared/              # Shared style.css & script.js
 │   ├── admin/               # Admin Dashboard & Assets
 │   ├── doctor/              # Doctor Dashboard & Assets
-│   └── script.js            # Core Voice Logic & Region Management
+│   └── patient/             # Patient Dashboard & Assets
 └── fix_all_data.py          # Master Setup/Repair Script (Team Sync)
 ```
 
@@ -94,6 +102,9 @@ Bibewadi, Kalyani Nagar, Ravet, PCMC, Sangamvadi, Wanowrie, Hadapsar.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/set-region` | Persist user location for filtering |
+| POST | `/patient/rate-appointment` | Submit a star rating (+ optional review for ≤3 stars) |
+| GET | `/doctor/ratings` | Fetch ratings & reviews for a specific doctor |
+| GET | `/admin/ratings` | Fetch all ratings & reviews across all doctors (Admin only) |
 | GET | `/admin/patients` | Fetch all patient details (Admin only) |
 | PUT | `/admin/update-patient` | Administratively edit patient data |
 | PUT | `/admin/update-doctor` | Administratively edit doctor data |
