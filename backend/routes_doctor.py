@@ -67,7 +67,7 @@ def get_doctor_patients(doctor_id: int):
 def get_doctor_ratings(doctor_id: int):
     conn = get_db_connection()
     rows = conn.execute("""
-        SELECT p.name AS patient_name, a.rating, a.appointment_date AS date
+        SELECT p.name AS patient_name, a.rating, a.review, a.appointment_date AS date
         FROM appointments a
         JOIN patients p ON a.patient_id = p.patient_id
         WHERE a.doctor_id = ? AND a.rating IS NOT NULL

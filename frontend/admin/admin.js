@@ -11,6 +11,7 @@ const sectionTitles = {
   appointments: 'Appointments',
   nurses:       'Assign Nurses',
   leaves:       'Staff Leaves',
+  ratings:      'Ratings & Reviews',
   voice:        'Voice Notes',
 };
 
@@ -23,6 +24,7 @@ function showSection(section, liEl) {
   if (section === 'patients')     loadPatients();
   if (section === 'viewDoctors')  loadDoctors();
   if (section === 'appointments') loadAppointments();
+  if (section === 'ratings')      loadRatings();
 }
 
 function toggleDoctorMenu(liEl) {
@@ -384,6 +386,53 @@ function clearApptFilters() {
   document.getElementById('apptDateFilter').value   = '';
   document.getElementById('apptStatusFilter').value = 'all';
   renderAppointments(allAppointments);
+}
+
+/* ── RATINGS & REVIEWS ── */
+let allRatings = [];
+
+async function loadRatings() {
+  const table = document.getElementById('ratingsTable');
+  try {
+    const res  = await fetch(`${API}/admin/ratings`);
+    const data = await res.json();
+    allRatings = data;
+    renderRatings(allRatings);
+  } catch(e) {
+    table.innerHTML = `<tr><td colspan="6" class="empty-row">Could not load ratings</td></tr>`;
+  }
+}
+
+function renderRatings(list) {
+  const table = document.getElementById('ratingsTable');
+  table.innerHTML = '';
+  if (!list.length) {
+    table.innerHTML = `<tr><td colspan="6" class="empty-row">No ratings found</td></tr>`;
+    return;
+  }
+  list.forEach(r => {
+    const isLow = r.rating <= 3;
+    const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+    table.innerHTML += `
+      <tr style="${isLow ? 'background:rgba(239,83,80,0.07);' : ''}">
+        <td>${r.patient || '—'}</td>
+        <td>${r.doctor || '—'}</td>
+        <td>${r.department || '—'}</td>
+        <td style="color:${isLow ? '#ef9a9a' : '#f5a623'}; font-size:1.1rem;">${stars}</td>
+        <td>${r.review
+          ? `<span style="color:${isLow ? '#ef9a9a' : '#a0aec0'}; font-style:italic;">"${r.review}"</span>`
+          : '<span style="color:#4a5568;">—</span>'
+        }</td>
+        <td>${r.date || '—'}</td>
+      </tr>`;
+  });
+}
+
+function filterRatings() {
+  const filter = document.getElementById('ratingsFilter').value;
+  if (filter === 'all')  return renderRatings(allRatings);
+  if (filter === 'low')  return renderRatings(allRatings.filter(r => r.rating <= 3));
+  if (filter === 'high') return renderRatings(allRatings.filter(r => r.rating >= 4));
 }
 
 /* ── ADD LEAVE ── */

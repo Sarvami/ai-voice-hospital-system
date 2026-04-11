@@ -148,10 +148,13 @@ def set_region_api(req: RegionRequest):
 def rate_appointment(req: RateRequest):
     conn = get_db_connection()
     appt = conn.execute("SELECT * FROM appointments WHERE appointment_id=?", (req.appointment_id,)).fetchone()
-    if not appt or appt["status"] != "Completed" or appt["rating"]:
+    if not appt or appt["status"].lower() != "completed" or appt["rating"]:
         conn.close(); return {"success": False, "message": "Invalid rating request"}
     
     conn.execute("UPDATE appointments SET rating = ? WHERE appointment_id = ?", (req.rating, req.appointment_id))
+    # store review if provided
+    if req.review:
+        conn.execute("UPDATE appointments SET review = ? WHERE appointment_id = ?", (req.review, req.appointment_id))
     did = appt["doctor_id"]
     doc = conn.execute("SELECT rating, rating_count FROM doctors WHERE doctor_id=?", (did,)).fetchone()
     old_r, old_c = doc["rating"] or 4.5, doc["rating_count"] or 0

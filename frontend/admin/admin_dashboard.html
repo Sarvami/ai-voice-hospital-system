@@ -64,6 +64,9 @@
     <li onclick="showSection('leaves', this)">
       <i class="fa fa-bed"></i> Staff Leaves
     </li>
+    <li onclick="showSection('ratings', this)">
+      <i class="fa fa-star"></i> Ratings & Reviews
+    </li>
   
     <li onclick="logout()">
       <i class="fa fa-sign-out"></i> Logout
@@ -309,6 +312,33 @@
         </tr>
       </thead>
       <tbody id="appointmentsTable"></tbody>
+    </table>
+  </div>
+
+  <!-- RATINGS & REVIEWS -->
+  <div id="ratings" class="section hidden">
+    <h2>Ratings &amp; Reviews</h2>
+
+    <div class="filter-bar">
+      <select id="ratingsFilter" onchange="filterRatings()">
+        <option value="all">All Ratings</option>
+        <option value="low">⚠️ Low (1–3 stars)</option>
+        <option value="high">✅ High (4–5 stars)</option>
+      </select>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Doctor</th>
+          <th>Department</th>
+          <th>Rating</th>
+          <th>Review / Comment</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="ratingsTable"></tbody>
     </table>
   </div>
 

@@ -76,3 +76,22 @@ def get_admin_appointments(patient_id: int = None):
         rows = conn.execute(sql + " ORDER BY a.appointment_date DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+@router.get("/admin/ratings")
+def get_admin_ratings():
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT p.name AS patient, d.name AS doctor, d.department,
+               a.rating, a.review, a.appointment_date AS date
+        FROM appointments a
+        JOIN patients p ON a.patient_id = p.patient_id
+        JOIN doctors  d ON a.doctor_id  = d.doctor_id
+        WHERE a.rating IS NOT NULL
+        ORDER BY a.rating ASC, a.appointment_date DESC
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@router.post("/admin/leave")
+def add_leave(data: dict):
+    return {"message": f"Leave recorded for {data.get('name')} on {data.get('date')}"}

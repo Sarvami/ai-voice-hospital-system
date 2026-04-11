@@ -300,11 +300,15 @@ async function loadRatings() {
     }
 
     list.forEach(r => {
+      const isLow = r.rating <= 3;
       tbody.innerHTML += `
-        <tr>
+        <tr${isLow ? ' style="background:rgba(239,83,80,0.07);"' : ''}>
           <td>${r.patient_name || '—'}</td>
           <td>${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</td>
-          <td>${r.review || '—'}</td>
+          <td>${r.review
+            ? `<span style="color:${isLow ? '#ef9a9a' : '#a0aec0'}; font-style:italic;">"${r.review}"</span>`
+            : '<span style="color:#4a5568;">—</span>'
+          }</td>
           <td>${r.date || '—'}</td>
         </tr>`;
     });
