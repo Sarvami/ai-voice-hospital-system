@@ -318,7 +318,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
         user_state[user_id] = "waiting_date"
         base_reply = f"Great, {chosen}. What date would you like? The doctor is available {avail_days} {avail_hours}."
-        return base_reply, {"intent": "ask_date", "data": {"doctor": chosen, "available_hours": avail_hours, "doctor_id": user_data[user_id]["doctor_id"]}}
+        return base_reply, {"intent": "ask_date", "data": {"doctor": chosen, "available_hours": avail_hours, "available_days": avail_days, "doctor_id": user_data[user_id]["doctor_id"]}}
 
     elif state == "waiting_date":
         date_number_words = {"first": "1", "second": "2", "third": "3", "fourth": "4", "fifth": "5", "ek": "1", "don": "2", "do": "2", "teen": "3"}
