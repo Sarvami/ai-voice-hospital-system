@@ -59,6 +59,14 @@ async def process_audio(
         english = gt_to_english(original) if lang != "en" else original
         reply, meta = generate_reply(english, user_id=str(patient_id), lang=lang, original=original)
         final = gt_from_english(reply, lang)
+
+        print(f"\n{'─'*50}")
+        print(f"  original  : {original}")
+        print(f"  english   : {english}")
+        print(f"  reply     : {reply}")
+        print(f"  translated: {final}")
+        print(f"  intent    : {meta.get('intent', '—')}  |  state: {meta.get('data', {})}")
+        print(f"{'─'*50}\n")
         
         # Inject availability if present
         if meta.get("data", {}).get("available_hours"):
