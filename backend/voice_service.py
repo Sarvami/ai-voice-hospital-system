@@ -238,16 +238,17 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 name = d['name'].replace('Dr.', 'Doctor')
                 rating = d['rating']
                 if "nearby" in reply_prefix:
-                    reply = f"{name} (Rating {rating}) is available nearby. Book now?"
+                    reply = f"{name} (Rating {rating}) is available nearby."
                 else:
-                    reply = f"In {region}, {name} (Rating {rating}) is available. Book now, or see nearby doctors?"
+                    reply = f"In {region}, {name} (Rating {rating}) is available."
+                return reply, {"intent": "show_doctors_popup", "data": {"doctors": doctors}}
             else:
                 doctor_names = [f"{d['name'].replace('Dr.', 'Doctor')} (Rating {d['rating']})" for d in doctors]
                 if "nearby" in reply_prefix:
                     reply = f"{reply_prefix}: {', '.join(doctor_names)}. Any preference?"
                 else:
                     reply = f"In {region}, available doctors: {', '.join(doctor_names)}. Any preference?"
-            return reply, {"intent": "select_doctor", "data": {"doctors": doctors}}
+                return reply, {"intent": "select_doctor", "data": {"doctors": doctors}}
 
         return "Sorry, I didn't catch that. Please describe your problem.", {}
 
@@ -259,9 +260,10 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         nearby_keywords = ["nearby", "other area", "neighbor", "neighbour", "next area",
                            "aas paas", "aaspaas", "kareeb", "doosre", "doosra",
                            "other doctor", "more doctor", "different doctor",
-                           "jagah", "jagha", "different area", "another area"]
+                           "jagah", "jagha", "different area", "another area", "meet"]
         original_lower = original.lower() if original else ""
-        nearby_original_keywords = ["shetron", "shetra", "aas paas", "aaspaas", "paas ke", "kareeb"]
+        nearby_original_keywords = ["shetron", "shetra", "aas paas", "aaspaas", "paas ke",
+                                    "kareeb", "milein", "miley", "mile", "doosre", "doosra"]
         if any(w in text.lower() for w in nearby_keywords) or any(w in original_lower for w in nearby_original_keywords):
             matched_dept = user_data[user_id].get("dept")
             current_region = user_data[user_id].get("region")

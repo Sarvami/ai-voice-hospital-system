@@ -439,9 +439,38 @@ async function doctorPopupAnswer(yes) {
     if (doctorPopupIndex < doctorPopupList.length) {
       showDoctorCard(doctorPopupIndex);
     } else {
+      // All local doctors exhausted — fetch nearby from backend
       document.getElementById('doctorPopup').classList.remove('show');
-      const txt = getDoctorPopupText();
-      addCaptionToHistory(txt.noMore, 'ai');
+      showLoader();
+      try {
+        const res = await fetch(`${BACKEND}/process-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: 'show nearby doctors',
+            lang: selectedLang,
+            patient_id: parseInt(localStorage.getItem('patient_id'))
+          })
+        });
+        hideLoader();
+        const json = await res.json();
+        const aiText = json.reply_in_lang || json.text;
+        if (aiText) addCaptionToHistory(aiText, 'ai');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const statusText  = document.getElementById('status');
+        if (json.audio_url && audioPlayer) {
+          audioPlayer.src = json.audio_url.startsWith('http') ? json.audio_url : `${BACKEND}${json.audio_url}`;
+          audioPlayer.play();
+          if (statusText) statusText.innerText = '🔊 Speaking...';
+          audioPlayer.onended = () => { if (statusText) statusText.innerText = 'Tap the mic and speak'; };
+        }
+        if (json.intent === 'show_doctors_popup' && json.doctors && json.doctors.length) {
+          openDoctorPopup(json.doctors);
+        } else {
+          const txt = getDoctorPopupText();
+          addCaptionToHistory(txt.noMore, 'ai');
+        }
+      } catch(e) { hideLoader(); }
     }
   }
 }
@@ -488,8 +517,13 @@ function renderCalPopup() {
   for(let d=1; d<=daysInMonth; d++) {
     const cell = document.createElement("div"); cell.className="cd"; cell.textContent=d;
     const thisDate = new Date(year, month, d);
-    if (thisDate < today) cell.classList.add("disabled");
-    else {
+    if (thisDate < today) {
+      cell.classList.add("disabled");
+      cell.onclick = () => {
+        const msg = document.getElementById("calPastMsg");
+        if (msg) { msg.style.opacity = "1"; clearTimeout(msg._t); msg._t = setTimeout(() => msg.style.opacity = "0", 2000); }
+      };
+    } else {
       cell.onclick = () => {
         const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
         document.getElementById("calendarPopup").classList.remove("show");
