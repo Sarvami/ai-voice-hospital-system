@@ -306,27 +306,58 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             return f"Sorry, I didn't catch that. Available doctors are: {', '.join(names_only)}. Please say a name or ask for nearby areas.", {}
 
         conn = get_db_connection()
-        doctor_row = conn.execute("SELECT doctor_id, available_hours FROM doctors WHERE LOWER(name) LIKE ?", (f"%{chosen.lower().replace('dr.', '').strip()}%",)).fetchone()
+        doctor_row = conn.execute("SELECT doctor_id, available_hours, available_days FROM doctors WHERE LOWER(name) LIKE ?", (f"%{chosen.lower().replace('dr.', '').strip()}%",)).fetchone()
         conn.close()
 
         user_data[user_id]["doctor"] = chosen
         user_data[user_id]["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
         avail_hours = doctor_row["available_hours"] if doctor_row and doctor_row["available_hours"] else "8:00 AM - 8:00 PM"
+        avail_days  = doctor_row["available_days"]  if doctor_row and doctor_row["available_days"]  else ""
         user_data[user_id]["available_hours"] = avail_hours
+        user_data[user_id]["available_days"]  = avail_days
 
         user_state[user_id] = "waiting_date"
-        base_reply = f"Great, {chosen}. What date would you like? Note that the doctor is available {avail_hours}."
+        base_reply = f"Great, {chosen}. What date would you like? The doctor is available {avail_days} {avail_hours}."
         return base_reply, {"intent": "ask_date", "data": {"doctor": chosen, "available_hours": avail_hours, "doctor_id": user_data[user_id]["doctor_id"]}}
 
     elif state == "waiting_date":
-        date_number_words = {"first": "1", "second": "2", "third": "3", "fourth": "4", "fifth": "5", "ek": "1", "don": "2", "do": "2", "teen": "3"} # Simplified for concise code
+        date_number_words = {"first": "1", "second": "2", "third": "3", "fourth": "4", "fifth": "5", "ek": "1", "don": "2", "do": "2", "teen": "3"}
         words = text.lower().split()
         text = " ".join([date_number_words.get(w, w) for w in words])
         parsed = dateparser.parse(text, languages=["en", "hi", "mr"], settings={"PREFER_DATES_FROM": "future", "DATE_ORDER": "DMY"})
-        
+
         if parsed:
             if parsed.date() < datetime.now().date():
                 return "That date is in the past. Please choose a future date.", {}
+
+            # Check doctor's available days
+            available_days_str = user_data[user_id].get("available_days", "")
+            if available_days_str:
+                day_name = parsed.strftime("%A")  # e.g. "Monday"
+                day_abbr = parsed.strftime("%a")  # e.g. "Mon"
+                days_lower = available_days_str.lower()
+
+                # Parse ranges like "Mon-Thu", "Mon-Fri"
+                day_order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+                allowed = set()
+                import re as _re
+                range_match = _re.search(r'(\w+)\s*[-–]\s*(\w+)', days_lower)
+                if range_match:
+                    start_d = range_match.group(1)[:3]
+                    end_d   = range_match.group(2)[:3]
+                    if start_d in day_order and end_d in day_order:
+                        si, ei = day_order.index(start_d), day_order.index(end_d)
+                        for i in range(si, ei + 1):
+                            allowed.add(day_order[i])
+                else:
+                    for d in day_order:
+                        if d in days_lower:
+                            allowed.add(d)
+
+                if allowed and day_abbr.lower()[:3] not in allowed:
+                    return (f"Sorry, {user_data[user_id]['doctor']} is not available on {day_name}. "
+                            f"They are available {available_days_str}. Please choose another date."), {}
+
             user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
             user_state[user_id] = "waiting_time"
             avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
@@ -349,7 +380,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         }
 
         detected_hour = None
-        is_pm = any(w in text.lower() for w in ["pm", "evening", "sham", "shaam", "raat", "night", "afternoon", "dopahar"])
+        is_pm = any(w in text.lower() for w in ["pm", "evening", "sham", "shaam", "raat", "night", "afternoon", "dopahar", "duphar"])
         is_am = any(w in text.lower() for w in ["am", "morning", "subah", "savere"])
 
         # Try digit first
@@ -357,6 +388,13 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             if word.isdigit():
                 detected_hour = int(word)
                 break
+
+        # Try HH:MM format (e.g. "12:00", "6:30")
+        if detected_hour is None:
+            import re
+            m = re.search(r'\b(\d{1,2}):\d{2}\b', text)
+            if m:
+                detected_hour = int(m.group(1))
 
         # Try word-form numbers
         if detected_hour is None:
