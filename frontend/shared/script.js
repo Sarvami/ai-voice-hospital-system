@@ -153,7 +153,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize region
   const initialRegion = localStorage.getItem('region');
-  if (initialRegion) setTimeout(() => updateRegion(initialRegion), 1000);
+  if (initialRegion) {
+    const label = document.getElementById('selectedRegion');
+    if (label) label.textContent = initialRegion;
+    setTimeout(() => updateRegion(initialRegion), 1000);
+  }
 });
 
 function setupEventListeners() {
@@ -248,6 +252,12 @@ async function handleMicClick() {
         if (json.audio_url && audioPlayer) {
           audioPlayer.src = json.audio_url.startsWith('http') ? json.audio_url : `${BACKEND}${json.audio_url}`;
           audioPlayer.play();
+          if (statusText) statusText.innerText = "🔊 Speaking...";
+          audioPlayer.onended = () => {
+            if (statusText) statusText.innerText = "Tap the mic and speak";
+          };
+        } else {
+          if (statusText) statusText.innerText = "Tap the mic and speak";
         }
 
         if (json.booked) showSuccessPopup("Appointment booked!");
@@ -258,6 +268,8 @@ async function handleMicClick() {
         } else if (json.intent === "ask_region") {
            const reg = await openRegionPopup();
            if (reg) selectRegion(reg);
+        } else if (json.intent === "show_doctors_popup") {
+           openDoctorPopup(json.doctors || []);
         }
       } catch (err) { hideLoader(); console.error(err); }
     };
@@ -339,6 +351,99 @@ function showSuccessPopup(msg) {
   if (el) el.textContent = msg;
   document.getElementById("successPopup")?.classList.add("show");
   setTimeout(() => document.getElementById("successPopup")?.classList.remove("show"), 3000);
+}
+
+/* ── DOCTOR POPUP ── */
+let doctorPopupList = [];
+let doctorPopupIndex = 0;
+
+const DOCTOR_POPUP_TEXT = {
+  en: { question: "Book appointment with this doctor?", counter: (i, n) => `${i} of ${n} doctors`, noMore: "No more doctors available.", yes: "✓ Yes", no: "✗ No" },
+  hi: { question: "क्या इस डॉक्टर से अपॉइंटमेंट बुक करें?", counter: (i, n) => `${n} में से ${i}`, noMore: "कोई और डॉक्टर उपलब्ध नहीं।", yes: "✓ हाँ", no: "✗ नहीं" },
+  mr: { question: "या डॉक्टरांसोबत अपॉइंटमेंट बुक करायची?", counter: (i, n) => `${n} पैकी ${i}`, noMore: "आणखी डॉक्टर उपलब्ध नाहीत.", yes: "✓ होय", no: "✗ नाही" },
+  ta: { question: "இந்த மருத்துவரிடம் சந்திப்பு பதிவு செய்யவா?", counter: (i, n) => `${n} இல் ${i}`, noMore: "வேறு மருத்துவர்கள் இல்லை.", yes: "✓ ஆம்", no: "✗ இல்லை" },
+  te: { question: "ఈ డాక్టర్‌తో అపాయింట్‌మెంట్ బుక్ చేయాలా?", counter: (i, n) => `${n} లో ${i}`, noMore: "మరిన్ని డాక్టర్లు అందుబాటులో లేరు.", yes: "✓ అవును", no: "✗ కాదు" },
+  gu: { question: "આ ડૉક્ટર સાથે એપોઇન્ટમેન્ટ બુક કરવી?", counter: (i, n) => `${n} માંથી ${i}`, noMore: "વધુ ડૉક્ટર ઉપલબ્ધ નથી.", yes: "✓ હા", no: "✗ ના" },
+};
+
+function getDoctorPopupText() {
+  return DOCTOR_POPUP_TEXT[selectedLang] || DOCTOR_POPUP_TEXT.en;
+}
+
+function openDoctorPopup(doctors) {
+  if (!doctors || !doctors.length) return;
+  doctorPopupList = doctors;
+  doctorPopupIndex = 0;
+  showDoctorCard(0);
+  document.getElementById('doctorPopup').classList.add('show');
+}
+
+function showDoctorCard(index) {
+  const d = doctorPopupList[index];
+  if (!d) return;
+  const txt = getDoctorPopupText();
+  const rating = parseFloat(d.rating) || 0;
+  const stars = '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
+
+  document.getElementById('doctorPopupName').textContent = d.name || '—';
+  document.getElementById('doctorPopupRegion').innerHTML = `📍 ${d.region || '—'}`;
+  document.getElementById('doctorPopupStars').textContent = stars + `  ${rating.toFixed(1)}`;
+  document.getElementById('doctorPopupHours').textContent = `🕐 ${d.available_hours || '8:00 AM - 8:00 PM'}`;
+  document.getElementById('doctorPopupQuestion').textContent = txt.question;
+  document.getElementById('doctorPopupCounter').textContent = txt.counter(index + 1, doctorPopupList.length);
+
+  // update button labels
+  document.querySelector('.doctor-popup-yes').textContent = txt.yes;
+  document.querySelector('.doctor-popup-no').textContent  = txt.no;
+}
+
+async function doctorPopupAnswer(yes) {
+  const d = doctorPopupList[doctorPopupIndex];
+  if (!d) return;
+
+  if (yes) {
+    document.getElementById('doctorPopup').classList.remove('show');
+    addCaptionToHistory(d.name, 'user');
+
+    const audioPlayer = document.getElementById('audioPlayer');
+    const statusText  = document.getElementById('status');
+    showLoader();
+    try {
+      const res = await fetch(`${BACKEND}/process-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: d.name,
+          lang: selectedLang,
+          patient_id: parseInt(localStorage.getItem('patient_id'))
+        })
+      });
+      hideLoader();
+      const json = await res.json();
+      const aiText = json.reply_in_lang || json.text;
+      if (aiText) addCaptionToHistory(aiText, 'ai');
+      if (json.audio_url && audioPlayer) {
+        audioPlayer.src = json.audio_url.startsWith('http') ? json.audio_url : `${BACKEND}${json.audio_url}`;
+        audioPlayer.play();
+        if (statusText) statusText.innerText = '🔊 Speaking...';
+        audioPlayer.onended = () => { if (statusText) statusText.innerText = 'Tap the mic and speak'; };
+      }
+      if (json.intent === 'ask_date') {
+        const date = await openCalendarPopup();
+        if (date) selectDate(date, json.doctor_id);
+      }
+    } catch(e) { hideLoader(); console.error(e); }
+
+  } else {
+    doctorPopupIndex++;
+    if (doctorPopupIndex < doctorPopupList.length) {
+      showDoctorCard(doctorPopupIndex);
+    } else {
+      document.getElementById('doctorPopup').classList.remove('show');
+      const txt = getDoctorPopupText();
+      addCaptionToHistory(txt.noMore, 'ai');
+    }
+  }
 }
 
 /* ── CALENDAR LOGIC ── */
@@ -445,3 +550,12 @@ function logout() {
 function closeSuccessPopup() {
   document.getElementById('successPopup')?.classList.remove('show');
 }
+
+// Expose functions called from inline HTML onclick handlers
+window.doctorPopupAnswer = doctorPopupAnswer;
+window.confirmRegion     = confirmRegion;
+window.calChangeMonth    = calChangeMonth;
+window.closeSuccessPopup = closeSuccessPopup;
+window.toggleRegionDropdown = toggleRegionDropdown;
+window.selectRegion      = selectRegion;
+window.toggleTheme       = toggleTheme;

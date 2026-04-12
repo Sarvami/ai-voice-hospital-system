@@ -931,3 +931,115 @@ body.light-theme .translation-text { color: #15803d; border-top-color: rgba(22,1
   border-top: 1px solid rgba(105,240,174,0.2);
   padding-top: 6px;
 }
+
+/* ── DOCTOR POPUP ── */
+#doctorPopup {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  z-index: 9400;
+  align-items: center; justify-content: center;
+}
+#doctorPopup.show { display: flex; }
+
+.doctor-popup-box {
+  background: rgba(13,20,38,0.98);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px 28px 24px;
+  width: 320px;
+  max-width: 90%;
+  text-align: center;
+  animation: popIn 0.25s ease;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(79,195,247,0.08);
+}
+
+.doctor-popup-avatar {
+  font-size: 52px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.doctor-popup-box h3 {
+  color: var(--accent);
+  font-size: 1.15rem;
+  font-family: 'Sora', sans-serif;
+  margin-bottom: 6px;
+}
+
+.doctor-popup-region {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.doctor-popup-stars {
+  font-size: 22px;
+  color: #f5a623;
+  margin-bottom: 6px;
+  letter-spacing: 2px;
+}
+
+.doctor-popup-hours {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 16px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 5px 10px;
+  display: inline-block;
+}
+
+.doctor-popup-question {
+  color: var(--text);
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.doctor-popup-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.doctor-popup-yes {
+  flex: 1; padding: 11px;
+  border-radius: 12px; border: none;
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  color: #fff; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'Sora', sans-serif;
+  transition: all 0.2s;
+}
+.doctor-popup-yes:hover { opacity: 0.88; transform: translateY(-1px); }
+
+.doctor-popup-no {
+  flex: 1; padding: 11px;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.06);
+  color: var(--text); font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'Sora', sans-serif;
+  transition: all 0.2s;
+}
+.doctor-popup-no:hover { background: rgba(239,83,80,0.12); border-color: #ef5350; color: #ef9a9a; }
+
+.doctor-popup-counter {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+}
+
+body.light-theme .doctor-popup-box {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+body.light-theme .doctor-popup-box h3 { color: var(--accent); }
+body.light-theme .doctor-popup-question { color: #1e293b; }
+body.light-theme .doctor-popup-hours { background: rgba(0,0,0,0.04); }

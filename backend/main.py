@@ -90,7 +90,8 @@ async def process_audio(
         "audio_url": audio_url,
         "booked": meta.get("booked", False),
         "intent": meta.get("intent", ""),
-        "doctor_id": meta.get("data", {}).get("doctor_id")
+        "doctor_id": meta.get("data", {}).get("doctor_id"),
+        "doctors": meta.get("data", {}).get("doctors", [])
     })
 
 @app.post("/process-text")
@@ -109,7 +110,9 @@ def process_text(data: TextInput):
         "reply_in_lang": final,
         "audio_url": f"/temp-audio/{out_filename}",
         "booked": meta.get("booked", False),
-        "doctor_id": meta.get("data", {}).get("doctor_id")
+        "intent": meta.get("intent", ""),
+        "doctor_id": meta.get("data", {}).get("doctor_id"),
+        "doctors": meta.get("data", {}).get("doctors", [])
     })
 
 # ------------------ UTILITY APIs ------------------

@@ -81,12 +81,15 @@ def get_doctors_by_department(dept, region=None):
     cursor = conn.cursor()
     if region:
         cursor.execute(
-            "SELECT name, rating FROM doctors WHERE LOWER(department)=LOWER(?) AND LOWER(region)=LOWER(?)",
+            "SELECT doctor_id, name, rating, region, available_hours FROM doctors WHERE LOWER(department)=LOWER(?) AND LOWER(region)=LOWER(?)",
             (dept, region)
         )
     else:
-        cursor.execute("SELECT name, rating FROM doctors WHERE LOWER(department)=LOWER(?)", (dept,))
-    doctors = [{"name": row[0], "rating": row[1]} for row in cursor.fetchall()]
+        cursor.execute(
+            "SELECT doctor_id, name, rating, region, available_hours FROM doctors WHERE LOWER(department)=LOWER(?)",
+            (dept,)
+        )
+    doctors = [{"doctor_id": row[0], "name": row[1], "rating": row[2], "region": row[3], "available_hours": row[4]} for row in cursor.fetchall()]
     conn.close()
     return doctors
 
@@ -251,13 +254,28 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
     elif state == "waiting_doctor":
         available = user_data[user_id].get("available_doctors", [])
         chosen = None
-        
-        if any(w in text.lower() for w in ["nearby", "other area", "neighbor", "neighbour", "next area"]):
+
+        # Detect "show me nearby / other area / aas paas" requests
+        nearby_keywords = ["nearby", "other area", "neighbor", "neighbour", "next area",
+                           "aas paas", "aaspaas", "kareeb", "doosre", "doosra",
+                           "other doctor", "more doctor", "different doctor",
+                           "jagah", "jagha", "different area", "another area"]
+        original_lower = original.lower() if original else ""
+        nearby_original_keywords = ["shetron", "shetra", "aas paas", "aaspaas", "paas ke", "kareeb"]
+        if any(w in text.lower() for w in nearby_keywords) or any(w in original_lower for w in nearby_original_keywords):
             matched_dept = user_data[user_id].get("dept")
-            all_nearby = get_doctors_by_department(matched_dept, None)
-            user_data[user_id]["available_doctors"] = all_nearby
-            doc_names = [f"{d['name'].replace('Dr.', 'Doctor')} (Rating {d['rating']})" for d in all_nearby]
-            return f"Understood. Here are {matched_dept} specialists from nearby areas: {', '.join(doc_names)}. Any preference?", {"intent": "select_doctor", "data": {"doctors": all_nearby}}
+            current_region = user_data[user_id].get("region")
+            all_doctors = get_doctors_by_department(matched_dept, None)
+            # exclude current region doctors so we show truly nearby ones first, but include all
+            nearby = [d for d in all_doctors if d.get("region", "").lower() != (current_region or "").lower()]
+            if not nearby:
+                nearby = all_doctors
+            user_data[user_id]["available_doctors"] = nearby
+            user_data[user_id]["popup_doctors"] = nearby
+            user_data[user_id]["popup_index"] = 0
+            user_state[user_id] = "waiting_doctor"
+            return (f"Here are {matched_dept} specialists from other areas. I'll show them one by one.",
+                    {"intent": "show_doctors_popup", "data": {"doctors": nearby}})
 
         if len(available) == 1 and any(w in text.lower() for w in ["yes", "book", "confirm", "okay", "sure", "that's fine"]):
             chosen = available[0]["name"]

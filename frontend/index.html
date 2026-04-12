@@ -189,6 +189,23 @@
     </div>
   </div>
 
+  <!-- ── DOCTOR POPUP ── -->
+  <div id="doctorPopup">
+    <div class="doctor-popup-box">
+      <div class="doctor-popup-avatar" id="doctorPopupAvatar">👨‍⚕️</div>
+      <h3 id="doctorPopupName">—</h3>
+      <div class="doctor-popup-region" id="doctorPopupRegion">—</div>
+      <div class="doctor-popup-stars" id="doctorPopupStars">—</div>
+      <div class="doctor-popup-hours" id="doctorPopupHours">—</div>
+      <p class="doctor-popup-question" id="doctorPopupQuestion">Book appointment with this doctor?</p>
+      <div class="doctor-popup-btns">
+        <button class="doctor-popup-yes" onclick="doctorPopupAnswer(true)" id="doctorPopupYes">✓ Yes</button>
+        <button class="doctor-popup-no"  onclick="doctorPopupAnswer(false)" id="doctorPopupNo">✗ No</button>
+      </div>
+      <div class="doctor-popup-counter" id="doctorPopupCounter"></div>
+    </div>
+  </div>
+
   <script src="shared/script.js"></script>
 </body>
 </html>
