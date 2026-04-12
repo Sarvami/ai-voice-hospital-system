@@ -330,23 +330,48 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
             user_state[user_id] = "waiting_time"
             avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
-            reply = f"Got it, {user_data[user_id]['date']}. At what time? Note that {user_data[user_id]['doctor']} is available {avail_hours}."
+            reply = f"Got it, {user_data[user_id]['date']}. At what time? The doctor is available {avail_hours}."
             return reply, {"data": {"available_hours": avail_hours}}
         return "Sorry, I didn't catch the date. Please say it again.", {}
 
     elif state == "waiting_time":
         avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
         allowed_start, allowed_end = parse_available_hours(avail_hours)
-        
+
+        # Map word numbers (English + Hindi + Marathi) to digits
+        word_to_num = {
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+            "eleven": 11, "twelve": 12,
+            "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5,
+            "chhe": 6, "che": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
+            "gyarah": 11, "barah": 12,
+        }
+
         detected_hour = None
+        is_pm = any(w in text.lower() for w in ["pm", "evening", "sham", "shaam", "raat", "night", "afternoon", "dopahar"])
+        is_am = any(w in text.lower() for w in ["am", "morning", "subah", "savere"])
+
+        # Try digit first
         for word in text.split():
             if word.isdigit():
                 detected_hour = int(word)
                 break
-        
+
+        # Try word-form numbers
+        if detected_hour is None:
+            for word in text.lower().split():
+                if word in word_to_num:
+                    detected_hour = word_to_num[word]
+                    break
+
         if detected_hour:
-            # Simplified time detection logic
-            h24 = detected_hour if "pm" not in text.lower() or detected_hour == 12 else detected_hour + 12
+            if is_pm and detected_hour != 12:
+                h24 = detected_hour + 12
+            elif is_am and detected_hour == 12:
+                h24 = 0
+            else:
+                h24 = detected_hour
             if not (allowed_start <= h24 <= allowed_end):
                 return f"Sorry, the doctor is only available {avail_hours}.", {}
             user_data[user_id]["time"] = f"{h24:02d}:00"
