@@ -229,7 +229,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
             user_data[user_id]["available_doctors"] = doctors
             user_state[user_id] = "waiting_doctor"
-            
+
             if len(doctors) == 1:
                 d = doctors[0]
                 name = d['name'].replace('Dr.', 'Doctor')
@@ -237,10 +237,13 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 if "nearby" in reply_prefix:
                     reply = f"{name} (Rating {rating}) is available nearby. Book now?"
                 else:
-                    reply = f"{name} (Rating {rating}) is available. Book now, or see nearby doctors?"
+                    reply = f"In {region}, {name} (Rating {rating}) is available. Book now, or see nearby doctors?"
             else:
                 doctor_names = [f"{d['name'].replace('Dr.', 'Doctor')} (Rating {d['rating']})" for d in doctors]
-                reply = f"{reply_prefix}: {', '.join(doctor_names)}. Any preference?"
+                if "nearby" in reply_prefix:
+                    reply = f"{reply_prefix}: {', '.join(doctor_names)}. Any preference?"
+                else:
+                    reply = f"In {region}, available doctors: {', '.join(doctor_names)}. Any preference?"
             return reply, {"intent": "select_doctor", "data": {"doctors": doctors}}
 
         return "Sorry, I didn't catch that. Please describe your problem.", {}

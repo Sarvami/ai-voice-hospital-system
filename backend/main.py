@@ -67,12 +67,6 @@ async def process_audio(
         print(f"  translated: {final}")
         print(f"  intent    : {meta.get('intent', '—')}  |  state: {meta.get('data', {})}")
         print(f"{'─'*50}\n")
-        
-        # Inject availability if present
-        if meta.get("data", {}).get("available_hours"):
-            hours = meta["data"]["available_hours"]
-            if hours != "8:00 AM - 8:00 PM":
-                final += f" ({hours})"
 
     except Exception as e:
         print("ERROR in process_audio:", e)
@@ -95,6 +89,7 @@ async def process_audio(
         "reply_in_lang": final,
         "audio_url": audio_url,
         "booked": meta.get("booked", False),
+        "intent": meta.get("intent", ""),
         "doctor_id": meta.get("data", {}).get("doctor_id")
     })
 
