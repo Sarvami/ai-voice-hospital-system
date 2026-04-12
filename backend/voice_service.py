@@ -419,7 +419,12 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         return "Sorry, I didn't catch the time.", {}
 
     elif state == "confirming":
-        if any(w in text for w in ["yes", "confirm", "ok", "sure", "theek"]):
+        confirm_words = ["yes", "confirm", "ok", "sure", "theek", "ha", "haa", "han",
+                         "haan", "ho", "bilkul", "zaroor", "correct", "right", "book",
+                         "please", "karo", "kar", "done", "proceed", "aage"]
+        cancel_words  = ["no", "nahi", "naa", "cancel", "band", "mat", "don't", "dont", "stop"]
+
+        if any(w in text for w in confirm_words):
             d = user_data[user_id]
             patient = get_or_create_patient(d["name"], d["phone"], lang)
             aid = create_appointment(patient["patient_id"], d["doctor_id"], d["date"], d["time"], d["dept"], lang)
@@ -427,6 +432,12 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id] = {}
             if aid: return "Confirmed! Your appointment is booked. See you then!", {"booked": True}
             return "You already have an appointment on that date.", {}
-        return "Booking cancelled. Say 'book appointment' to restart.", {}
+        elif any(w in text for w in cancel_words):
+            user_state[user_id] = "idle"
+            user_data[user_id] = {}
+            return "Booking cancelled. Say 'book appointment' to restart.", {}
+        else:
+            d = user_data[user_id]
+            return f"Please confirm — shall I book with {d['doctor']} on {d['date']} at {d['time']}? Say yes or no.", {}
 
     return "Sorry, I'm not sure how to respond to that.", {}
