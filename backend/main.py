@@ -91,6 +91,7 @@ async def process_audio(
         "booked": meta.get("booked", False),
         "intent": meta.get("intent", ""),
         "doctor_id": meta.get("data", {}).get("doctor_id"),
+        "available_days": meta.get("data", {}).get("available_days", ""),
         "doctors": meta.get("data", {}).get("doctors", [])
     })
 
@@ -112,6 +113,7 @@ def process_text(data: TextInput):
         "booked": meta.get("booked", False),
         "intent": meta.get("intent", ""),
         "doctor_id": meta.get("data", {}).get("doctor_id"),
+        "available_days": meta.get("data", {}).get("available_days", ""),
         "doctors": meta.get("data", {}).get("doctors", [])
     })
 

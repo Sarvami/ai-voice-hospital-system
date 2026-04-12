@@ -263,6 +263,7 @@ async function handleMicClick() {
         if (json.booked) showSuccessPopup("Appointment booked!");
 
         if (json.intent === "ask_date") {
+           window._currentDoctorAvailDays = json.available_days || '';
            const date = await openCalendarPopup();
            if (date) selectDate(date, json.doctor_id);
         } else if (json.intent === "ask_region") {
@@ -314,6 +315,35 @@ function selectRegion(region) {
 }
 
 function selectDate(date, doctorId) {
+  // Client-side day validation using stored available_days
+  const availDays = window._currentDoctorAvailDays || '';
+  if (availDays) {
+    const dayOrder = ['sun','mon','tue','wed','thu','fri','sat'];
+    const d = new Date(date);
+    const dayAbbr = ['sun','mon','tue','wed','thu','fri','sat'][d.getDay()];
+    const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+    const daysLower = availDays.toLowerCase();
+    const rangeMatch = daysLower.match(/(\w+)\s*[-–]\s*(\w+)/);
+    let allowed = new Set();
+    if (rangeMatch) {
+      const si = dayOrder.indexOf(rangeMatch[1].slice(0,3));
+      const ei = dayOrder.indexOf(rangeMatch[2].slice(0,3));
+      if (si !== -1 && ei !== -1) for (let i = si; i <= ei; i++) allowed.add(dayOrder[i]);
+    } else {
+      dayOrder.forEach(d => { if (daysLower.includes(d)) allowed.add(d); });
+    }
+    if (allowed.size && !allowed.has(dayAbbr)) {
+      const msg = document.getElementById("calPastMsg");
+      if (msg) {
+        msg.textContent = `⛔ Doctor not available on ${dayName}. Available: ${availDays}`;
+        msg.style.opacity = "1";
+        clearTimeout(msg._t);
+        msg._t = setTimeout(() => { msg.style.opacity = "0"; msg.textContent = "⛔ Cannot select a past date"; }, 3000);
+      }
+      return; // block submission
+    }
+  }
+
   showLoader();
   fetch(`${BACKEND}/set-appointment-date`, {
     method: "POST",
@@ -429,6 +459,7 @@ async function doctorPopupAnswer(yes) {
         audioPlayer.onended = () => { if (statusText) statusText.innerText = 'Tap the mic and speak'; };
       }
       if (json.intent === 'ask_date') {
+        window._currentDoctorAvailDays = json.available_days || '';
         const date = await openCalendarPopup();
         if (date) selectDate(date, json.doctor_id);
       }
@@ -517,11 +548,47 @@ function renderCalPopup() {
   for(let d=1; d<=daysInMonth; d++) {
     const cell = document.createElement("div"); cell.className="cd"; cell.textContent=d;
     const thisDate = new Date(year, month, d);
-    if (thisDate < today) {
+    const dayAbbr = ['sun','mon','tue','wed','thu','fri','sat'][thisDate.getDay()];
+
+    // Check if past
+    const isPast = thisDate < today;
+
+    // Check if doctor unavailable on this weekday
+    let isDayBlocked = false;
+    const availDays = window._currentDoctorAvailDays || '';
+    if (availDays && !isPast) {
+      const dayOrder = ['sun','mon','tue','wed','thu','fri','sat'];
+      const daysLower = availDays.toLowerCase();
+      const rangeMatch = daysLower.match(/(\w+)\s*[-–]\s*(\w+)/);
+      let allowed = new Set();
+      if (rangeMatch) {
+        const si = dayOrder.indexOf(rangeMatch[1].slice(0,3));
+        const ei = dayOrder.indexOf(rangeMatch[2].slice(0,3));
+        if (si !== -1 && ei !== -1) for (let i = si; i <= ei; i++) allowed.add(dayOrder[i]);
+      } else {
+        dayOrder.forEach(d => { if (daysLower.includes(d)) allowed.add(d); });
+      }
+      if (allowed.size && !allowed.has(dayAbbr)) isDayBlocked = true;
+    }
+
+    if (isPast) {
       cell.classList.add("disabled");
       cell.onclick = () => {
         const msg = document.getElementById("calPastMsg");
         if (msg) { msg.style.opacity = "1"; clearTimeout(msg._t); msg._t = setTimeout(() => msg.style.opacity = "0", 2000); }
+      };
+    } else if (isDayBlocked) {
+      cell.classList.add("disabled");
+      cell.style.opacity = "0.25";
+      cell.title = `Not available (${availDays})`;
+      cell.onclick = () => {
+        const msg = document.getElementById("calPastMsg");
+        if (msg) {
+          msg.textContent = `⛔ Doctor not available on this day (${availDays})`;
+          msg.style.opacity = "1";
+          clearTimeout(msg._t);
+          msg._t = setTimeout(() => { msg.style.opacity = "0"; msg.textContent = "⛔ Cannot select a past date"; }, 2500);
+        }
       };
     } else {
       cell.onclick = () => {
