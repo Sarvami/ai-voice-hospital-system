@@ -380,7 +380,7 @@ function showSuccessPopup(msg) {
   const el = document.getElementById("successMsg");
   if (el) el.textContent = msg;
   document.getElementById("successPopup")?.classList.add("show");
-  setTimeout(() => document.getElementById("successPopup")?.classList.remove("show"), 3000);
+  // No auto-dismiss — user must click "Great!"
 }
 
 /* ── DOCTOR POPUP ── */

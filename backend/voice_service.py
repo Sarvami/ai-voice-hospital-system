@@ -389,10 +389,10 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 detected_hour = int(word)
                 break
 
-        # Try HH:MM format (e.g. "12:00", "6:30")
+        # Try HH:MM format (e.g. "12:00", "6:30", "7:00pm")
         if detected_hour is None:
             import re
-            m = re.search(r'\b(\d{1,2}):\d{2}\b', text)
+            m = re.search(r'(\d{1,2}):\d{2}', text)
             if m:
                 detected_hour = int(m.group(1))
 
@@ -408,6 +408,9 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 h24 = detected_hour + 12
             elif is_am and detected_hour == 12:
                 h24 = 0
+            elif not is_am and not is_pm and 1 <= detected_hour <= 7:
+                # Ambiguous low hour with no AM/PM — assume PM (afternoon/evening)
+                h24 = detected_hour + 12
             else:
                 h24 = detected_hour
             if not (allowed_start <= h24 <= allowed_end):
@@ -426,8 +429,12 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
 
         if any(w in text for w in confirm_words):
             d = user_data[user_id]
-            patient = get_or_create_patient(d["name"], d["phone"], lang)
-            aid = create_appointment(patient["patient_id"], d["doctor_id"], d["date"], d["time"], d["dept"], lang)
+            pid  = d.get("patient_id") or (int(user_id) if str(user_id).isdigit() else None)
+            name = d.get("name", "Patient")
+            phone = d.get("phone", "")
+            patient = get_or_create_patient(name, phone, lang) if phone else {"patient_id": pid}
+            final_pid = patient.get("patient_id") or pid
+            aid = create_appointment(final_pid, d["doctor_id"], d["date"], d["time"], d["dept"], lang)
             user_state[user_id] = "idle"
             user_data[user_id] = {}
             if aid: return "Confirmed! Your appointment is booked. See you then!", {"booked": True}
