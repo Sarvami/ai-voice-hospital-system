@@ -97,19 +97,30 @@ async def process_audio(
 
 @app.post("/process-text")
 def process_text(data: TextInput):
-    english = gt_to_english(data.text)
-    reply, meta = generate_reply(english, user_id=str(data.patient_id), lang=data.lang, original=data.text)
-    final = gt_from_english(reply, data.lang)
+    try:
+        english = gt_to_english(data.text)
+        reply, meta = generate_reply(english, user_id=str(data.patient_id), lang=data.lang, original=data.text)
+        final = gt_from_english(reply, data.lang)
+    except Exception as e:
+        print("ERROR in process_text:", e)
+        final = "Sorry, something went wrong. Please try again."
+        reply = final
+        meta = {}
 
-    out_filename = f"{uuid.uuid4()}.mp3"
-    out_path = os.path.join(TEMP_DIR, out_filename)
-    gTTS(text=final, lang=data.lang).save(out_path)
+    try:
+        out_filename = f"{uuid.uuid4()}.mp3"
+        out_path = os.path.join(TEMP_DIR, out_filename)
+        gTTS(text=final, lang=data.lang).save(out_path)
+        audio_url = f"/temp-audio/{out_filename}"
+    except Exception as e:
+        print("ERROR generating TTS in process_text:", e)
+        audio_url = ""
 
     return JSONResponse({
         "text": reply,
         "original_text": data.text,
         "reply_in_lang": final,
-        "audio_url": f"/temp-audio/{out_filename}",
+        "audio_url": audio_url,
         "booked": meta.get("booked", False),
         "intent": meta.get("intent", ""),
         "doctor_id": meta.get("data", {}).get("doctor_id"),
