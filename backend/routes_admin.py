@@ -1,8 +1,10 @@
 import random
-from fastapi import APIRouter
+import sqlite3
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from models import AddDoctorRequest, UpdateDoctorRequest, UpdatePatientRequest
 from passlib.context import CryptContext
+from database import get_db
 from repositories import patient_repo, doctor_repo, appointment_repo
 
 router = APIRouter()
@@ -16,36 +18,36 @@ def db_error(e):
     return JSONResponse({"error": "Database error", "detail": str(e)}, status_code=500)
 
 @router.get("/admin/overview")
-def get_admin_overview():
+def get_admin_overview(db: sqlite3.Connection = Depends(get_db)):
     try:
-        return appointment_repo.get_overview_counts()
+        return appointment_repo.get_overview_counts(db)
     except Exception as e:
         return db_error(e)
 
 @router.get("/admin/patients")
-def get_admin_patients():
+def get_admin_patients(db: sqlite3.Connection = Depends(get_db)):
     try:
-        return patient_repo.get_all_patients()
+        return patient_repo.get_all_patients(db)
     except Exception as e:
         return db_error(e)
 
 @router.get("/admin/doctors")
-def get_admin_doctors():
+def get_admin_doctors(db: sqlite3.Connection = Depends(get_db)):
     try:
-        return doctor_repo.get_all_doctors()
+        return doctor_repo.get_all_doctors(db)
     except Exception as e:
         return db_error(e)
 
 @router.post("/admin/add-doctor")
-def add_doctor(req: AddDoctorRequest):
+def add_doctor(req: AddDoctorRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
-        if doctor_repo.doc_id_exists(req.doc_id):
+        if doctor_repo.doc_id_exists(db, req.doc_id):
             return {"success": False, "message": "Doctor ID already exists"}
         parts = req.name.lower().replace("dr.", "").strip().split()
         email = ".".join(parts) + "@hospital.com"
         phone = "9" + str(random.randint(100000000, 999999999))
         doctor_repo.create_doctor(
-            req.name, req.department, req.qualification, req.experience_years,
+            db, req.name, req.department, req.qualification, req.experience_years,
             req.available_days, req.available_hours, req.doc_id,
             hash_password(req.password), email, phone, req.region
         )
@@ -54,10 +56,10 @@ def add_doctor(req: AddDoctorRequest):
         return db_error(e)
 
 @router.put("/admin/update-doctor")
-def update_doctor(req: UpdateDoctorRequest):
+def update_doctor(req: UpdateDoctorRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         doctor_repo.update_doctor(
-            req.doctor_id, req.name, req.department, req.qualification,
+            db, req.doctor_id, req.name, req.department, req.qualification,
             req.experience_years, req.doc_id, req.region, req.available_days,
             req.available_hours, req.contact_phone, req.email
         )
@@ -66,27 +68,27 @@ def update_doctor(req: UpdateDoctorRequest):
         return db_error(e)
 
 @router.put("/admin/update-patient")
-def update_patient(req: UpdatePatientRequest):
+def update_patient(req: UpdatePatientRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         patient_repo.update_patient(
-            req.patient_id, req.name, req.age, req.gender,
-            req.phone, req.preferred_language
+            db, req.patient_id, req.name, req.age,
+            req.gender, req.phone, req.preferred_language
         )
         return {"success": True}
     except Exception as e:
         return db_error(e)
 
 @router.get("/admin/appointments")
-def get_admin_appointments(patient_id: int = None):
+def get_admin_appointments(patient_id: int = None, db: sqlite3.Connection = Depends(get_db)):
     try:
-        return appointment_repo.get_all_appointments(patient_id)
+        return appointment_repo.get_all_appointments(db, patient_id)
     except Exception as e:
         return db_error(e)
 
 @router.get("/admin/ratings")
-def get_admin_ratings():
+def get_admin_ratings(db: sqlite3.Connection = Depends(get_db)):
     try:
-        return appointment_repo.get_all_ratings()
+        return appointment_repo.get_all_ratings(db)
     except Exception as e:
         return db_error(e)
 

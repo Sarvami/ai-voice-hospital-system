@@ -19,6 +19,15 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def get_db():
+    """FastAPI dependency — yields a connection and closes it after the request."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
+
 # Create engine
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
