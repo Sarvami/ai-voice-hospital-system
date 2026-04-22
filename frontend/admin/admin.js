@@ -3,6 +3,12 @@ const API = "http://127.0.0.1:8000";
 let allDoctors      = [];
 let allAppointments = [];
 
+/* ── XSS helper ── */
+function esc(str) {
+  if (str === null || str === undefined) return '—';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
 const sectionTitles = {
   overview:     'Overview',
   patients:     'Patients',
@@ -66,17 +72,18 @@ async function loadPatients() {
     }
     data.forEach(p => {
       // Ensure we use the correct keys from the backend (patient_id, name, etc)
+    data.forEach(p => {
       table.innerHTML += `
         <tr>
-          <td>${p.patient_id || '—'}</td>
-          <td>${p.name || '—'}</td>
-          <td>${p.age  || '—'}</td>
-          <td>${p.gender || '—'}</td>
-          <td>${p.phone || '—'}</td>
-          <td>${p.preferred_language || '—'}</td>
+          <td>${esc(p.patient_id)}</td>
+          <td>${esc(p.name)}</td>
+          <td>${esc(p.age)}</td>
+          <td>${esc(p.gender)}</td>
+          <td>${esc(p.phone)}</td>
+          <td>${esc(p.preferred_language)}</td>
           <td>
             <i class="fa-solid fa-pen-to-square edit-btn" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
-            <i class="fa-solid fa-folder-open edit-btn" title="View Reports" style="margin-left:10px; color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${p.name}')"></i>
+            <i class="fa-solid fa-folder-open edit-btn" title="View Reports" style="margin-left:10px; color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${esc(p.name)}')"></i>
           </td>
         </tr>`;
     });
@@ -454,15 +461,15 @@ function renderRatings(list) {
     const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
     table.innerHTML += `
       <tr style="${isLow ? 'background:rgba(239,83,80,0.07);' : ''}">
-        <td>${r.patient || '—'}</td>
-        <td>${r.doctor || '—'}</td>
-        <td>${r.department || '—'}</td>
+        <td>${esc(r.patient)}</td>
+        <td>${esc(r.doctor)}</td>
+        <td>${esc(r.department)}</td>
         <td style="color:${isLow ? '#ef9a9a' : '#f5a623'}; font-size:1.1rem;">${stars}</td>
         <td>${r.review
-          ? `<span style="color:${isLow ? '#ef9a9a' : '#a0aec0'}; font-style:italic;">"${r.review}"</span>`
+          ? `<span style="color:${isLow ? '#ef9a9a' : '#a0aec0'}; font-style:italic;">"${esc(r.review)}"</span>`
           : '<span style="color:#4a5568;">—</span>'
         }</td>
-        <td>${r.date || '—'}</td>
+        <td>${esc(r.date)}</td>
       </tr>`;
   });
 }
