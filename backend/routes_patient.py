@@ -1,11 +1,13 @@
 import os
 import uuid
-from fastapi import APIRouter, Request, UploadFile, File, Form
+import sqlite3
+from fastapi import APIRouter, Request, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from gtts import gTTS
 from models import DateRequest, RegionRequest, RateRequest
 from voice_service import user_state, user_data, gt_from_english
 from passlib.context import CryptContext
+from database import get_db
 from repositories import patient_repo, doctor_repo, appointment_repo, report_repo
 
 router = APIRouter()
@@ -23,7 +25,7 @@ def hash_password(password: str) -> str:
 # ── AUTH ──────────────────────────────────────────────────────────────────────
 
 @router.post("/login")
-async def login(request: Request):
+async def login(request: Request, db: sqlite3.Connection = Depends(get_db)):
     try:
         data     = await request.json()
         password = data.get("password", "")
@@ -40,7 +42,7 @@ async def login(request: Request):
             phone = data.get("phone", "").strip()
             if not phone or not password:
                 return {"success": False, "message": "Missing fields"}
-            user = patient_repo.get_patient_by_phone(phone)
+            user = patient_repo.get_patient_by_phone(db, phone)
             if not user:
                 return {"success": False, "message": "User not found"}
             if not verify_password(password, user["password_hash"]):
@@ -55,7 +57,7 @@ async def login(request: Request):
             doc_id = data.get("doctor_id", "").strip()
             if not doc_id or not password:
                 return {"success": False, "message": "Missing fields"}
-            user = doctor_repo.get_doctor_by_doc_id(doc_id)
+            user = doctor_repo.get_doctor_by_doc_id(db, doc_id)
             if not user:
                 return {"success": False, "message": "Doctor not found"}
             if not verify_password(password, user["password_hash"]):
@@ -71,9 +73,9 @@ async def login(request: Request):
 
 
 @router.post("/register")
-async def register_patient(request: Request):
+async def register_patient(request: Request, db: sqlite3.Connection = Depends(get_db)):
     try:
-        data = await request.json()
+        data     = await request.json()
         name     = data.get("name", "").strip()
         phone    = data.get("phone", "").strip()
         password = data.get("password", "")
@@ -84,10 +86,10 @@ async def register_patient(request: Request):
 
         if not name or not phone or not password:
             return {"success": False, "message": "Missing fields"}
-        if patient_repo.patient_phone_exists(phone):
+        if patient_repo.patient_phone_exists(db, phone):
             return {"success": False, "message": "Phone number already registered"}
 
-        patient_repo.create_patient(name, age, gender, phone, language, region, hash_password(password))
+        patient_repo.create_patient(db, name, age, gender, phone, language, region, hash_password(password))
         return {"success": True}
     except Exception as e:
         print("ERROR in register:", e)
@@ -96,16 +98,16 @@ async def register_patient(request: Request):
 # ── APPOINTMENTS ──────────────────────────────────────────────────────────────
 
 @router.get("/patient/appointments")
-def patient_appointments(patient_id: int):
+def patient_appointments(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
     try:
-        return appointment_repo.get_appointments_by_patient(patient_id)
+        return appointment_repo.get_appointments_by_patient(db, patient_id)
     except Exception as e:
         print("ERROR in patient_appointments:", e)
         return []
 
 
 @router.post("/set-appointment-date")
-def set_appointment_date_api(req: DateRequest):
+def set_appointment_date_api(req: DateRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         uid = req.patient_id
         if uid not in user_state:
@@ -129,12 +131,12 @@ def set_appointment_date_api(req: DateRequest):
 
 
 @router.post("/set-region")
-def set_region_api(req: RegionRequest):
+def set_region_api(req: RegionRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         if req.patient_id not in user_data:
             user_data[req.patient_id] = {}
         user_data[req.patient_id]["region"] = req.region
-        patient_repo.update_patient_region(req.patient_id, req.region)
+        patient_repo.update_patient_region(db, req.patient_id, req.region)
         text  = f"Region set to {req.region}."
         final = gt_from_english(text, req.lang)
         out   = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
@@ -147,22 +149,22 @@ def set_region_api(req: RegionRequest):
 # ── RATINGS ───────────────────────────────────────────────────────────────────
 
 @router.post("/patient/rate-appointment")
-def rate_appointment(req: RateRequest):
+def rate_appointment(req: RateRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
-        appt = appointment_repo.get_appointment_by_id(req.appointment_id)
+        appt = appointment_repo.get_appointment_by_id(db, req.appointment_id)
         if not appt or appt["status"].lower() != "completed" or appt["rating"]:
             return {"success": False, "message": "Invalid rating request"}
 
-        appointment_repo.set_appointment_rating(req.appointment_id, req.rating)
+        appointment_repo.set_appointment_rating(db, req.appointment_id, req.rating)
         if req.review:
-            appointment_repo.set_appointment_review(req.appointment_id, req.review)
+            appointment_repo.set_appointment_review(db, req.appointment_id, req.review)
 
-        stats   = doctor_repo.get_doctor_rating_stats(appt["doctor_id"])
-        old_r   = stats["rating"] or 4.5
-        old_c   = stats["rating_count"] or 0
-        new_c   = old_c + 1
-        new_r   = ((old_r * old_c) + req.rating) / new_c
-        doctor_repo.update_doctor_rating(appt["doctor_id"], new_r, new_c)
+        stats = doctor_repo.get_doctor_rating_stats(db, appt["doctor_id"])
+        old_r = stats["rating"] or 4.5
+        old_c = stats["rating_count"] or 0
+        new_c = old_c + 1
+        new_r = ((old_r * old_c) + req.rating) / new_c
+        doctor_repo.update_doctor_rating(db, appt["doctor_id"], new_r, new_c)
         return {"success": True, "avg": round(new_r, 1)}
     except Exception as e:
         print("ERROR in rate_appointment:", e)
@@ -174,7 +176,8 @@ def rate_appointment(req: RateRequest):
 async def upload_report(
     patient_id: str = Form(...),
     report_type: str = Form(...),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    db: sqlite3.Connection = Depends(get_db)
 ):
     try:
         allowed = {".pdf", ".jpg", ".jpeg", ".png"}
@@ -187,7 +190,7 @@ async def upload_report(
         safe_name = f"{uuid.uuid4()}{ext}"
         with open(os.path.join(REPORTS_DIR, safe_name), "wb") as f:
             f.write(contents)
-        report_repo.create_report(patient_id, report_type, file.filename, safe_name)
+        report_repo.create_report(db, patient_id, report_type, file.filename, safe_name)
         return {"success": True}
     except Exception as e:
         print("ERROR in upload_report:", e)
@@ -195,17 +198,17 @@ async def upload_report(
 
 
 @router.get("/patient/reports")
-def get_patient_reports(patient_id: int):
+def get_patient_reports(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
     try:
-        return {"reports": report_repo.get_reports_by_patient(patient_id)}
+        return {"reports": report_repo.get_reports_by_patient(db, patient_id)}
     except Exception as e:
         print("ERROR in get_patient_reports:", e)
         return {"reports": []}
 
 
 @router.get("/patient/report-file/{report_id}")
-def get_report_file(report_id: int):
-    row = report_repo.get_report_by_id(report_id)
+def get_report_file(report_id: int, db: sqlite3.Connection = Depends(get_db)):
+    row = report_repo.get_report_by_id(db, report_id)
     if not row:
         return JSONResponse({"error": "Not found"}, status_code=404)
     path = os.path.join(REPORTS_DIR, row["filepath"])
@@ -213,15 +216,15 @@ def get_report_file(report_id: int):
 
 
 @router.delete("/patient/report/{report_id}")
-def delete_report(report_id: int):
+def delete_report(report_id: int, db: sqlite3.Connection = Depends(get_db)):
     try:
-        row = report_repo.get_report_by_id(report_id)
+        row = report_repo.get_report_by_id(db, report_id)
         if not row:
             return {"success": False, "message": "Report not found"}
         filepath = os.path.join(REPORTS_DIR, row["filepath"])
         if os.path.exists(filepath):
             os.remove(filepath)
-        report_repo.delete_report(report_id)
+        report_repo.delete_report(db, report_id)
         return {"success": True}
     except Exception as e:
         print("ERROR in delete_report:", e)
@@ -229,9 +232,9 @@ def delete_report(report_id: int):
 
 
 @router.get("/doctors/by-region/{region}")
-def doctors_by_region(region: str):
+def doctors_by_region(region: str, db: sqlite3.Connection = Depends(get_db)):
     try:
-        return doctor_repo.get_doctors_by_region(region)
+        return doctor_repo.get_doctors_by_region(db, region)
     except Exception as e:
         print("ERROR in doctors_by_region:", e)
         return []

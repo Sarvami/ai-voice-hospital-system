@@ -8,6 +8,7 @@ import dateparser
 from datetime import datetime
 from googletrans import Translator
 from gtts import gTTS
+from database import get_db_connection
 from repositories import doctor_repo, patient_repo, appointment_repo
 
 # ------------------ SETUP ------------------
@@ -77,17 +78,27 @@ def fuzzy_match(text, keywords):
 # ------------------ DB HELPERS (Voice Flow) ------------------
 
 def get_doctors_by_department(dept, region=None):
-    return doctor_repo.get_doctors_by_department(dept, region)
+    conn = get_db_connection()
+    result = doctor_repo.get_doctors_by_department(conn, dept, region)
+    conn.close()
+    return result
 
 
 def get_or_create_patient(name, phone, language="en"):
-    return patient_repo.get_or_create_patient_voice(name, phone, language)
+    conn = get_db_connection()
+    result = patient_repo.get_or_create_patient_voice(conn, name, phone, language)
+    conn.close()
+    return result
 
 
 def create_appointment(pid, did, date, time_str, reason, language):
-    if appointment_repo.appointment_exists(pid, did, date):
+    conn = get_db_connection()
+    if appointment_repo.appointment_exists(conn, pid, did, date):
+        conn.close()
         return None
-    return appointment_repo.create_appointment(pid, did, date, time_str, "Booked", reason, "voice", language)
+    aid = appointment_repo.create_appointment(conn, pid, did, date, time_str, "Booked", reason, "voice", language)
+    conn.close()
+    return aid
 
 # ------------------核心 VOICE LOGIC ------------------
 
@@ -123,13 +134,17 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
     if "department" in text and ("which" in text or "what" in text or "belong" in text):
         for doc in ["mehta", "sharma", "rao", "shah", "desai", "gupta", "iyer", "malhotra", "bose", "chandra", "murthy", "menon", "sinha", "pandey", "hegde", "reddy"]:
             if doc in text:
-                result = doctor_repo.get_doctor_department_by_name(doc)
+                conn = get_db_connection()
+                result = doctor_repo.get_doctor_department_by_name(conn, doc)
+                conn.close()
                 if result:
                     return f"{result['name']} belongs to the {result['department']} department.", {}
         return "Sorry, I couldn't find that doctor.", {}
 
     if user_id not in user_state:
-        patient = patient_repo.get_patient_by_id(int(user_id)) if str(user_id).isdigit() else None
+        conn = get_db_connection()
+        patient = patient_repo.get_patient_by_id(conn, int(user_id)) if str(user_id).isdigit() else None
+        conn.close()
         user_data[user_id] = {}
         if patient:
             user_data[user_id]["name"]       = patient["name"]
@@ -162,7 +177,9 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             region = user_data[user_id].get("region")
             
             if not region:
-                patient = patient_repo.get_patient_by_id(int(user_id)) if str(user_id).isdigit() else None
+                conn = get_db_connection()
+                patient = patient_repo.get_patient_by_id(conn, int(user_id)) if str(user_id).isdigit() else None
+                conn.close()
                 if patient and patient.get("region"):
                     region = patient["region"]
                     user_data[user_id]["region"] = region
@@ -252,7 +269,9 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             names_only = [d["name"] for d in available]
             return f"Sorry, I didn't catch that. Available doctors are: {', '.join(names_only)}. Please say a name or ask for nearby areas.", {}
 
-        doctor_row = doctor_repo.get_doctor_by_name_like(chosen.replace('dr.', '').strip())
+        conn = get_db_connection()
+        doctor_row = doctor_repo.get_doctor_by_name_like(conn, chosen.replace('dr.', '').strip())
+        conn.close()
 
         user_data[user_id]["doctor"] = chosen
         user_data[user_id]["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
