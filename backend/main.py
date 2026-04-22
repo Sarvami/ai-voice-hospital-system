@@ -14,8 +14,9 @@ from database import get_db_connection
 from models import TextInput, TranslateRequest
 from voice_service import (
     speech_to_text, gt_to_english, gt_from_english, 
-    generate_reply, user_state, translator
+    generate_reply
 )
+from deep_translator import GoogleTranslator
 import routes_patient
 import routes_doctor
 import routes_admin
@@ -144,10 +145,11 @@ async def serve_temp_audio(filename: str):
 @app.post("/translate-text")
 def translate_text_api(req: TranslateRequest):
     try:
-        translated = translator.translate(req.text, dest=req.target_lang).text
+        translated = GoogleTranslator(source='auto', target=req.target_lang).translate(req.text)
         return {"success": True, "translation": translated}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
 
 @app.get("/doctors")
 async def get_all_doctors():

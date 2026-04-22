@@ -102,11 +102,19 @@ class Appointment(Base):
     def __repr__(self):
         return f"<Appointment(appointment_id={self.appointment_id}, patient_id={self.patient_id}, doctor_id={self.doctor_id})>"
 
+class ConversationSession(Base):
+    __tablename__ = "conversation_sessions"
+
+    patient_id = Column(String, primary_key=True)
+    state = Column(String, default="idle")
+    data = Column(Text) # JSON string
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow)
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-# Database dependency
-def get_db():
+# SQLAlchemy Database dependency (unused by current repositories)
+def get_sqlalchemy_db():
     db = SessionLocal()
     try:
         yield db

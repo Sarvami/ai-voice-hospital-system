@@ -6,21 +6,20 @@ import random
 import requests
 import dateparser
 from datetime import datetime
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from gtts import gTTS
 from database import get_db_connection
 from repositories import doctor_repo, patient_repo, appointment_repo
 from repositories.session_repo import get_session, set_session, delete_session
 
 # ------------------ SETUP ------------------
-translator = Translator()
+# translator = Translator() is replaced by usage-time instantiation in deep-translator
 MAX_STT_WAIT = 30
 STT_POLL_INTERVAL = 1
 ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 
-# Keep in-memory dicts as a fast cache — DB is the source of truth
-user_state = {}
-user_data  = {}
+# Stateless session management — DB is the source of truth
+# Removed global user_state/user_data dicts to ensure statelessness
 
 problem_map = {
     "chest pain": "cardiology", "heart pain": "cardiology",
@@ -54,17 +53,18 @@ def parse_available_hours(hours_str: str):
     except Exception:
         return 8, 20
 
-def gt_to_english(text: str) -> str:
-    try:
-        return translator.translate(text, dest="en").text
-    except Exception:
-        return text
 
 def gt_from_english(text: str, target_lang: str) -> str:
     if target_lang == "en":
         return text
     try:
-        return translator.translate(text, dest=target_lang).text
+        return GoogleTranslator(source='en', target=target_lang).translate(text)
+    except Exception:
+        return text
+
+def gt_to_english(text: str) -> str:
+    try:
+        return GoogleTranslator(source='auto', target='en').translate(text)
     except Exception:
         return text
 
@@ -142,32 +142,26 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                     return f"{result['name']} belongs to the {result['department']} department.", {}
         return "Sorry, I couldn't find that doctor.", {}
 
-    if user_id not in user_state:
-        # Load from DB first, fall back to idle
-        db_state, db_data = get_session(user_id)
-        if db_state != "idle" and db_data:
-            # Restore in-progress session from DB
-            user_state[user_id] = db_state
-            user_data[user_id]  = db_data
-        else:
-            # Fresh session — load patient profile
-            conn = get_db_connection()
-            patient = patient_repo.get_patient_by_id(conn, int(user_id)) if str(user_id).isdigit() else None
-            conn.close()
-            user_data[user_id] = {}
-            if patient:
-                user_data[user_id]["name"]       = patient["name"]
-                user_data[user_id]["phone"]      = patient["phone"]
-                user_data[user_id]["patient_id"] = patient["patient_id"]
-                user_data[user_id]["region"]     = patient["region"]
-            user_state[user_id] = "idle"
-            set_session(user_id, "idle", user_data[user_id])
+    # Load session from DB
+    state, data = get_session(user_id)
+
+    # Initialize data if it's a new or idle session with a known patient
+    if not data and str(user_id).isdigit():
+        conn = get_db_connection()
+        patient = patient_repo.get_patient_by_id(conn, int(user_id))
+        conn.close()
+        if patient:
+            data = {
+                "name": patient["name"],
+                "phone": patient["phone"],
+                "patient_id": patient["patient_id"],
+                "region": patient["region"]
+            }
 
     def save(new_state):
-        user_state[user_id] = new_state
-        set_session(user_id, new_state, user_data[user_id])
-
-    state = user_state[user_id]
+        nonlocal state
+        state = new_state
+        set_session(user_id, new_state, data)
 
     if state == "idle":
         if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
@@ -187,8 +181,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             if match: matched_dept = problem_map[match]
 
         if matched_dept:
-            user_data[user_id]["dept"] = matched_dept
-            region = user_data[user_id].get("region")
+            data["dept"] = matched_dept
+            region = data.get("region")
             
             if not region:
                 conn = get_db_connection()
@@ -196,7 +190,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 conn.close()
                 if patient and patient.get("region"):
                     region = patient["region"]
-                    user_data[user_id]["region"] = region
+                    data["region"] = region
 
             doctors = get_doctors_by_department(matched_dept, region)
             reply_prefix = "Available doctors"
@@ -208,7 +202,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             if not doctors:
                 return "Sorry, no doctors available for that department right now.", {}
 
-            user_data[user_id]["available_doctors"] = doctors
+            data["available_doctors"] = doctors
             save("waiting_doctor")
 
             if len(doctors) == 1:
@@ -231,7 +225,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         return "Sorry, I didn't catch that. Please describe your problem.", {}
 
     elif state == "waiting_doctor":
-        available = user_data[user_id].get("available_doctors", [])
+        available = data.get("available_doctors", [])
         chosen = None
 
         # Detect "show me nearby / other area / aas paas" requests
@@ -243,16 +237,16 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         nearby_original_keywords = ["shetron", "shetra", "aas paas", "aaspaas", "paas ke",
                                     "kareeb", "milein", "miley", "mile", "doosre", "doosra"]
         if any(w in text.lower() for w in nearby_keywords) or any(w in original_lower for w in nearby_original_keywords):
-            matched_dept = user_data[user_id].get("dept")
-            current_region = user_data[user_id].get("region")
+            matched_dept = data.get("dept")
+            current_region = data.get("region")
             all_doctors = get_doctors_by_department(matched_dept, None)
             # exclude current region doctors so we show truly nearby ones first, but include all
             nearby = [d for d in all_doctors if d.get("region", "").lower() != (current_region or "").lower()]
             if not nearby:
                 nearby = all_doctors
-            user_data[user_id]["available_doctors"] = nearby
-            user_data[user_id]["popup_doctors"] = nearby
-            user_data[user_id]["popup_index"] = 0
+            data["available_doctors"] = nearby
+            data["popup_doctors"] = nearby
+            data["popup_index"] = 0
             save("waiting_doctor")
             return (f"Here are {matched_dept} specialists from other areas. I'll show them one by one.",
                     {"intent": "show_doctors_popup", "data": {"doctors": nearby}})
@@ -287,16 +281,17 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         doctor_row = doctor_repo.get_doctor_by_name_like(conn, chosen.replace('dr.', '').strip())
         conn.close()
 
-        user_data[user_id]["doctor"] = chosen
-        user_data[user_id]["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
+        data["doctor"] = chosen
+        data["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
         avail_hours = doctor_row["available_hours"] if doctor_row and doctor_row["available_hours"] else "8:00 AM - 8:00 PM"
         avail_days  = doctor_row["available_days"]  if doctor_row and doctor_row["available_days"]  else ""
-        user_data[user_id]["available_hours"] = avail_hours
-        user_data[user_id]["available_days"]  = avail_days
+        data["available_hours"] = avail_hours
+        data["available_days"]  = avail_days
 
-        user_state[user_id] = "waiting_date"
+        state = "waiting_date"
+        set_session(user_id, "waiting_date", data)
         base_reply = f"Great, {chosen}. What date would you like? The doctor is available {avail_days} {avail_hours}."
-        return base_reply, {"intent": "ask_date", "data": {"doctor": chosen, "available_hours": avail_hours, "available_days": avail_days, "doctor_id": user_data[user_id]["doctor_id"]}}
+        return base_reply, {"intent": "ask_date", "data": {"doctor": chosen, "available_hours": avail_hours, "available_days": avail_days, "doctor_id": data["doctor_id"]}}
 
     elif state == "waiting_date":
         date_number_words = {"first": "1", "second": "2", "third": "3", "fourth": "4", "fifth": "5", "ek": "1", "don": "2", "do": "2", "teen": "3"}
@@ -309,7 +304,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 return "That date is in the past. Please choose a future date.", {}
 
             # Check doctor's available days
-            available_days_str = user_data[user_id].get("available_days", "")
+            available_days_str = data.get("available_days", "")
             if available_days_str:
                 day_name = parsed.strftime("%A")  # e.g. "Monday"
                 day_abbr = parsed.strftime("%a")  # e.g. "Mon"
@@ -333,18 +328,19 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                             allowed.add(d)
 
                 if allowed and day_abbr.lower()[:3] not in allowed:
-                    return (f"Sorry, {user_data[user_id]['doctor']} is not available on {day_name}. "
+                    return (f"Sorry, {data['doctor']} is not available on {day_name}. "
                             f"They are available {available_days_str}. Please choose another date."), {}
 
-            user_data[user_id]["date"] = parsed.strftime("%d %B %Y")
-            user_state[user_id] = "waiting_time"
-            avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
-            reply = f"Got it, {user_data[user_id]['date']}. At what time? The doctor is available {avail_hours}."
+            data["date"] = parsed.strftime("%d %B %Y")
+            state = "waiting_time"
+            set_session(user_id, "waiting_time", data)
+            avail_hours = data.get("available_hours", "8:00 AM - 8:00 PM")
+            reply = f"Got it, {data['date']}. At what time? The doctor is available {avail_hours}."
             return reply, {"data": {"available_hours": avail_hours}}
         return "Sorry, I didn't catch the date. Please say it again.", {}
 
     elif state == "waiting_time":
-        avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
+        avail_hours = data.get("available_hours", "8:00 AM - 8:00 PM")
         allowed_start, allowed_end = parse_available_hours(avail_hours)
 
         # Map word numbers (English + Hindi + Marathi) to digits
@@ -393,10 +389,10 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 h24 = detected_hour
             if not (allowed_start <= h24 <= allowed_end):
                 return f"Sorry, the doctor is only available {avail_hours}.", {}
-            user_data[user_id]["time"] = f"{h24:02d}:00"
-            user_state[user_id] = "confirming"
-            d = user_data[user_id]
-            return f"Confirm appointment with {d['doctor']} on {d['date']} at {d['time']}?", {}
+            data["time"] = f"{h24:02d}:00"
+            state = "confirming"
+            set_session(user_id, "confirming", data)
+            return f"Confirm appointment with {data['doctor']} on {data['date']} at {data['time']}?", {}
         return "Sorry, I didn't catch the time.", {}
 
     elif state == "confirming":
@@ -406,23 +402,24 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         cancel_words  = ["no", "nahi", "naa", "cancel", "band", "mat", "don't", "dont", "stop"]
 
         if any(w in text for w in confirm_words):
-            d = user_data[user_id]
-            pid  = d.get("patient_id") or (int(user_id) if str(user_id).isdigit() else None)
-            name = d.get("name", "Patient")
-            phone = d.get("phone", "")
+            # Using data instead of global user_data
+            pid = data.get("patient_id")
+            name = data.get("name", "Patient")
+            phone = data.get("phone", "")
             patient = get_or_create_patient(name, phone, lang) if phone else {"patient_id": pid}
             final_pid = patient.get("patient_id") or pid
-            aid = create_appointment(final_pid, d["doctor_id"], d["date"], d["time"], d["dept"], lang)
-            user_state[user_id] = "idle"
-            user_data[user_id] = {}
+            aid = create_appointment(final_pid, data["doctor_id"], data["date"], data["time"], data["dept"], lang)
+            state = "idle"
+            data.clear() # Reset data for next session
+            set_session(user_id, "idle", {})
             if aid: return "Confirmed! Your appointment is booked. See you then!", {"booked": True}
             return "You already have an appointment on that date.", {}
         elif any(w in text for w in cancel_words):
-            user_state[user_id] = "idle"
-            user_data[user_id] = {}
+            state = "idle"
+            data.clear() # Reset data for next session
+            set_session(user_id, "idle", {})
             return "Booking cancelled. Say 'book appointment' to restart.", {}
         else:
-            d = user_data[user_id]
-            return f"Please confirm — shall I book with {d['doctor']} on {d['date']} at {d['time']}? Say yes or no.", {}
+            return f"Please confirm — shall I book with {data['doctor']} on {data['date']} at {data['time']}? Say yes or no.", {}
 
     return "Sorry, I'm not sure how to respond to that.", {}
