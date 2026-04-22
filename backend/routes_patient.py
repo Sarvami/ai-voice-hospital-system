@@ -1,21 +1,16 @@
 import os
 import uuid
-import random
 from fastapi import APIRouter, Request, UploadFile, File, Form
 from fastapi.responses import JSONResponse, FileResponse
 from gtts import gTTS
-from database import get_db_connection
 from models import DateRequest, RegionRequest, RateRequest
-from voice_service import (
-    user_state, user_data, gt_from_english, 
-    get_or_create_patient, get_doctors_by_department
-)
+from voice_service import user_state, user_data, gt_from_english
 from passlib.context import CryptContext
+from repositories import patient_repo, doctor_repo, appointment_repo, report_repo
 
 router = APIRouter()
 REPORTS_DIR = os.path.join(os.path.dirname(__file__), "reports")
 os.makedirs(REPORTS_DIR, exist_ok=True)
-# Support both bcrypt (patients/admin) and pbkdf2_sha256 (doctors seeder legacy)
 pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
 TEMP_DIR = "temp"
 
@@ -24,6 +19,8 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password[:72])
+
+# ── AUTH ──────────────────────────────────────────────────────────────────────
 
 @router.post("/login")
 async def login(request: Request):
@@ -35,164 +32,143 @@ async def login(request: Request):
         if role == "admin":
             ADMIN_EMAIL = "admin@gmail.com"
             ADMIN_HASH  = "$2b$12$D4FWvBXmgrJLpN.JmmCnLexIzMOchI/56oQUdn3JQGaL8knIDoI.."
-            email = data.get("email", "").strip()
-            if email == ADMIN_EMAIL and verify_password(password, ADMIN_HASH):
+            if data.get("email", "").strip() == ADMIN_EMAIL and verify_password(password, ADMIN_HASH):
                 return {"success": True, "user": {"id": 0, "name": "Admin", "role": "admin"}}
             return {"success": False, "message": "Invalid admin credentials"}
 
-        phone = data.get("phone", "").strip()
-        if role == "doctor":
-            phone = data.get("doctor_id", "").strip()
-
-        if not phone or not password:
-            return {"success": False, "message": "Missing fields"}
-
-        conn = get_db_connection()
         if role == "patient":
-            user = conn.execute("SELECT * FROM patients WHERE phone=?", (phone,)).fetchone()
-            conn.close()
-            if not user: return {"success": False, "message": "User not found"}
+            phone = data.get("phone", "").strip()
+            if not phone or not password:
+                return {"success": False, "message": "Missing fields"}
+            user = patient_repo.get_patient_by_phone(phone)
+            if not user:
+                return {"success": False, "message": "User not found"}
             if not verify_password(password, user["password_hash"]):
                 return {"success": False, "message": "Incorrect password"}
-            return {
-                "success": True,
-                "user": {
-                    "id": user["patient_id"],
-                    "name": user["name"],
-                    "phone": user["phone"],
-                    "preferred_language": user["preferred_language"] or "en"
-                }
-            }
-        if role == "doctor":
-            user = conn.execute("SELECT * FROM doctors WHERE doc_id=?", (phone,)).fetchone()
-            conn.close()
-            if not user: return {"success": False, "message": "Doctor not found"}
-            if not verify_password(password, user["password_hash"]):
-                return {"success": False, "message": "Incorrect password"}
-            return {
-                "success": True,
-                "user": {
-                    "id": user["doctor_id"],
-                    "name": user["name"],
-                    "role": "doctor"
-                }
-            }
+            return {"success": True, "user": {
+                "id": user["patient_id"], "name": user["name"],
+                "phone": user["phone"],
+                "preferred_language": user.get("preferred_language") or "en"
+            }}
 
-        conn.close()
-        return {"success": False, "message": "Invalid role or handled elsewhere"}
+        if role == "doctor":
+            doc_id = data.get("doctor_id", "").strip()
+            if not doc_id or not password:
+                return {"success": False, "message": "Missing fields"}
+            user = doctor_repo.get_doctor_by_doc_id(doc_id)
+            if not user:
+                return {"success": False, "message": "Doctor not found"}
+            if not verify_password(password, user["password_hash"]):
+                return {"success": False, "message": "Incorrect password"}
+            return {"success": True, "user": {
+                "id": user["doctor_id"], "name": user["name"], "role": "doctor"
+            }}
+
+        return {"success": False, "message": "Invalid role"}
     except Exception as e:
         print("ERROR in login:", e)
         return {"success": False, "message": "Server error. Please try again."}
+
 
 @router.post("/register")
 async def register_patient(request: Request):
     try:
         data = await request.json()
-        name, age, phone = data.get("name", "").strip(), data.get("age", 0), data.get("phone", "").strip()
-        password, language = data.get("password", ""), data.get("preferred_language", "en")
-        gender, region = data.get("gender", "Unknown"), data.get("region", "Unknown")
+        name     = data.get("name", "").strip()
+        phone    = data.get("phone", "").strip()
+        password = data.get("password", "")
+        age      = data.get("age", 0)
+        gender   = data.get("gender", "Unknown")
+        language = data.get("preferred_language", "en")
+        region   = data.get("region", "Unknown")
 
         if not name or not phone or not password:
             return {"success": False, "message": "Missing fields"}
+        if patient_repo.patient_phone_exists(phone):
+            return {"success": False, "message": "Phone number already registered"}
 
-        conn = get_db_connection()
-        if conn.execute("SELECT 1 FROM patients WHERE phone=?", (phone,)).fetchone():
-            conn.close()
-            return {"success": False, "message": "Already exists"}
-
-        conn.execute("INSERT INTO patients (name, age, gender, phone, preferred_language, region, password_hash) VALUES (?,?,?,?,?,?,?)",
-                     (name, age, gender, phone, language, region, hash_password(password)))
-        conn.commit(); conn.close()
+        patient_repo.create_patient(name, age, gender, phone, language, region, hash_password(password))
         return {"success": True}
     except Exception as e:
         print("ERROR in register:", e)
         return {"success": False, "message": "Server error. Please try again."}
 
+# ── APPOINTMENTS ──────────────────────────────────────────────────────────────
+
 @router.get("/patient/appointments")
 def patient_appointments(patient_id: int):
     try:
-        conn = get_db_connection()
-        rows = conn.execute("""
-            SELECT a.appointment_id, d.name AS doctor, d.email, d.contact_phone, d.region,
-                   a.appointment_date AS date, a.appointment_time AS time, a.status, a.reason, a.rating
-            FROM appointments a
-            JOIN doctors d ON a.doctor_id = d.doctor_id
-            WHERE a.patient_id = ?
-            ORDER BY a.appointment_date DESC
-        """, (patient_id,)).fetchall()
-        conn.close()
-        return [dict(r) for r in rows]
+        return appointment_repo.get_appointments_by_patient(patient_id)
     except Exception as e:
         print("ERROR in patient_appointments:", e)
         return []
 
+
 @router.post("/set-appointment-date")
 def set_appointment_date_api(req: DateRequest):
     try:
-        user_id = req.patient_id
-        if user_id not in user_state:
-            user_state[user_id] = "waiting_time"
-            user_data[user_id] = {"doctor_id": req.doctor_id, "date": req.date}
+        uid = req.patient_id
+        if uid not in user_state:
+            user_state[uid] = "waiting_time"
+            user_data[uid]  = {"doctor_id": req.doctor_id, "date": req.date}
         else:
-            user_state[user_id] = "waiting_time"
-            user_data[user_id]["date"] = req.date
-            if req.doctor_id: user_data[user_id]["doctor_id"] = req.doctor_id
+            user_state[uid] = "waiting_time"
+            user_data[uid]["date"] = req.date
+            if req.doctor_id:
+                user_data[uid]["doctor_id"] = req.doctor_id
 
-        avail_hours = user_data[user_id].get("available_hours", "8:00 AM - 8:00 PM")
+        avail_hours = user_data[uid].get("available_hours", "8:00 AM - 8:00 PM")
         reply = f"Got it, {req.date}. At what time?"
         final = gt_from_english(reply, req.lang) + f" ({avail_hours})"
-        out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+        out   = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
         gTTS(text=final, lang=req.lang).save(out)
         return {"success": True, "text": final, "audio_url": f"/temp-audio/{os.path.basename(out)}"}
     except Exception as e:
         print("ERROR in set_appointment_date:", e)
         return {"success": False, "message": "Could not set date. Please try again."}
 
+
 @router.post("/set-region")
 def set_region_api(req: RegionRequest):
     try:
-        if req.patient_id not in user_data: user_data[req.patient_id] = {}
+        if req.patient_id not in user_data:
+            user_data[req.patient_id] = {}
         user_data[req.patient_id]["region"] = req.region
-        conn = get_db_connection()
-        conn.execute("UPDATE patients SET region = ? WHERE patient_id = ?", (req.region, req.patient_id))
-        conn.commit(); conn.close()
-        text = f"Region set to {req.region}."
+        patient_repo.update_patient_region(req.patient_id, req.region)
+        text  = f"Region set to {req.region}."
         final = gt_from_english(text, req.lang)
-        out = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
+        out   = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
         gTTS(text=final, lang=req.lang).save(out)
         return {"text": final, "audio_url": f"/temp-audio/{os.path.basename(out)}"}
     except Exception as e:
         print("ERROR in set_region:", e)
         return {"text": "", "audio_url": ""}
 
+# ── RATINGS ───────────────────────────────────────────────────────────────────
+
 @router.post("/patient/rate-appointment")
 def rate_appointment(req: RateRequest):
     try:
-        conn = get_db_connection()
-        appt = conn.execute("SELECT * FROM appointments WHERE appointment_id=?", (req.appointment_id,)).fetchone()
+        appt = appointment_repo.get_appointment_by_id(req.appointment_id)
         if not appt or appt["status"].lower() != "completed" or appt["rating"]:
-            conn.close(); return {"success": False, "message": "Invalid rating request"}
-        conn.execute("UPDATE appointments SET rating = ? WHERE appointment_id = ?", (req.rating, req.appointment_id))
+            return {"success": False, "message": "Invalid rating request"}
+
+        appointment_repo.set_appointment_rating(req.appointment_id, req.rating)
         if req.review:
-            conn.execute("UPDATE appointments SET review = ? WHERE appointment_id = ?", (req.review, req.appointment_id))
-        did = appt["doctor_id"]
-        doc = conn.execute("SELECT rating, rating_count FROM doctors WHERE doctor_id=?", (did,)).fetchone()
-        old_r, old_c = doc["rating"] or 4.5, doc["rating_count"] or 0
-        new_c = old_c + 1
-        new_r = ((old_r * old_c) + req.rating) / new_c
-        conn.execute("UPDATE doctors SET rating = ?, rating_count = ? WHERE doctor_id = ?", (new_r, new_c, did))
-        conn.commit(); conn.close()
+            appointment_repo.set_appointment_review(req.appointment_id, req.review)
+
+        stats   = doctor_repo.get_doctor_rating_stats(appt["doctor_id"])
+        old_r   = stats["rating"] or 4.5
+        old_c   = stats["rating_count"] or 0
+        new_c   = old_c + 1
+        new_r   = ((old_r * old_c) + req.rating) / new_c
+        doctor_repo.update_doctor_rating(appt["doctor_id"], new_r, new_c)
         return {"success": True, "avg": round(new_r, 1)}
     except Exception as e:
         print("ERROR in rate_appointment:", e)
         return {"success": False, "message": "Could not submit rating."}
 
-@router.get("/doctors/by-region/{region}")
-def doctors_by_region(region: str):
-    conn = get_db_connection()
-    rows = conn.execute("SELECT * FROM doctors WHERE region = ?", (region,)).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+# ── REPORTS ───────────────────────────────────────────────────────────────────
 
 @router.post("/patient/upload-report")
 async def upload_report(
@@ -200,61 +176,62 @@ async def upload_report(
     report_type: str = Form(...),
     file: UploadFile = File(...)
 ):
-    allowed = {".pdf", ".jpg", ".jpeg", ".png"}
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in allowed:
-        return {"success": False, "message": "Invalid file type. Use PDF, JPG, or PNG."}
+    try:
+        allowed = {".pdf", ".jpg", ".jpeg", ".png"}
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in allowed:
+            return {"success": False, "message": "Invalid file type. Use PDF, JPG, or PNG."}
+        contents = await file.read()
+        if len(contents) > 5 * 1024 * 1024:
+            return {"success": False, "message": "File too large. Max 5MB."}
+        safe_name = f"{uuid.uuid4()}{ext}"
+        with open(os.path.join(REPORTS_DIR, safe_name), "wb") as f:
+            f.write(contents)
+        report_repo.create_report(patient_id, report_type, file.filename, safe_name)
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in upload_report:", e)
+        return {"success": False, "message": "Upload failed."}
 
-    contents = await file.read()
-    if len(contents) > 5 * 1024 * 1024:
-        return {"success": False, "message": "File too large. Max 5MB."}
-
-    safe_name = f"{uuid.uuid4()}{ext}"
-    save_path = os.path.join(REPORTS_DIR, safe_name)
-    with open(save_path, "wb") as f:
-        f.write(contents)
-
-    conn = get_db_connection()
-    conn.execute(
-        "INSERT INTO patient_reports (patient_id, report_type, filename, filepath, uploaded_at) VALUES (?,?,?,?,datetime('now'))",
-        (patient_id, report_type, file.filename, safe_name)
-    )
-    conn.commit()
-    conn.close()
-    return {"success": True}
 
 @router.get("/patient/reports")
 def get_patient_reports(patient_id: int):
-    conn = get_db_connection()
-    rows = conn.execute(
-        "SELECT * FROM patient_reports WHERE patient_id=? ORDER BY uploaded_at DESC",
-        (patient_id,)
-    ).fetchall()
-    conn.close()
-    return {"reports": [dict(r) for r in rows]}
+    try:
+        return {"reports": report_repo.get_reports_by_patient(patient_id)}
+    except Exception as e:
+        print("ERROR in get_patient_reports:", e)
+        return {"reports": []}
+
 
 @router.get("/patient/report-file/{report_id}")
 def get_report_file(report_id: int):
-    conn = get_db_connection()
-    row = conn.execute("SELECT * FROM patient_reports WHERE id=?", (report_id,)).fetchone()
-    conn.close()
+    row = report_repo.get_report_by_id(report_id)
     if not row:
         return JSONResponse({"error": "Not found"}, status_code=404)
     path = os.path.join(REPORTS_DIR, row["filepath"])
     return FileResponse(path, filename=row["filename"])
 
+
 @router.delete("/patient/report/{report_id}")
 def delete_report(report_id: int):
-    conn = get_db_connection()
-    row = conn.execute("SELECT * FROM patient_reports WHERE id=?", (report_id,)).fetchone()
-    if not row:
-        conn.close()
-        return {"success": False, "message": "Report not found"}
-    # delete file from disk
-    filepath = os.path.join(REPORTS_DIR, row["filepath"])
-    if os.path.exists(filepath):
-        os.remove(filepath)
-    conn.execute("DELETE FROM patient_reports WHERE id=?", (report_id,))
-    conn.commit()
-    conn.close()
-    return {"success": True}
+    try:
+        row = report_repo.get_report_by_id(report_id)
+        if not row:
+            return {"success": False, "message": "Report not found"}
+        filepath = os.path.join(REPORTS_DIR, row["filepath"])
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        report_repo.delete_report(report_id)
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in delete_report:", e)
+        return {"success": False, "message": "Could not delete report."}
+
+
+@router.get("/doctors/by-region/{region}")
+def doctors_by_region(region: str):
+    try:
+        return doctor_repo.get_doctors_by_region(region)
+    except Exception as e:
+        print("ERROR in doctors_by_region:", e)
+        return []

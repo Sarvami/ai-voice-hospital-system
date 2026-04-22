@@ -8,7 +8,7 @@ import dateparser
 from datetime import datetime
 from googletrans import Translator
 from gtts import gTTS
-from database import get_db_connection
+from repositories import doctor_repo, patient_repo, appointment_repo
 
 # ------------------ SETUP ------------------
 translator = Translator()
@@ -77,61 +77,17 @@ def fuzzy_match(text, keywords):
 # ------------------ DB HELPERS (Voice Flow) ------------------
 
 def get_doctors_by_department(dept, region=None):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    if region:
-        cursor.execute(
-            "SELECT doctor_id, name, rating, region, available_hours FROM doctors WHERE LOWER(department)=LOWER(?) AND LOWER(region)=LOWER(?)",
-            (dept, region)
-        )
-    else:
-        cursor.execute(
-            "SELECT doctor_id, name, rating, region, available_hours FROM doctors WHERE LOWER(department)=LOWER(?)",
-            (dept,)
-        )
-    doctors = [{"doctor_id": row[0], "name": row[1], "rating": row[2], "region": row[3], "available_hours": row[4]} for row in cursor.fetchall()]
-    conn.close()
-    return doctors
+    return doctor_repo.get_doctors_by_department(dept, region)
+
 
 def get_or_create_patient(name, phone, language="en"):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM patients WHERE phone=?", (phone,))
-    patient = cursor.fetchone()
-    if patient:
-        conn.close()
-        return dict(patient)
-    cursor.execute("""
-        INSERT INTO patients (name, age, gender, phone, preferred_language)
-        VALUES (?, ?, ?, ?, ?)
-    """, (name, 30, "Unknown", phone, language))
-    pid = cursor.lastrowid
-    cursor.execute("SELECT * FROM patients WHERE patient_id=?", (pid,))
-    new_patient = cursor.fetchone()
-    conn.commit()
-    conn.close()
-    return dict(new_patient)
+    return patient_repo.get_or_create_patient_voice(name, phone, language)
+
 
 def create_appointment(pid, did, date, time_str, reason, language):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    existing = cursor.execute("""
-        SELECT appointment_id FROM appointments
-        WHERE patient_id=? AND doctor_id=? AND appointment_date=?
-    """, (pid, did, date)).fetchone()
-    if existing:
-        conn.close()
+    if appointment_repo.appointment_exists(pid, did, date):
         return None
-    cursor.execute("""
-        INSERT INTO appointments
-        (patient_id, doctor_id, appointment_date, appointment_time,
-         status, reason, booking_source, language_used)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (pid, did, date, time_str, "Booked", reason, "voice", language))
-    aid = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    return aid
+    return appointment_repo.create_appointment(pid, did, date, time_str, "Booked", reason, "voice", language)
 
 # ------------------核心 VOICE LOGIC ------------------
 
@@ -167,25 +123,19 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
     if "department" in text and ("which" in text or "what" in text or "belong" in text):
         for doc in ["mehta", "sharma", "rao", "shah", "desai", "gupta", "iyer", "malhotra", "bose", "chandra", "murthy", "menon", "sinha", "pandey", "hegde", "reddy"]:
             if doc in text:
-                conn = get_db_connection()
-                result = conn.execute("SELECT name, department FROM doctors WHERE LOWER(name) LIKE ?", (f"%{doc}%",)).fetchone()
-                conn.close()
+                result = doctor_repo.get_doctor_department_by_name(doc)
                 if result:
                     return f"{result['name']} belongs to the {result['department']} department.", {}
         return "Sorry, I couldn't find that doctor.", {}
 
     if user_id not in user_state:
-        conn = get_db_connection()
-        db_uid = int(user_id) if str(user_id).isdigit() else user_id
-        patient = conn.execute("SELECT * FROM patients WHERE patient_id=?", (db_uid,)).fetchone()
-        conn.close()
-        
+        patient = patient_repo.get_patient_by_id(int(user_id)) if str(user_id).isdigit() else None
         user_data[user_id] = {}
         if patient:
-            user_data[user_id]["name"] = patient["name"]
-            user_data[user_id]["phone"] = patient["phone"]
+            user_data[user_id]["name"]       = patient["name"]
+            user_data[user_id]["phone"]      = patient["phone"]
             user_data[user_id]["patient_id"] = patient["patient_id"]
-            user_data[user_id]["region"] = patient["region"]
+            user_data[user_id]["region"]     = patient["region"]
         user_state[user_id] = "idle"
 
     state = user_state[user_id]
@@ -212,12 +162,9 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             region = user_data[user_id].get("region")
             
             if not region:
-                conn = get_db_connection()
-                db_uid = int(user_id) if str(user_id).isdigit() else user_id
-                p_row = conn.execute("SELECT region FROM patients WHERE patient_id=?", (db_uid,)).fetchone()
-                conn.close()
-                if p_row and p_row["region"]:
-                    region = p_row["region"]
+                patient = patient_repo.get_patient_by_id(int(user_id)) if str(user_id).isdigit() else None
+                if patient and patient.get("region"):
+                    region = patient["region"]
                     user_data[user_id]["region"] = region
 
             doctors = get_doctors_by_department(matched_dept, region)
@@ -305,9 +252,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             names_only = [d["name"] for d in available]
             return f"Sorry, I didn't catch that. Available doctors are: {', '.join(names_only)}. Please say a name or ask for nearby areas.", {}
 
-        conn = get_db_connection()
-        doctor_row = conn.execute("SELECT doctor_id, available_hours, available_days FROM doctors WHERE LOWER(name) LIKE ?", (f"%{chosen.lower().replace('dr.', '').strip()}%",)).fetchone()
-        conn.close()
+        doctor_row = doctor_repo.get_doctor_by_name_like(chosen.replace('dr.', '').strip())
 
         user_data[user_id]["doctor"] = chosen
         user_data[user_id]["doctor_id"] = doctor_row["doctor_id"] if doctor_row else None
