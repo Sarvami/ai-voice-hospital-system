@@ -416,7 +416,7 @@ function showDoctorCard(index) {
   const stars = '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
 
   document.getElementById('doctorPopupName').textContent = d.name || '—';
-  document.getElementById('doctorPopupRegion').innerHTML = `📍 ${d.region || '—'}`;
+  document.getElementById('doctorPopupRegion').textContent = `📍 ${d.region || '—'}`;
   document.getElementById('doctorPopupStars').textContent = stars + `  ${rating.toFixed(1)}`;
   document.getElementById('doctorPopupHours').textContent = `🕐 ${d.available_hours || '8:00 AM - 8:00 PM'}`;
   document.getElementById('doctorPopupQuestion').textContent = txt.question;

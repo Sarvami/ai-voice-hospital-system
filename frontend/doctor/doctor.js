@@ -1,5 +1,11 @@
 const API = "http://127.0.0.1:8000";
 
+/* ── XSS helper ── */
+function esc(str) {
+  if (str === null || str === undefined) return '—';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
 /* SWITCH */
 function showSection(section, element) {
   document.querySelectorAll(".section").forEach(s => {
@@ -303,13 +309,13 @@ async function loadRatings() {
       const isLow = r.rating <= 3;
       tbody.innerHTML += `
         <tr${isLow ? ' style="background:rgba(239,83,80,0.07);"' : ''}>
-          <td>${r.patient_name || '—'}</td>
+          <td>${esc(r.patient_name)}</td>
           <td>${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</td>
           <td>${r.review
-            ? `<span style="color:${isLow ? '#ef9a9a' : '#a0aec0'}; font-style:italic;">"${r.review}"</span>`
+            ? `<span style="color:${isLow ? '#ef9a9a' : '#a0aec0'}; font-style:italic;">"${esc(r.review)}"</span>`
             : '<span style="color:#4a5568;">—</span>'
           }</td>
-          <td>${r.date || '—'}</td>
+          <td>${esc(r.date)}</td>
         </tr>`;
     });
 
@@ -335,11 +341,11 @@ async function loadPatients() {
     data.forEach(p => {
       tbody.innerHTML += `
         <tr>
-          <td>${p.patient_id}</td>
-          <td>${p.name}</td>
-          <td>${p.age}</td>
-          <td>${p.gender}</td>
-          <td>${p.phone}</td>
+          <td>${esc(p.patient_id)}</td>
+          <td>${esc(p.name)}</td>
+          <td>${esc(p.age)}</td>
+          <td>${esc(p.gender)}</td>
+          <td>${esc(p.phone)}</td>
         </tr>`;
     });
 

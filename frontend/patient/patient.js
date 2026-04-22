@@ -1,5 +1,11 @@
 const BACKEND = "http://127.0.0.1:8000";
 
+/* ── XSS helper ── */
+function esc(str) {
+  if (str === null || str === undefined) return '—';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
 /* ── Section navigation ── */
 function showSection(section, liEl) {
   document.querySelectorAll(".section").forEach(sec => sec.classList.add("hidden"));
@@ -343,9 +349,9 @@ async function loadUploadedReports() {
     list.forEach(r => {
       tbody.innerHTML += `
         <tr>
-          <td><span class="badge-type">${r.report_type}</span></td>
-          <td>${r.filename}</td>
-          <td>${r.uploaded_at ? r.uploaded_at.split('T')[0] : '—'}</td>
+          <td><span class="badge-type">${esc(r.report_type)}</span></td>
+          <td>${esc(r.filename)}</td>
+          <td>${esc(r.uploaded_at ? r.uploaded_at.split('T')[0] : '—')}</td>
           <td><a class="view-link" href="${BACKEND}/patient/report-file/${r.id}" target="_blank">
             <i class="fa fa-eye"></i> View
           </a></td>
