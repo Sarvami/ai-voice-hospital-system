@@ -10,6 +10,7 @@ from googletrans import Translator
 from gtts import gTTS
 from database import get_db_connection
 from repositories import doctor_repo, patient_repo, appointment_repo
+from repositories.session_repo import get_session, set_session, delete_session
 
 # ------------------ SETUP ------------------
 translator = Translator()
@@ -17,9 +18,9 @@ MAX_STT_WAIT = 30
 STT_POLL_INTERVAL = 1
 ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 
-# ------------------ MEMORY (State Management) ------------------
+# Keep in-memory dicts as a fast cache — DB is the source of truth
 user_state = {}
-user_data = {}
+user_data  = {}
 
 problem_map = {
     "chest pain": "cardiology", "heart pain": "cardiology",
@@ -142,22 +143,35 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         return "Sorry, I couldn't find that doctor.", {}
 
     if user_id not in user_state:
-        conn = get_db_connection()
-        patient = patient_repo.get_patient_by_id(conn, int(user_id)) if str(user_id).isdigit() else None
-        conn.close()
-        user_data[user_id] = {}
-        if patient:
-            user_data[user_id]["name"]       = patient["name"]
-            user_data[user_id]["phone"]      = patient["phone"]
-            user_data[user_id]["patient_id"] = patient["patient_id"]
-            user_data[user_id]["region"]     = patient["region"]
-        user_state[user_id] = "idle"
+        # Load from DB first, fall back to idle
+        db_state, db_data = get_session(user_id)
+        if db_state != "idle" and db_data:
+            # Restore in-progress session from DB
+            user_state[user_id] = db_state
+            user_data[user_id]  = db_data
+        else:
+            # Fresh session — load patient profile
+            conn = get_db_connection()
+            patient = patient_repo.get_patient_by_id(conn, int(user_id)) if str(user_id).isdigit() else None
+            conn.close()
+            user_data[user_id] = {}
+            if patient:
+                user_data[user_id]["name"]       = patient["name"]
+                user_data[user_id]["phone"]      = patient["phone"]
+                user_data[user_id]["patient_id"] = patient["patient_id"]
+                user_data[user_id]["region"]     = patient["region"]
+            user_state[user_id] = "idle"
+            set_session(user_id, "idle", user_data[user_id])
+
+    def save(new_state):
+        user_state[user_id] = new_state
+        set_session(user_id, new_state, user_data[user_id])
 
     state = user_state[user_id]
 
     if state == "idle":
         if any(word in text for word in ["appointment", "book", "doctor", "consult"]):
-            user_state[user_id] = "waiting_problem"
+            save("waiting_problem")
             return "What problem are you facing? You can also say regular checkup.", {}
         else:
             return "Say 'book appointment' to get started.", {}
@@ -195,7 +209,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
                 return "Sorry, no doctors available for that department right now.", {}
 
             user_data[user_id]["available_doctors"] = doctors
-            user_state[user_id] = "waiting_doctor"
+            save("waiting_doctor")
 
             if len(doctors) == 1:
                 d = doctors[0]
@@ -239,7 +253,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             user_data[user_id]["available_doctors"] = nearby
             user_data[user_id]["popup_doctors"] = nearby
             user_data[user_id]["popup_index"] = 0
-            user_state[user_id] = "waiting_doctor"
+            save("waiting_doctor")
             return (f"Here are {matched_dept} specialists from other areas. I'll show them one by one.",
                     {"intent": "show_doctors_popup", "data": {"doctors": nearby}})
 
