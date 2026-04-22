@@ -5,7 +5,8 @@ from fastapi import APIRouter, Request, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from gtts import gTTS
 from models import DateRequest, RegionRequest, RateRequest
-from voice_service import user_state, user_data, gt_from_english
+from voice_service import gt_from_english
+from repositories.session_repo import get_session, set_session
 from passlib.context import CryptContext
 from database import get_db
 from repositories import patient_repo, doctor_repo, appointment_repo, report_repo
@@ -109,17 +110,14 @@ def patient_appointments(patient_id: int, db: sqlite3.Connection = Depends(get_d
 @router.post("/set-appointment-date")
 def set_appointment_date_api(req: DateRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
-        uid = req.patient_id
-        if uid not in user_state:
-            user_state[uid] = "waiting_time"
-            user_data[uid]  = {"doctor_id": req.doctor_id, "date": req.date}
-        else:
-            user_state[uid] = "waiting_time"
-            user_data[uid]["date"] = req.date
-            if req.doctor_id:
-                user_data[uid]["doctor_id"] = req.doctor_id
+        uid = str(req.patient_id)
+        state, data = get_session(uid)
+        
+        data["doctor_id"] = req.doctor_id
+        data["date"] = req.date
+        set_session(uid, "waiting_time", data)
 
-        avail_hours = user_data[uid].get("available_hours", "8:00 AM - 8:00 PM")
+        avail_hours = data.get("available_hours", "8:00 AM - 8:00 PM")
         reply = f"Got it, {req.date}. At what time?"
         final = gt_from_english(reply, req.lang) + f" ({avail_hours})"
         out   = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
@@ -133,9 +131,10 @@ def set_appointment_date_api(req: DateRequest, db: sqlite3.Connection = Depends(
 @router.post("/set-region")
 def set_region_api(req: RegionRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
-        if req.patient_id not in user_data:
-            user_data[req.patient_id] = {}
-        user_data[req.patient_id]["region"] = req.region
+        uid = str(req.patient_id)
+        state, data = get_session(uid)
+        data["region"] = req.region
+        set_session(uid, state, data)
         patient_repo.update_patient_region(db, req.patient_id, req.region)
         text  = f"Region set to {req.region}."
         final = gt_from_english(text, req.lang)
