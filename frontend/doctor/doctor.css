@@ -441,3 +441,17 @@ body.light-theme .appointments-card h2 {
   color: #64748b;
   padding: 24px !important;
 }
+
+.btn-cancel-appt {
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-cancel-appt:hover {
+  background: rgba(239, 68, 68, 0.25);
+}

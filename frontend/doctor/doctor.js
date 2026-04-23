@@ -134,7 +134,7 @@ function savePrescription() {
     </head>
     <body>
       <div class="header">
-        <h1>🎙️ AI Voice Hospital</h1>
+        <h1>SwasthSeva</h1>
         <p>Government Hospital System — Digital Prescription</p>
         <p>Date: ${date}</p>
       </div>
@@ -160,7 +160,7 @@ function savePrescription() {
         <div>This is a digitally generated prescription.</div>
         <div class="signature">
           <strong>Dr. ${doctorName}</strong>
-          AI Voice Hospital
+          SwasthSeva
         </div>
       </div>
 
@@ -269,18 +269,57 @@ function populateAppointmentTable(data) {
   const table = document.getElementById('appointmentTable');
   table.innerHTML = '';
   if (!data.length) {
-    table.innerHTML = "<tr><td colspan='4'>No appointments yet.</td></tr>";
+    table.innerHTML = "<tr><td colspan='7'>No appointments yet.</td></tr>";
     return;
   }
   data.forEach(a => {
+    const status = a.status || 'Pending';
+    const loweredStatus = status.toLowerCase();
+    const reason = a.cancellation_reason || a.reason || '—';
+    const canCancel = ['booked', 'scheduled', 'confirmed', 'upcoming', 'pending'].includes(loweredStatus);
+    const action = canCancel
+      ? `<button class="btn-cancel-appt" onclick="cancelAppointment(${a.id})">Cancel</button>`
+      : '<span style="color:#94a3b8;">—</span>';
+
     table.innerHTML += `
       <tr>
         <td>${a.id}</td>
         <td>${a.patient_name}</td>
         <td>${a.date}</td>
         <td>${a.time}</td>
+        <td>${status}</td>
+        <td>${esc(reason)}</td>
+        <td>${action}</td>
       </tr>`;
   });
+}
+
+async function cancelAppointment(appointmentId) {
+  const doctorId = localStorage.getItem('doctor_id');
+  const reason = prompt('Enter emergency reason for cancellation:');
+  if (!reason || !reason.trim()) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/doctor/appointments/${appointmentId}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        doctor_id: Number(doctorId),
+        cancellation_reason: reason.trim()
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      alert(data.message || 'Could not cancel appointment.');
+      return;
+    }
+    alert('Appointment cancelled. Patient has been notified.');
+    await loadAppointments();
+  } catch (e) {
+    alert('Could not connect to server.');
+  }
 }
 
 async function loadRatings() {

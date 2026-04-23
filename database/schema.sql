@@ -1,6 +1,6 @@
 -- ================================
 -- Database Schema
--- AI Voice Hospital System
+-- SwasthSeva
 -- ================================
 
 -- Patients table

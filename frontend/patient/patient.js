@@ -19,9 +19,11 @@ function showSection(section, liEl) {
 async function loadAppointments() {
   const patientId = localStorage.getItem("patient_id");
   const table     = document.getElementById("appointmentsTable");
+  const notifications = document.getElementById("appointmentNotifications");
 
   if (!patientId) {
-    table.innerHTML = `<tr><td colspan="7" class="empty-row">Not logged in.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="10" class="empty-row">Not logged in.</td></tr>`;
+    if (notifications) notifications.innerHTML = "";
     return;
   }
 
@@ -33,8 +35,25 @@ async function loadAppointments() {
     table.innerHTML = "";
 
     if (!list || !list.length) {
-      table.innerHTML = `<tr><td colspan="9" class="empty-row">No appointments found.</td></tr>`;
+      table.innerHTML = `<tr><td colspan="10" class="empty-row">No appointments found.</td></tr>`;
+      if (notifications) notifications.innerHTML = "";
       return;
+    }
+
+    const cancelledByDoctor = list.filter(
+      a => (a.status || "").toLowerCase() === "cancelled" && (a.cancelled_by || "").toLowerCase() === "doctor"
+    );
+    if (notifications) {
+      notifications.innerHTML = cancelledByDoctor.map(a => `
+        <div class="appointment-alert">
+          <div class="alert-title">Appointment #${a.appointment_id || a.id} was cancelled by the doctor</div>
+          <div class="alert-reason">${esc(a.cancellation_reason || "Doctor had an emergency.")}</div>
+          <div class="alert-actions">
+            <button class="alert-btn primary" onclick="rescheduleAppointment(${a.doctor_id || 0})">Reschedule</button>
+            <button class="alert-btn secondary" onclick="bookAnotherDoctor()">Book Another Doctor</button>
+          </div>
+        </div>
+      `).join("");
     }
 
     list.forEach(a => {
@@ -65,6 +84,7 @@ async function loadAppointments() {
           <td>${a.date || "-"}</td>
           <td>${a.time || "-"}</td>
           <td><span class="status-badge ${statusClass}">${status}</span></td>
+          <td>${esc(a.cancellation_reason || "-")}</td>
           <td>${actionHtml}</td>
         </tr>
       `;
@@ -73,9 +93,22 @@ async function loadAppointments() {
     document.getElementById("appointmentCount").innerText = list.length;
 
   } catch (err) {
-    table.innerHTML = `<tr><td colspan="9" class="empty-row">Could not load appointments.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="10" class="empty-row">Could not load appointments.</td></tr>`;
+    if (notifications) notifications.innerHTML = "";
     console.error("Failed to load appointments:", err);
   }
+}
+
+function rescheduleAppointment(doctorId) {
+  if (doctorId) {
+    localStorage.setItem("preferred_doctor_id", String(doctorId));
+  }
+  window.location.href = "../index.html";
+}
+
+function bookAnotherDoctor() {
+  localStorage.removeItem("preferred_doctor_id");
+  window.location.href = "../index.html";
 }
 
 /* ── Load medical records ── */
@@ -417,3 +450,5 @@ window.toggleTheme = toggleTheme;
 window.uploadReport = uploadReport;
 window.handleFileSelect = handleFileSelect;
 window.deleteReport = deleteReport;
+window.rescheduleAppointment = rescheduleAppointment;
+window.bookAnotherDoctor = bookAnotherDoctor;
