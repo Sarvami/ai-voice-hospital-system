@@ -27,7 +27,7 @@ import routes_admin
 # ------------------ SETUP ------------------
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
-app = FastAPI(title="AI Voice Hospital API")
+app = FastAPI(title="SwasthSeva API")
 
 # CORS
 app.add_middleware(
@@ -136,7 +136,7 @@ def process_text(data: TextInput):
 
 @app.get("/")
 async def root():
-    return {"status": "AI Voice Hospital System API Running"}
+    return {"status": "SwasthSeva API Running"}
 
 @app.get("/temp-audio/{filename}")
 async def serve_temp_audio(filename: str):

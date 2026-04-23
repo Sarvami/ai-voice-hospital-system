@@ -126,6 +126,19 @@ class RateRequest(BaseModel):
         return v.strip()[:1000] if v else ""  # cap at 1000 chars
 
 
+class CancelAppointmentRequest(BaseModel):
+    doctor_id: int = Field(..., gt=0)
+    cancellation_reason: str = Field(..., min_length=5, max_length=500)
+
+    @field_validator("cancellation_reason")
+    @classmethod
+    def trim_reason(cls, v):
+        cleaned = v.strip()
+        if len(cleaned) < 5:
+            raise ValueError("cancellation_reason must be at least 5 characters")
+        return cleaned
+
+
 class UpdatePatientRequest(BaseModel):
     patient_id: int = Field(..., gt=0)
     name: str
