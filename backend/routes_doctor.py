@@ -3,6 +3,7 @@ from fastapi import APIRouter, Form, Depends
 from fastapi.responses import JSONResponse
 from passlib.context import CryptContext
 from datetime import date
+from models import CancelAppointmentRequest
 from database import get_db
 from repositories import doctor_repo, appointment_repo
 
@@ -69,5 +70,22 @@ def get_doctor_ratings(doctor_id: int, db: sqlite3.Connection = Depends(get_db))
 def doctor_appointments(doctor_id: int, db: sqlite3.Connection = Depends(get_db)):
     try:
         return appointment_repo.get_appointments_by_doctor(db, doctor_id)
+    except Exception as e:
+        return db_error(e)
+
+
+@router.post("/doctor/appointments/{appointment_id}/cancel")
+def doctor_cancel_appointment(
+    appointment_id: int,
+    req: CancelAppointmentRequest,
+    db: sqlite3.Connection = Depends(get_db),
+):
+    try:
+        result = appointment_repo.cancel_appointment_by_doctor(
+            db, appointment_id, req.doctor_id, req.cancellation_reason
+        )
+        if not result.get("success"):
+            return JSONResponse({"success": False, "message": result["message"]}, status_code=400)
+        return {"success": True, "message": "Appointment cancelled and patient notified."}
     except Exception as e:
         return db_error(e)
