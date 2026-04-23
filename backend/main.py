@@ -1,7 +1,10 @@
 import os
 import uuid
 import time
-from fastapi import FastAPI, UploadFile, File, Form, Request
+import sqlite3
+import warnings
+warnings.filterwarnings("ignore", message=".*error reading bcrypt version.*")
+from fastapi import FastAPI, UploadFile, File, Form, Request, Depends
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,7 +13,7 @@ from gtts import gTTS
 from pathlib import Path
 
 # Local imports
-from database import get_db_connection
+from database import get_db
 from models import TextInput, TranslateRequest
 from voice_service import (
     speech_to_text, gt_to_english, gt_from_english, 
@@ -152,10 +155,8 @@ def translate_text_api(req: TranslateRequest):
 
 
 @app.get("/doctors")
-async def get_all_doctors():
-    conn = get_db_connection()
-    rows = conn.execute("SELECT * FROM doctors").fetchall()
-    conn.close()
+async def get_all_doctors(db: sqlite3.Connection = Depends(get_db)):
+    rows = db.execute("SELECT * FROM doctors").fetchall()
     return {"doctors": [dict(d) for d in rows]}
 
 if __name__ == "__main__":

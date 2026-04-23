@@ -24,9 +24,9 @@ def get_or_create_patient_voice(conn, name: str, phone: str, language: str = "en
         "INSERT INTO patients (name, age, gender, phone, preferred_language) VALUES (?,?,?,?,?)",
         (name, 30, "Unknown", phone, language)
     )
+    conn.commit()
     pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     new_row = conn.execute("SELECT * FROM patients WHERE patient_id=?", (pid,)).fetchone()
-    conn.commit()
     return dict(new_row)
 
 

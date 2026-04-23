@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from gtts import gTTS
 from models import DateRequest, RegionRequest, RateRequest
 from voice_service import gt_from_english
-from repositories.session_repo import get_session, set_session
+from repositories.session_repo import get_session, set_session, delete_session
 from passlib.context import CryptContext
 from database import get_db
 from repositories import patient_repo, doctor_repo, appointment_repo, report_repo
@@ -34,7 +34,7 @@ async def login(request: Request, db: sqlite3.Connection = Depends(get_db)):
 
         if role == "admin":
             ADMIN_EMAIL = "admin@gmail.com"
-            ADMIN_HASH  = "$2b$12$D4FWvBXmgrJLpN.JmmCnLexIzMOchI/56oQUdn3JQGaL8knIDoI.."
+            ADMIN_HASH  = "$2b$12$mgPAyiAist809bcfiCRiZ.vHkExIqX5Jlc316MBU2M2E3Drt2Wwjy"
             if data.get("email", "").strip() == ADMIN_EMAIL and verify_password(password, ADMIN_HASH):
                 return {"success": True, "user": {"id": 0, "name": "Admin", "role": "admin"}}
             return {"success": False, "message": "Invalid admin credentials"}
