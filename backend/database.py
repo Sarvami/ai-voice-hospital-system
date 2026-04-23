@@ -15,13 +15,13 @@ DB_PATH = os.path.join(DB_DIR, "hospital.db")
 
 import sqlite3
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 def get_db():
     """FastAPI dependency — yields a connection and closes it after the request."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     try:
         yield conn

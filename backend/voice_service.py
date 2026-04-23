@@ -409,15 +409,13 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             patient = get_or_create_patient(name, phone, lang) if phone else {"patient_id": pid}
             final_pid = patient.get("patient_id") or pid
             aid = create_appointment(final_pid, data["doctor_id"], data["date"], data["time"], data["dept"], lang)
-            state = "idle"
-            data.clear() # Reset data for next session
-            set_session(user_id, "idle", {})
-            if aid: return "Confirmed! Your appointment is booked. See you then!", {"booked": True}
+            if aid:
+                delete_session(user_id)
+                return "Confirmed! Your appointment is booked. See you then!", {"booked": True}
+            delete_session(user_id)
             return "You already have an appointment on that date.", {}
         elif any(w in text for w in cancel_words):
-            state = "idle"
-            data.clear() # Reset data for next session
-            set_session(user_id, "idle", {})
+            delete_session(user_id)
             return "Booking cancelled. Say 'book appointment' to restart.", {}
         else:
             return f"Please confirm — shall I book with {data['doctor']} on {data['date']} at {data['time']}? Say yes or no.", {}
