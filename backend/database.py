@@ -6,7 +6,8 @@ import datetime
 import os
 
 # Create database directory if it doesn't exist
-DB_DIR = "data"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DB_DIR, exist_ok=True)
 
 # SQLite database URL
