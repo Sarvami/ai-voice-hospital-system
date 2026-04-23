@@ -8,7 +8,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(os.path.join(ROOT_DIR, "backend"))
 DB_PATH = os.path.join(ROOT_DIR, "backend", "data", "hospital.db")
 
-print("--- AI Voice Hospital System: One-Click Fix ---")
+print("--- SwasthSeva: One-Click Fix ---")
 
 # 0. Cleanup malformed tables (COMMENTED OUT TO PRESERVE YOUR DATA)
 # print("\n[0/4] Cleaning up old data...")

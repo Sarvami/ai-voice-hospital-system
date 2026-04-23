@@ -1,4 +1,4 @@
-# AI Voice Hospital System 🎙️🏥
+# SwasthSeva 🎙️🏥
 
 An AI-powered multilingual voice assistant that simplifies hospital appointment booking. Patients can speak in Hindi, Marathi, or English to book appointments, view their history, and interact with the system hands-free.
 
@@ -22,8 +22,8 @@ Make sure you have the following installed:
 
 ### Step 1 — Clone the Repository
 ```bash
-git clone https://github.com/Sarvami/ai-voice-hospital-system.git
-cd ai-voice-hospital-system
+git clone https://github.com/Sarvami/swasthseva.git
+cd swasthseva
 ```
 
 ### Step 2 — Set Up the Backend
@@ -92,7 +92,7 @@ This adds 50 doctors across 10 departments and sets up default login credentials
 ## 🏗️ Project Structure
 
 ```
-ai-voice-hospital-system/
+swasthseva/
 ├── backend/
 │   ├── main.py              # FastAPI backend, all endpoints
 │   ├── database.py          # SQLAlchemy models

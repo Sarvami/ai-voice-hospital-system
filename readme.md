@@ -1,4 +1,4 @@
-# AI Voice Hospital System 🎙️🏥
+# SwasthSeva 🎙️🏥
 
 An AI-powered multilingual voice assistant that simplifies hospital appointment booking. Patients can speak in their native language to book appointments, manage their health records, and interact with the system hands-free.
 
@@ -123,7 +123,7 @@ Open `http://localhost:5500/pages/login.html`
 ## 🗄️ Project Structure
 
 ```
-ai-voice-hospital-system/
+swasthseva/
 ├── backend/
 │   ├── main.py              # FastAPI app, /process-audio, /process-text
 │   ├── voice_service.py     # STT, TTS, state machine, booking logic

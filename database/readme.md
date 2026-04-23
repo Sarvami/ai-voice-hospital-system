@@ -1,4 +1,4 @@
-# Database Module – AI Voice Hospital System
+# Database Module – SwasthSeva
 
 This folder contains the SQLite database used for the project.
 
