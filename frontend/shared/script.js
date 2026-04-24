@@ -1,7 +1,5 @@
 /* ── CONSTANTS & GLOBAL STATE ── */
-const BACKEND = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://127.0.0.1:8000'
-  : 'https://your-deployed-backend-url.railway.app';
+const BACKEND = window.location.origin;
 let selectedLang = localStorage.getItem("lang") || "hi";
 let captionHistory = [];
 let mediaRecorder = null;

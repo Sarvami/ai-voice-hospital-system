@@ -104,19 +104,13 @@ python fix_all_data.py
 ```
 Seeds 50 doctors with full profiles, regions, and specialist hours.
 
-### Run the backend
+### Run (single FastAPI server for frontend + backend)
 ```bash
-cd backend
 venv\Scripts\activate
-uvicorn main:app --reload
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Run the frontend
-```bash
-cd frontend
-python -m http.server 5500
-```
-Open `http://localhost:5500/pages/login.html`
+Open `http://127.0.0.1:8000/pages/login.html` (or just `/` for the voice assistant home).
 
 ---
 
@@ -195,4 +189,4 @@ Bibewadi, Kalyani Nagar, Ravet, PCMC, Sangamvadi, Wanowrie, Hadapsar
 | Translation | Google Translate (googletrans) |
 | Frontend | Vanilla JS, HTML, CSS |
 | Auth | bcrypt (passlib) |
-| Hosting | Local (python -m http.server + uvicorn) |
+| Hosting | Local (single FastAPI server via uvicorn) |

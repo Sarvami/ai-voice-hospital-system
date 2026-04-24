@@ -2,6 +2,7 @@ import os
 import uuid
 import time
 import sqlite3
+import sys
 import warnings
 warnings.filterwarnings("ignore", message=".*error reading bcrypt version.*")
 from fastapi import FastAPI, UploadFile, File, Form, Request, Depends
@@ -11,6 +12,13 @@ from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from gtts import gTTS
 from pathlib import Path
+
+# Ensure local backend modules resolve for both:
+# - `uvicorn main:app` (from backend/)
+# - `uvicorn backend.main:app` (from repo root)
+BACKEND_DIR = Path(__file__).parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 # Local imports
 from database import get_db
@@ -40,6 +48,7 @@ app.add_middleware(
 
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
+FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 
 # Include Routers
 app.include_router(routes_patient.router)
@@ -136,6 +145,9 @@ def process_text(data: TextInput):
 
 @app.get("/")
 async def root():
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
     return {"status": "SwasthSeva API Running"}
 
 @app.get("/temp-audio/{filename}")
@@ -158,6 +170,10 @@ def translate_text_api(req: TranslateRequest):
 async def get_all_doctors(db: sqlite3.Connection = Depends(get_db)):
     rows = db.execute("SELECT * FROM doctors").fetchall()
     return {"doctors": [dict(d) for d in rows]}
+
+# Serve frontend files from FastAPI so UI + API run on one server.
+if FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
