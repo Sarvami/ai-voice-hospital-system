@@ -62,12 +62,27 @@ def get_doctor_patients(doctor_id: int, db: sqlite3.Connection = Depends(get_db)
 @router.get("/doctor/patient-reports/{patient_id}")
 def get_patient_reports_for_doctor(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
     try:
-        from repositories import report_repo
+        from repositories import report_repo, patient_repo
+        # Try direct ID lookup
         reports = report_repo.get_reports_by_patient(db, patient_id)
-        print(f"DEBUG: Fetching reports for patient {patient_id}. Found {len(reports)} reports.")
+        
+        # Fallback: If no reports found by ID, try finding reports for the patient NAME 
+        # (in case of ID sync issues during session migration)
+        if not reports:
+            patient = patient_repo.get_patient_by_id(db, patient_id)
+            if patient and 'name' in patient:
+                # Find other IDs with the same name
+                other_patients = db.execute("SELECT patient_id FROM patients WHERE name = ?", (patient['name'],)).fetchall()
+                for op in other_patients:
+                    if op['patient_id'] != patient_id:
+                        extra = report_repo.get_reports_by_patient(db, op['patient_id'])
+                        if extra:
+                            reports.extend(extra)
+        
+        print(f"DEBUG: Reports for {patient_id}: Found {len(reports)}")
         return {"reports": reports}
     except Exception as e:
-        print(f"ERROR: Failed to fetch reports for patient {patient_id}: {e}")
+        print(f"ERROR fetching reports: {e}")
         return db_error(e)
 
 @router.get("/doctor/ratings")
@@ -270,3 +285,21 @@ def doctor_meet_links(doctor_id: int, db: sqlite3.Connection = Depends(get_db)):
     except Exception as e:
         print("ERROR in doctor_meet_links:", e)
         return {"meet_links": []}
+
+@router.post("/doctor/trigger-sos")
+def trigger_sos(data: dict, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        patient_id = data.get("patient_id")
+        doctor_id = data.get("doctor_id")
+        
+        doctor = db.execute("SELECT name FROM doctors WHERE id = ?", (doctor_id,)).fetchone()
+        doctor_name = doctor['name'] if doctor else "Doctor"
+        
+        db.execute(
+            "INSERT INTO emergency_alerts (patient_id, doctor_id, doctor_name) VALUES (?,?,?)",
+            (patient_id, doctor_id, doctor_name)
+        )
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        return db_error(e)

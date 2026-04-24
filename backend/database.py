@@ -174,6 +174,23 @@ def _create_reports_table():
 
 _create_reports_table()
 
+def _create_emergency_alerts_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS emergency_alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER,
+            doctor_id INTEGER,
+            doctor_name TEXT,
+            status TEXT DEFAULT 'Active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_emergency_alerts_table()
+
 # SQLAlchemy Database dependency (unused by current repositories)
 def get_sqlalchemy_db():
     db = SessionLocal()

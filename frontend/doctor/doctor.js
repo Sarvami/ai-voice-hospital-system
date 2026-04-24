@@ -653,7 +653,14 @@ async function viewPatientHistory(patientId, patientName) {
     const reports = data.reports || [];
 
     if (!reports.length) {
-      body.innerHTML = '<div class="empty-history">No medical reports uploaded by this patient.</div>';
+      body.innerHTML = `
+        <div class="empty-history">
+          <i class="fa fa-file-medical-alt" style="font-size: 2rem; color: #64748b; margin-bottom: 12px; display: block;"></i>
+          <p>No medical reports found for this patient ID.</p>
+          <button class="btn-history" onclick="viewPatientHistory(${patientId}, '${patientName}')" style="margin-top:12px;">
+            <i class="fa fa-sync"></i> Retry Refresh
+          </button>
+        </div>`;
       return;
     }
 
@@ -692,10 +699,23 @@ function closeHistoryModal() {
   document.getElementById('historyModal').classList.remove('show');
 }
 
-function triggerSOS(patientId, patientName) {
+async function triggerSOS(patientId, patientName) {
   if (confirm(`🚨 TRIGGER EMERGENCY SOS FOR ${patientName.toUpperCase()}?\n\nThis will notify the patient and hospital emergency staff.`)) {
-    alert(`SOS Triggered for ${patientName}. Help is on the way.`);
-    // Here we would call a backend SOS API
+    try {
+      const doctorId = localStorage.getItem("doctor_id");
+      const res = await fetch(`${BACKEND}/doctor/trigger-sos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patient_id: patientId, doctor_id: doctorId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`SOS Triggered for ${patientName}. Help is on the way.`);
+      }
+    } catch (err) {
+      console.error("SOS failed:", err);
+      alert("Failed to trigger SOS. Please contact the patient directly.");
+    }
   }
 }
 

@@ -461,3 +461,23 @@ def patient_meet_links(patient_id: int, db: sqlite3.Connection = Depends(get_db)
     except Exception as e:
         print("ERROR in patient_meet_links:", e)
         return {"meet_links": []}
+
+@router.get("/patient/active-alerts")
+def get_active_alerts(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            "SELECT * FROM emergency_alerts WHERE patient_id = ? AND status = 'Active' ORDER BY created_at DESC",
+            (patient_id,)
+        ).fetchall()
+        return {"alerts": [dict(r) for r in rows]}
+    except Exception as e:
+        return {"alerts": []}
+
+@router.post("/patient/dismiss-alert/{alert_id}")
+def dismiss_alert(alert_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        db.execute("UPDATE emergency_alerts SET status = 'Resolved' WHERE id = ?", (alert_id,))
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False}

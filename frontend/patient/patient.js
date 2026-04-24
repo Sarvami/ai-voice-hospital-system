@@ -642,3 +642,58 @@ function triggerSOS(doctorId, doctorName) {
 
 window.jumpToDoctorChat = jumpToDoctorChat;
 window.triggerSOS = triggerSOS;
+
+/* SOS POLLING */
+let activeAlertId = null;
+
+async function pollAlerts() {
+  const patientId = localStorage.getItem("patient_id");
+  if (!patientId) return;
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/active-alerts?patient_id=${patientId}`);
+    const data = await res.json();
+    const alerts = data.alerts || [];
+
+    if (alerts.length > 0) {
+      const alert = alerts[0];
+      activeAlertId = alert.id;
+      document.getElementById("sosMessage").textContent = `Alert raised by Dr. ${alert.doctor_name}`;
+      document.getElementById("sosOverlay").classList.remove("hidden");
+    }
+  } catch (err) {
+    console.error("Alert polling failed:", err);
+  }
+}
+
+function dismissSOS() {
+  console.log("Dismissing SOS...");
+  const overlay = document.getElementById("sosOverlay");
+  if (overlay) {
+    overlay.style.display = "none";
+    overlay.classList.add("hidden");
+  }
+
+  if (activeAlertId) {
+    const aid = activeAlertId;
+    activeAlertId = null;
+    fetch(`${BACKEND}/patient/dismiss-alert/${aid}`, { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    }).catch(e => console.error("Server dismiss failed", e));
+  }
+}
+
+// Ensure clicking ANY part of the overlay works
+document.addEventListener('DOMContentLoaded', () => {
+  const overlay = document.getElementById("sosOverlay");
+  if (overlay) {
+    overlay.addEventListener('click', dismissSOS);
+  }
+});
+
+window.dismissSOS = dismissSOS;
+
+// Start polling every 5 seconds
+setInterval(pollAlerts, 5000);
+pollAlerts();

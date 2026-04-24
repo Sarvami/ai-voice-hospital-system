@@ -212,6 +212,16 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
   <a onclick="logout()"><i class="fa fa-sign-out"></i><span>Logout</span></a>
 </nav>
 
+  <!-- SOS OVERLAY -->
+  <div id="sosOverlay" class="sos-overlay hidden" onclick="dismissSOS()">
+    <div class="sos-content">
+      <i class="fa fa-exclamation-triangle"></i>
+      <h1>EMERGENCY ALERT</h1>
+      <p id="sosMessage">Alert raised by Doctor</p>
+      <div class="sos-subtext">Click anywhere to acknowledge</div>
+    </div>
+  </div>
+
 <script src="patient.js"></script>
 </body>
 </html>

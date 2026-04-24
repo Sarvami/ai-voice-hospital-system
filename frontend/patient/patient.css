@@ -849,6 +849,32 @@ th, td { white-space: nowrap; }
   transform: translateY(-1px);
 }
 
+/* SOS OVERLAY */
+.sos-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(239, 68, 68, 0.95);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #fff;
+  cursor: pointer;
+  animation: pulse-red 2s infinite;
+}
+
+.sos-content i { font-size: 8rem; margin-bottom: 24px; }
+.sos-content h1 { font-size: 4rem; margin-bottom: 12px; color: #fff; font-weight: 900; }
+.sos-content p { font-size: 2rem; margin-bottom: 40px; font-weight: 600; }
+.sos-subtext { font-size: 1.2rem; opacity: 0.8; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+
+@keyframes pulse-red {
+  0% { background: rgba(239, 68, 68, 0.95); }
+  50% { background: rgba(185, 28, 28, 0.98); }
+  100% { background: rgba(239, 68, 68, 0.95); }
+}
+
 @media (max-width: 768px) {
   .messaging-layout { flex-direction: column; height: auto; min-height: 400px; }
   .conversations-list { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 200px; }
