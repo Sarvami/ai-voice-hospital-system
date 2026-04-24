@@ -276,7 +276,24 @@ body.light-theme select option { background: #fff; color: #1e293b; }
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s;
+  min-height: 40px; /* Ensure consistent height */
+  appearance: none;
+  -webkit-appearance: none;
 }
+
+/* Date Placeholder trick */
+.filter-bar input[type="date"]::before {
+  content: "📅 Select Date";
+  margin-right: 12px;
+  color: var(--muted);
+}
+
+.filter-bar input[type="date"]:focus::before,
+.filter-bar input[type="date"]:valid::before {
+  content: "";
+  display: none;
+}
+
 .filter-bar select:focus,
 .filter-bar input[type="date"]:focus { border-color: var(--accent); }
 .filter-bar select option { background: #0d1b2e; }
@@ -513,9 +530,39 @@ body.light-theme .form-card input, body.light-theme .form-card select { backgrou
   .filter-bar { flex-direction: column; gap: 8px; }
   .filter-bar select, .filter-bar input { width: 100%; }
 
+  /* De-clutter Actions for Mobile */
+  .patient-actions {
+    display: flex;
+    gap: 20px !important; /* Huge spacing for thumbs */
+    justify-content: flex-start;
+    padding: 8px 0;
+  }
+  .patient-actions i {
+    font-size: 1.2rem;
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+  }
+
   .modal-content { width: 95%; padding: 20px; }
 
   .mobile-bottom-nav { display: flex; justify-content: space-around; }
+}
+
+/* Base styling for patient actions */
+.patient-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.patient-actions i {
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--accent);
+}
+.patient-actions i:hover {
+  transform: scale(1.2);
+  color: #fff;
 }
 
 /* ── MESSAGING ── */

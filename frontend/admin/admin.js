@@ -81,15 +81,61 @@ async function loadPatients() {
           <td>${esc(p.email)}</td>
           <td>${esc(p.preferred_language)}</td>
           <td>
-            <i class="fa-solid fa-pen-to-square edit-btn" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
-            <i class="fa-solid fa-paper-plane edit-btn" title="Message Patient" style="margin-left:10px; color:#69f0ae;" onclick="openMessageModal(${p.patient_id}, '${esc(p.name)}')"></i>
-            <i class="fa-solid fa-folder-open edit-btn" title="View Reports" style="margin-left:10px; color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${esc(p.name)}')"></i>
+            <div class="patient-actions">
+              <i class="fa-solid fa-pen-to-square" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
+              <i class="fa-solid fa-paper-plane" title="Message Patient" style="color:#69f0ae;" onclick="openMessageModal(${p.patient_id}, '${esc(p.name)}')"></i>
+              <i class="fa-solid fa-folder-open" title="View Reports" style="color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${esc(p.name)}')"></i>
+            </div>
           </td>
         </tr>`;
     });
   } catch(e) {
     table.innerHTML = `<tr><td colspan="7" class="empty-row">Could not load</td></tr>`;
   }
+}
+
+function filterPatientsTable() {
+  const query = document.getElementById('patientSearchFilter').value.toLowerCase();
+  const lang = document.getElementById('patientLangFilter').value;
+  const table = document.getElementById('patientsTable');
+  
+  const filtered = allPatients.filter(p => {
+    const matchesQuery = p.name.toLowerCase().includes(query) || p.email.toLowerCase().includes(query);
+    const matchesLang = (lang === 'all') || (p.preferred_language === lang);
+    return matchesQuery && matchesLang;
+  });
+
+  table.innerHTML = '';
+  if (!filtered.length) {
+    table.innerHTML = `<tr><td colspan="8" class="empty-row">No patients found</td></tr>`;
+    return;
+  }
+
+  filtered.forEach(p => {
+    table.innerHTML += `
+      <tr>
+        <td>${esc(p.patient_id)}</td>
+        <td>${esc(p.name)}</td>
+        <td>${esc(p.age)}</td>
+        <td>${esc(p.gender)}</td>
+        <td>${esc(p.phone)}</td>
+        <td>${esc(p.email)}</td>
+        <td>${esc(p.preferred_language)}</td>
+        <td>
+          <div class="patient-actions">
+            <i class="fa-solid fa-pen-to-square" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
+            <i class="fa-solid fa-paper-plane" title="Message Patient" style="color:#69f0ae;" onclick="openMessageModal(${p.patient_id}, '${esc(p.name)}')"></i>
+            <i class="fa-solid fa-folder-open" title="View Reports" style="color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${esc(p.name)}')"></i>
+          </div>
+        </td>
+      </tr>`;
+  });
+}
+
+function clearPatientFilters() {
+  document.getElementById('patientSearchFilter').value = '';
+  document.getElementById('patientLangFilter').value = 'all';
+  filterPatientsTable();
 }
 
 function openEditModal(id) {

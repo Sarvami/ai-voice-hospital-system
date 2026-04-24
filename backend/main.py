@@ -150,6 +150,14 @@ async def root():
         return FileResponse(index_file)
     return {"status": "SwasthSeva API Running"}
 
+# Mount other static folders explicitly to avoid root conflicts
+if (FRONTEND_DIR / "doctor").exists():
+    app.mount("/doctor", StaticFiles(directory=str(FRONTEND_DIR / "doctor")), name="doctor_ui")
+if (FRONTEND_DIR / "patient").exists():
+    app.mount("/patient", StaticFiles(directory=str(FRONTEND_DIR / "patient")), name="patient_ui")
+if (FRONTEND_DIR / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR / "assets")), name="assets")
+
 @app.get("/temp-audio/{filename}")
 async def serve_temp_audio(filename: str):
     path = f"{TEMP_DIR}/{filename}"
@@ -171,10 +179,7 @@ async def get_all_doctors(db: sqlite3.Connection = Depends(get_db)):
     rows = db.execute("SELECT * FROM doctors").fetchall()
     return {"doctors": [dict(d) for d in rows]}
 
-# Serve frontend files from FastAPI so UI + API run on one server.
-if FRONTEND_DIR.exists():
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
-
+# Start server
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

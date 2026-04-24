@@ -119,6 +119,18 @@
   <!-- PATIENTS -->
   <div id="patients" class="section hidden">
     <h2>Patients</h2>
+    
+    <div class="filter-bar patient-filter-bar">
+      <input type="text" id="patientSearchFilter" placeholder="🔍 Search by name..." onkeyup="filterPatientsTable()">
+      <select id="patientLangFilter" onchange="filterPatientsTable()">
+        <option value="all">All Languages</option>
+        <option value="en">English</option>
+        <option value="hi">Hindi</option>
+        <option value="mr">Marathi</option>
+      </select>
+      <button onclick="clearPatientFilters()" class="clear-btn">Clear</button>
+    </div>
+
     <table>
       <thead>
         <tr>
@@ -357,7 +369,7 @@
         <option value="Ophthalmology">Ophthalmology</option>
       </select>
 
-      <input type="date" id="apptDateFilter" onchange="filterAppointments()">
+      <input type="date" id="apptDateFilter" onchange="filterAppointments()" required>
 
       <select id="apptStatusFilter" onchange="filterAppointments()">
         <option value="all">All Statuses</option>
