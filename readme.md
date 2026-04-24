@@ -114,6 +114,16 @@ Open `http://127.0.0.1:8000/pages/login.html` (or just `/` for the voice assista
 
 ---
 
+## 🔐 OTP Authentication
+
+For secure patient login, SwasthSeva uses a One-Time Password (OTP) system:
+1. **Request**: Patient enters their email or phone on the login/register page.
+2. **Generation**: Backend generates a unique 6-digit OTP (valid for 5 minutes).
+3. **Delivery**: OTP is sent via email using the **Brevo API**.
+4. **Verification**: Patient enters the OTP; if matched, they are logged into their dashboard.
+
+---
+
 ## 🗄️ Project Structure
 
 ```
@@ -189,4 +199,5 @@ Bibewadi, Kalyani Nagar, Ravet, PCMC, Sangamvadi, Wanowrie, Hadapsar
 | Translation | Google Translate (googletrans) |
 | Frontend | Vanilla JS, HTML, CSS |
 | Auth | bcrypt (passlib) |
+| Email / OTP | Brevo API |
 | Hosting | Local (single FastAPI server via uvicorn) |

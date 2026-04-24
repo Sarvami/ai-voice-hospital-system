@@ -189,3 +189,11 @@ class OtpRequest(BaseModel):
 class VerifyOtpRequest(BaseModel):
     phone: str
     otp: str
+
+
+class MessageRequest(BaseModel):
+    receiver_id: int
+    message_text: str
+    sender_id: int = 0  # 0 for Admin
+    sender_role: str = "admin"
+    receiver_role: str = "patient"

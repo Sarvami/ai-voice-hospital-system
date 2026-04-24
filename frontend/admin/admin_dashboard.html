@@ -124,6 +124,7 @@
           <th>Age</th>
           <th>Gender</th>
           <th>Phone</th>
+          <th>Email</th>
           <th>Language</th>
           <th>Actions</th>
         </tr>
@@ -193,10 +194,35 @@
             <option value="mr">Marathi</option>
           </select>
         </div>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="editPatientEmail">
+        </div>
       </div>
       <div class="modal-footer">
         <button class="save-btn" onclick="savePatientEdit()">Save Changes</button>
         <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MESSAGE PATIENT MODAL -->
+  <div id="messageModal" class="modal hidden">
+    <div class="modal-content" style="max-width:450px;">
+      <div class="modal-header">
+        <h3 id="messageModalTitle">Message Patient</h3>
+        <span class="close-modal" onclick="closeMessageModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="messagePatientId">
+        <div class="input-group" style="margin-bottom:15px;">
+          <label>Message Text</label>
+          <textarea id="adminMessageText" rows="4" style="width:100%; padding:10px; border-radius:8px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); font-family:inherit; resize:none;" placeholder="Type your message here..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="save-btn" onclick="sendMessage()">Send Message</button>
+        <button class="cancel-btn" onclick="closeMessageModal()">Cancel</button>
       </div>
     </div>
   </div>

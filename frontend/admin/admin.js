@@ -47,7 +47,7 @@ function toggleDoctorMenu(liEl) {
 /* ── OVERVIEW ── */
 async function loadOverview() {
   try {
-    const res  = await fetch(`${API}/admin/overview`);
+    const res  = await fetch(`${API}/admin-api/overview`);
     const data = await res.json();
     document.getElementById('totalPatients').innerText     = data.patients     ?? 0;
     document.getElementById('totalDoctors').innerText      = data.doctors      ?? 0;
@@ -62,7 +62,7 @@ let allPatients = [];
 async function loadPatients() {
   const table = document.getElementById('patientsTable');
   try {
-    const res  = await fetch(`${API}/admin/patients`);
+    const res  = await fetch(`${API}/admin-api/patients`);
     const data = await res.json();
     allPatients = data;
     table.innerHTML = '';
@@ -71,8 +71,6 @@ async function loadPatients() {
       return;
     }
     data.forEach(p => {
-      // Ensure we use the correct keys from the backend (patient_id, name, etc)
-    data.forEach(p => {
       table.innerHTML += `
         <tr>
           <td>${esc(p.patient_id)}</td>
@@ -80,9 +78,11 @@ async function loadPatients() {
           <td>${esc(p.age)}</td>
           <td>${esc(p.gender)}</td>
           <td>${esc(p.phone)}</td>
+          <td>${esc(p.email)}</td>
           <td>${esc(p.preferred_language)}</td>
           <td>
             <i class="fa-solid fa-pen-to-square edit-btn" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
+            <i class="fa-solid fa-paper-plane edit-btn" title="Message Patient" style="margin-left:10px; color:#69f0ae;" onclick="openMessageModal(${p.patient_id}, '${esc(p.name)}')"></i>
             <i class="fa-solid fa-folder-open edit-btn" title="View Reports" style="margin-left:10px; color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${esc(p.name)}')"></i>
           </td>
         </tr>`;
@@ -101,6 +101,7 @@ function openEditModal(id) {
   document.getElementById('editPatientAge').value = p.age;
   document.getElementById('editPatientGender').value = p.gender || 'Male';
   document.getElementById('editPatientPhone').value = p.phone;
+  document.getElementById('editPatientEmail').value = p.email || '';
   document.getElementById('editPatientLang').value = p.preferred_language || 'en';
   
   document.getElementById('editPatientModal').classList.remove('hidden');
@@ -116,13 +117,14 @@ async function savePatientEdit() {
   const age = document.getElementById('editPatientAge').value;
   const gender = document.getElementById('editPatientGender').value;
   const phone = document.getElementById('editPatientPhone').value;
+  const email = document.getElementById('editPatientEmail').value;
   const preferred_language = document.getElementById('editPatientLang').value;
 
   try {
-    const res = await fetch(`${API}/admin/update-patient`, {
+    const res = await fetch(`${API}/admin-api/update-patient`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patient_id: parseInt(patient_id), name, age: parseInt(age), gender, phone, preferred_language })
+      body: JSON.stringify({ patient_id: parseInt(patient_id), name, age: parseInt(age), gender, phone, email, preferred_language })
     });
     const result = await res.json();
     if (result.success) {
@@ -174,11 +176,50 @@ function closeReportsModal() {
   document.getElementById('patientReportsModal').classList.add('hidden');
 }
 
+/* ── MESSAGE PATIENT ── */
+function openMessageModal(patientId, patientName) {
+  document.getElementById('messagePatientId').value = patientId;
+  document.getElementById('messageModalTitle').innerText = `Message ${patientName}`;
+  document.getElementById('adminMessageText').value = '';
+  document.getElementById('messageModal').classList.remove('hidden');
+}
+
+function closeMessageModal() {
+  document.getElementById('messageModal').classList.add('hidden');
+}
+
+async function sendMessage() {
+  const patientId = document.getElementById('messagePatientId').value;
+  const message   = document.getElementById('adminMessageText').value.trim();
+
+  if (!message) { alert("Please type a message."); return; }
+
+  try {
+    const res = await fetch(`${API}/admin-api/send-message`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        receiver_id:  parseInt(patientId),
+        message_text: message
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert("✓ Message sent to patient!");
+      closeMessageModal();
+    } else {
+      alert("Error: " + data.message);
+    }
+  } catch(e) {
+    alert("Could not connect to server.");
+  }
+}
+
 /* ── DOCTORS ── */
 async function loadDoctors() {
   const table = document.getElementById('doctorsTable');
   try {
-    const res  = await fetch(`${API}/admin/doctors`);
+    const res  = await fetch(`${API}/admin-api/doctors`);
     const data = await res.json();
     allDoctors = data;
     renderDoctors(allDoctors);
@@ -259,7 +300,7 @@ async function saveDoctorEdit() {
     };
 
     try {
-        const res = await fetch(`${API}/admin/update-doctor`, {
+        const res = await fetch(`${API}/admin-api/update-doctor`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -340,7 +381,7 @@ async function createDoctor() {
   }
 
   try {
-    const res = await fetch(`${API}/admin/add-doctor`, {
+    const res = await fetch(`${API}/admin-api/add-doctor`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
@@ -378,7 +419,7 @@ async function createDoctor() {
 async function loadAppointments() {
   const table = document.getElementById('appointmentsTable');
   try {
-    const res  = await fetch(`${API}/admin/appointments`);
+    const res  = await fetch(`${API}/admin-api/appointments`);
     const data = await res.json();
     allAppointments = data;
     renderAppointments(allAppointments);
@@ -440,7 +481,7 @@ let allRatings = [];
 async function loadRatings() {
   const table = document.getElementById('ratingsTable');
   try {
-    const res  = await fetch(`${API}/admin/ratings`);
+    const res  = await fetch(`${API}/admin-api/ratings`);
     const data = await res.json();
     allRatings = data;
     renderRatings(allRatings);
@@ -491,7 +532,7 @@ async function addLeave() {
   if (!name || !date) { msgEl.innerText = 'Please fill in both fields.'; return; }
 
   try {
-    const res  = await fetch(`${API}/admin/leave`, {
+    const res  = await fetch(`${API}/admin-api/leave`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, date }),
     });
@@ -510,4 +551,6 @@ function logout() {
 }
 
 /* ── INIT ── */
-loadOverview();
+document.addEventListener('DOMContentLoaded', () => {
+  loadOverview();
+});
