@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SwasthSeva Patient Dashboard</title>
 
 <link rel="stylesheet" href="patient.css">
@@ -182,6 +183,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 </div>
 
 <script src="patient.js"></script>
+
+<nav class="mobile-bottom-nav">
+  <a onclick="showSection('dashboard', this)"><i class="fa fa-home"></i><span>Home</span></a>
+  <a onclick="showSection('appointments', this)"><i class="fa fa-calendar"></i><span>Appointments</span></a>
+  <a onclick="showSection('records', this)"><i class="fa fa-file"></i><span>Records</span></a>
+  <a onclick="logout()"><i class="fa fa-sign-out"></i><span>Logout</span></a>
+</nav>
 
 </body>
 </html>

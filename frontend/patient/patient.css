@@ -576,3 +576,65 @@ th, td { white-space: nowrap; }
   background: rgba(148, 163, 184, 0.2);
   color: var(--text);
 }
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0;
+  width: 100%;
+  background: var(--sidebar);
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+  z-index: 1000;
+}
+
+.mobile-bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.mobile-bottom-nav a i { font-size: 18px; }
+.mobile-bottom-nav a.active { color: var(--accent); }
+
+/* ── MOBILE MEDIA QUERIES ── */
+@media (max-width: 768px) {
+  body { overflow: auto; height: auto; }
+
+  .dashboard { flex-direction: column; height: auto; }
+
+  .sidebar { display: none; }
+
+  .main {
+    margin-left: 0;
+    width: 100%;
+    padding: 16px;
+    height: auto;
+    overflow-y: visible;
+    padding-bottom: 70px;
+  }
+
+  .stats { grid-template-columns: 1fr; }
+  .statCard { width: 100%; margin-bottom: 12px; }
+
+  .section { padding: 12px 0; }
+
+  .appointments-table-container { overflow-x: auto; }
+  .appointments-table-container table { min-width: 600px; }
+
+  table { font-size: 12px; }
+  th, td { padding: 8px 6px; }
+
+  .upload-card { padding: 16px; }
+
+  input, select, button { font-size: 16px; }
+
+  .mobile-bottom-nav { display: flex; justify-content: space-around; }
+}

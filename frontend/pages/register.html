@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Register — SwasthSeva</title>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&family=Space+Mono&display=swap" rel="stylesheet">
   <style>
@@ -135,7 +135,7 @@
       padding: 14px 16px;
       color: var(--text);
       font-family: 'Sora', sans-serif;
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
       transition: border-color 0.2s, background 0.2s;
     }
@@ -239,14 +239,20 @@
   <!-- Full Name -->
   <div class="field">
     <label for="name">Full Name</label>
-    <input id="name" type="text" placeholder="e.g. Rohan Sharma">
+    <input id="name" type="text" placeholder="e.g. Rohan Sharma" autocomplete="name">
   </div>
 
   <!-- Phone -->
   <div class="field">
     <label for="phone">Phone Number</label>
-    <input id="phone" type="tel" placeholder="10-digit mobile number">
+    <input id="phone" type="tel" placeholder="10-digit mobile number" autocomplete="tel">
     <p class="field-hint">Used to login and receive appointment reminders</p>
+  </div>
+
+  <!-- Email -->
+  <div class="field">
+    <label for="email">Email Address <span style="color:var(--muted);font-size:11px;">(optional — for OTP login)</span></label>
+    <input id="email" type="text" placeholder="e.g. rohan@gmail.com">
   </div>
 
   <!-- Age -->
@@ -304,14 +310,14 @@
   <!-- Password -->
   <div class="field">
     <label for="password">Password</label>
-    <input id="password" type="password" placeholder="Create a strong password" oninput="checkStrength(this.value)">
+    <input id="password" type="password" placeholder="Create a strong password" autocomplete="new-password" oninput="checkStrength(this.value)">
     <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
   </div>
 
   <!-- Confirm Password -->
   <div class="field">
     <label for="confirm">Confirm Password</label>
-    <input id="confirm" type="password" placeholder="Re-enter your password">
+    <input id="confirm" type="password" placeholder="Re-enter your password" autocomplete="new-password">
   </div>
 
   <button class="btn" id="registerBtn" onclick="register()">Create Account</button>
@@ -344,9 +350,14 @@
   }
 
   /* ── Register ── */
+  const BACKEND = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://127.0.0.1:8000'
+    : 'https://your-deployed-backend-url.railway.app';
+
   async function register() {
     const name     = document.getElementById('name').value.trim();
     const phone    = document.getElementById('phone').value.trim();
+    const email    = document.getElementById('email').value.trim();
     const age      = document.getElementById('age').value.trim();
     const gender   = document.getElementById('gender').value;
     const lang     = document.getElementById('lang').value;
@@ -370,6 +381,12 @@
       return;
     }
 
+    if (email && (!email.includes('@') || !email.includes('.'))) {
+      msgEl.className = 'msg error';
+      msgEl.textContent = 'Enter a valid email address (must contain @ and .).';
+      return;
+    }
+
     if (password !== confirm) {
       msgEl.className = 'msg error';
       msgEl.textContent = 'Passwords do not match.';
@@ -387,16 +404,17 @@
     btn.textContent = 'Creating account…';
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/register', {
+      const res = await fetch(`${BACKEND}/register`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name, 
+          name,
           age: parseInt(age),
-          gender: gender,
-          phone, 
+          gender,
+          phone,
+          email: email || null,
           preferred_language: lang,
-          region: region,
+          region,
           password,
           role: 'patient',
         }),
