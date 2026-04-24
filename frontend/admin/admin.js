@@ -550,7 +550,118 @@ function logout() {
   window.location.href = '../pages/login.html';
 }
 
+/* ── ADMIN MESSAGING ── */
+let activeAdminChatPatientId = null;
+let adminMessagesPollTimer = null;
+
+async function loadAdminConversations() {
+    try {
+        const res = await fetch(`${API}/api/admin/conversations`);
+        const list = await res.json();
+        const container = document.getElementById('adminConvList');
+        
+        if (!list.length) {
+            container.innerHTML = '<div class="empty-conv">No conversations yet.</div>';
+            return;
+        }
+        
+        container.innerHTML = list.map(c => {
+            const isActive = c.patient_id === activeAdminChatPatientId ? ' active' : '';
+            return `
+                <div class="admin-conversation-item${isActive}" onclick="openAdminChat(${c.patient_id}, '${esc(c.patient_name)}')">
+                    <div class="conv-patient-name">👤 ${esc(c.patient_name)}</div>
+                    <div class="conv-last-msg">${esc(c.last_message || '...')}</div>
+                </div>`;
+        }).join('');
+    } catch(e) { console.error("loadAdminConversations error:", e); }
+}
+
+async function openAdminChat(patientId, patientName) {
+    activeAdminChatPatientId = patientId;
+    document.getElementById('adminChatHeader').textContent = `Chat with ${patientName}`;
+    document.getElementById('adminChatInputArea').style.display = 'flex';
+    document.getElementById('adminReplyInput').focus();
+    
+    // Highlight active
+    document.querySelectorAll('.admin-conversation-item').forEach(el => el.classList.remove('active'));
+    event && event.currentTarget && event.currentTarget.classList.add('active');
+    
+    await loadAdminMessages();
+    loadAdminConversations(); // refresh list
+}
+
+async function loadAdminMessages() {
+    if (activeAdminChatPatientId === null) return;
+    try {
+        const res = await fetch(`${API}/api/admin/messages/${activeAdminChatPatientId}`);
+        const msgs = await res.json();
+        const container = document.getElementById('adminChatMessages');
+        
+        container.innerHTML = msgs.map(m => {
+            const isAdmin = m.sender_role === 'admin';
+            const time = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            return `
+                <div class="msg-bubble ${isAdmin ? 'msg-admin' : 'msg-patient'}">
+                    ${esc(m.message_text)}
+                    <span class="msg-time">${time}</span>
+                </div>`;
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+    } catch(e) { console.error("loadAdminMessages error:", e); }
+}
+
+async function sendAdminReply() {
+    const input = document.getElementById('adminReplyInput');
+    const text = input.value.trim();
+    if (!text || activeAdminChatPatientId === null) return;
+    
+    input.value = '';
+    try {
+        const res = await fetch(`${API}/api/admin/send-message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                receiver_id: activeAdminChatPatientId,
+                message_text: text,
+                sender_id: 0,
+                sender_role: 'admin',
+                receiver_role: 'patient'
+            })
+        });
+        await loadAdminMessages();
+        loadAdminConversations();
+    } catch(e) { console.error("sendAdminReply error:", e); }
+}
+
+function startAdminMsgPolling() {
+    if (adminMessagesPollTimer) clearInterval(adminMessagesPollTimer);
+    adminMessagesPollTimer = setInterval(() => {
+        if (document.getElementById('messages').classList.contains('hidden')) return;
+        loadAdminConversations();
+        if (activeAdminChatPatientId !== null) loadAdminMessages();
+    }, 5000);
+}
+
+/* ── OVERRIDE SHOWSECTION TO LOAD CONVERSATIONS ── */
+const _origShowSection = window.showSection;
+window.showSection = function(section, liEl) {
+    _origShowSection(section, liEl);
+    if (section === 'messages') {
+        loadAdminConversations();
+        startAdminMsgPolling();
+    }
+};
+
+window.openAdminChat = openAdminChat;
+window.sendAdminReply = sendAdminReply;
+window.showSection = showSection;
+
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
   loadOverview();
+  // If we are in the messages tab on load (unlikely but possible)
+  if (!document.getElementById('messages').classList.contains('hidden')) {
+      loadAdminConversations();
+      startAdminMsgPolling();
+  }
 });

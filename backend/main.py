@@ -53,7 +53,7 @@ FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 # Include Routers
 app.include_router(routes_patient.router)
 app.include_router(routes_doctor.router)
-app.include_router(routes_admin.router)
+app.include_router(routes_admin.router, prefix="/api/admin")
 
 # ------------------ CORE VOICE API ------------------
 

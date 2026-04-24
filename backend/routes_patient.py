@@ -343,13 +343,15 @@ async def patient_send_message(request: Request, db: sqlite3.Connection = Depend
         appointment_id = data.get("appointment_id")
         message = data.get("message", "").strip()
 
-        if not patient_id or not doctor_id or not message:
-            return {"success": False, "message": "Missing fields"}
+        if patient_id is None or doctor_id is None or not message:
+            return {"success": False, "message": "Missing fields (patient_id, doctor_id, or message)"}
+
+        receiver_role = 'admin' if doctor_id == 0 else 'doctor'
 
         db.execute("""
             INSERT INTO messages (sender_id, sender_role, receiver_id, receiver_role, appointment_id, message_text)
-            VALUES (?, 'patient', ?, 'doctor', ?, ?)
-        """, (patient_id, doctor_id, appointment_id, message))
+            VALUES (?, 'patient', ?, ?, ?, ?)
+        """, (patient_id, doctor_id, receiver_role, appointment_id, message))
         db.commit()
         msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
         return {"success": True, "message_id": msg_id}
@@ -364,8 +366,7 @@ def patient_get_messages(patient_id: int, doctor_id: int, db: sqlite3.Connection
         rows = db.execute("""
             SELECT message_id, sender_id, sender_role, message_text, is_read, created_at
             FROM messages
-            WHERE (sender_id=? AND sender_role='patient' AND receiver_id=? AND receiver_role='doctor')
-               OR (sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient')
+            WHERE ((sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?))
             ORDER BY created_at ASC
         """, (patient_id, doctor_id, doctor_id, patient_id)).fetchall()
         return {"messages": [dict(r) for r in rows]}
@@ -387,26 +388,31 @@ def patient_get_conversations(patient_id: int, db: sqlite3.Connection = Depends(
         conversations = []
         for row in rows:
             doc_id = row["doctor_id"]
-            doc = doctor_repo.get_doctor_by_id(db, doc_id)
-            if not doc:
-                continue
+            doc_name = ""
+            
+            if doc_id == 0:
+                doc_name = "Hospital Admin"
+            else:
+                doc = doctor_repo.get_doctor_by_id(db, doc_id)
+                if not doc: continue
+                doc_name = doc["name"]
 
             last_msg = db.execute("""
-                SELECT message_text, created_at
+                SELECT message_text, created_at, sender_role
                 FROM messages
-                WHERE (sender_id=? AND sender_role='patient' AND receiver_id=? AND receiver_role='doctor')
-                   OR (sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient')
+                WHERE (sender_id=? AND sender_role='patient' AND receiver_id=? AND receiver_role IN ('doctor', 'admin'))
+                   OR (sender_id=? AND sender_role IN ('doctor', 'admin') AND receiver_id=? AND receiver_role='patient')
                 ORDER BY created_at DESC LIMIT 1
             """, (patient_id, doc_id, doc_id, patient_id)).fetchone()
 
             unread = db.execute("""
                 SELECT COUNT(*) FROM messages
-                WHERE sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient' AND is_read=0
+                WHERE sender_id=? AND sender_role IN ('doctor', 'admin') AND receiver_id=? AND receiver_role='patient' AND is_read=0
             """, (doc_id, patient_id)).fetchone()[0]
 
             conversations.append({
                 "doctor_id": doc_id,
-                "doctor_name": doc["name"],
+                "doctor_name": doc_name,
                 "last_message": last_msg["message_text"] if last_msg else "",
                 "last_time": last_msg["created_at"] if last_msg else "",
                 "unread_count": unread
@@ -426,7 +432,7 @@ async def patient_mark_read(request: Request, db: sqlite3.Connection = Depends(g
         doctor_id = data.get("doctor_id")
         db.execute("""
             UPDATE messages SET is_read=1
-            WHERE sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient'
+            WHERE sender_id=? AND sender_role IN ('doctor', 'admin') AND receiver_id=? AND receiver_role='patient'
         """, (doctor_id, patient_id))
         db.commit()
         return {"success": True}

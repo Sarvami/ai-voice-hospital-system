@@ -537,7 +537,7 @@ async function openPatientChat(doctorId, doctorName) {
 
 async function loadPatientMessages() {
   const patientId = localStorage.getItem("patient_id");
-  if (!patientId || !activeChatDoctorId) return;
+  if (!patientId || activeChatDoctorId === null) return;
 
   try {
     const res = await fetch(`${BACKEND}/patient/messages?patient_id=${patientId}&doctor_id=${activeChatDoctorId}`);
@@ -572,7 +572,7 @@ async function sendPatientMessage() {
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
 
-  if (!text || !activeChatDoctorId) return;
+  if (!text || activeChatDoctorId === null) return;
 
   input.value = '';
   try {
@@ -596,7 +596,7 @@ function pollMessages() {
   if (messagesPollTimer) clearInterval(messagesPollTimer);
   messagesPollTimer = setInterval(() => {
     loadConversations();
-    if (activeChatDoctorId) loadPatientMessages();
+    if (activeChatDoctorId !== null) loadPatientMessages();
   }, 5000);
 }
 

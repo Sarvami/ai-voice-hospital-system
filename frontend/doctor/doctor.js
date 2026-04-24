@@ -280,6 +280,7 @@ function populateAppointmentTable(data) {
     const cancelBtn = canCancel
       ? `<button class="btn-cancel-appt" onclick="cancelAppointment(${a.id})">Cancel</button>`
       : '';
+    const chatBtn = `<button class="btn-chat" onclick="jumpToPatientChat(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-comments"></i></button>`;
     const meetBtn = `<button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id || 0})"><i class="fa fa-video"></i> Meet</button>`;
 
     table.innerHTML += `
@@ -290,6 +291,7 @@ function populateAppointmentTable(data) {
         <td>${a.time}</td>
         <td>${status}</td>
         <td>${esc(reason)}</td>
+        <td>${chatBtn}</td>
         <td>${cancelBtn}</td>
         <td>${meetBtn}</td>
       </tr>`;
@@ -415,6 +417,11 @@ async function loadPatients() {
           <td>${esc(p.age)}</td>
           <td>${esc(p.gender)}</td>
           <td>${esc(p.phone)}</td>
+          <td>
+            <button class="btn-chat" onclick="jumpToPatientChat(${p.patient_id}, '${esc(p.name)}')">
+              <i class="fa fa-comments"></i> Message
+            </button>
+          </td>
         </tr>`;
     });
 
@@ -447,6 +454,11 @@ loadAppointments();
 let activeChatPatientId = null;
 let activeChatPatientName = null;
 let doctorMsgPollTimer = null;
+
+function jumpToPatientChat(patientId, patientName) {
+  showSection('messages', document.querySelector('.sidebar ul li:nth-child(6)')); // Messages is usually 6th item
+  openDoctorChat(patientId, patientName);
+}
 
 async function loadDoctorConversations() {
   const doctorId = localStorage.getItem("doctor_id");
@@ -585,6 +597,7 @@ function startDoctorMsgPoll() {
 window.openDoctorChat = openDoctorChat;
 window.sendDoctorMessage = sendDoctorMessage;
 window.loadDoctorConversations = loadDoctorConversations;
+window.jumpToPatientChat = jumpToPatientChat;
 
 /* ── Init messaging on load ── */
 document.addEventListener("DOMContentLoaded", () => {

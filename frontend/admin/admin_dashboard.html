@@ -60,7 +60,10 @@
     </ul>
 
     <li onclick="showSection('appointments', this)">
-      <i class="fa fa-calendar"></i> Appointments
+      <i class="fa fa-calendar-check"></i> Appointments
+    </li>
+    <li onclick="showSection('messages', this)">
+      <i class="fa fa-comments"></i> Messages
     </li>
     <li onclick="showSection('leaves', this)">
       <i class="fa fa-bed"></i> Staff Leaves
@@ -268,7 +271,25 @@
     </table>
   </div>
 
-  <!-- CREATE DOCTOR -->
+    <!-- MESSAGES SECTION -->
+    <div id="messages" class="section hidden">
+        <h2>Patient Messages</h2>
+        <div class="admin-messaging-layout">
+            <div class="admin-conv-list" id="adminConvList">
+                <div class="empty-conv">No messages yet.</div>
+            </div>
+            <div class="admin-chat-window">
+                <div class="chat-header" id="adminChatHeader">Select a patient</div>
+                <div class="chat-messages" id="adminChatMessages"></div>
+                <div class="chat-input-area" id="adminChatInputArea" style="display:none;">
+                    <input type="text" id="adminReplyInput" placeholder="Type a reply..." onkeydown="if(event.key==='Enter') sendAdminReply()">
+                    <button onclick="sendAdminReply()"><i class="fa fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STAFF LEAVES SECTION -->
   <div id="createDoctor" class="section hidden">
     <h2>Create Doctor</h2>
     <div class="form-card">
