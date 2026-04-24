@@ -1,3 +1,7 @@
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+input, button, select, textarea { font-family: inherit; }
+
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
@@ -20,6 +24,7 @@ h1, h2, h3 {
   font-weight: 700;
   margin: 0;
 }
+h1 { font-size: 26px; }
 
 /* LAYOUT */
 .dashboard {
@@ -74,7 +79,9 @@ body.light-theme .logo {
   border-radius: 12px;
   cursor: pointer;
   color: #94a3b8;
+  font-size: 14px;
   font-weight: 500;
+
   display: flex;
   align-items: center;
   gap: 12px;

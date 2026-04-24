@@ -29,6 +29,7 @@ body.light-theme {
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+input, button, select, textarea { font-family: inherit; }
 
 body {
   font-family: 'Inter', sans-serif;
@@ -156,10 +157,10 @@ body.light-theme select option { background: #fff; color: #1e293b; }
   padding: 14px 20px;
   margin: 0 -40px 28px;
   font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--accent);
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   display: flex;
   justify-content: space-between;

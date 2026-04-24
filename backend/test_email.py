@@ -7,6 +7,10 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
+# FIX: PermissionError [Errno 13] when urllib3 tries to write to a restricted SSLKEYLOGFILE path
+if "SSLKEYLOGFILE" in os.environ:
+    os.environ.pop("SSLKEYLOGFILE")
+
 api_key = os.getenv("BREVO_API_KEY", "")
 sender  = os.getenv("EMAIL_SENDER", "")
 to      = sys.argv[1] if len(sys.argv) > 1 else sender

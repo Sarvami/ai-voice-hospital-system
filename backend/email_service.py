@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
+# FIX: PermissionError [Errno 13] when urllib3 tries to write to a restricted SSLKEYLOGFILE path
+if "SSLKEYLOGFILE" in os.environ:
+    os.environ.pop("SSLKEYLOGFILE")
+
 
 def generate_otp() -> str:
     return ''.join(random.choices(string.digits, k=6))
@@ -45,7 +49,12 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
             print(f"Email sent to {to_email} via Brevo API")
             return True
         else:
-            print(f"Brevo API error {resp.status_code}: {resp.text}")
+            try:
+                err_data = resp.json()
+                msg = err_data.get("message", resp.text)
+                print(f"Brevo API error {resp.status_code}: {msg}")
+            except:
+                print(f"Brevo API error {resp.status_code}: {resp.text}")
             return False
 
     except Exception as e:
