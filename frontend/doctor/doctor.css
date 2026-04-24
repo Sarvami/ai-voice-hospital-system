@@ -347,6 +347,30 @@ body.light-theme .cal-cell { background: #f8fafc; border-color: #e2e8f0; }
   max-width: 1100px;
 }
 
+@media (max-width: 768px) {
+  .messaging-layout {
+    flex-direction: column;
+    height: auto;
+    border: none;
+    background: transparent;
+  }
+  .conversations-list {
+    width: 100% !important;
+    max-height: 180px;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.3) !important;
+    margin-bottom: 12px;
+    border-radius: 16px;
+  }
+  .chat-window {
+    height: 400px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+}
+
 body.light-theme .messaging-layout {
   background: #ffffff;
   border-color: #e2e8f0;
