@@ -145,6 +145,7 @@ class UpdatePatientRequest(BaseModel):
     age: int = Field(..., ge=0, le=150)
     gender: str
     phone: str
+    email: Optional[str] = None
     preferred_language: str = "en"
 
     @field_validator("gender")
@@ -161,7 +162,30 @@ class UpdatePatientRequest(BaseModel):
             raise ValueError("phone must be a 10-digit number")
         return v
 
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        if v and ("@" not in v or "." not in v):
+            raise ValueError("invalid email address")
+        return v
+
     @field_validator("preferred_language")
     @classmethod
     def validate_lang(cls, v):
         return v if v in VALID_LANGS else "en"
+
+
+class OtpRequest(BaseModel):
+    phone: str
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v):
+        if not re.match(r'^\d{10}$', v.strip()):
+            raise ValueError("phone must be a 10-digit number")
+        return v.strip()
+
+
+class VerifyOtpRequest(BaseModel):
+    phone: str
+    otp: str

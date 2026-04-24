@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -265,7 +265,7 @@
       padding: 14px 16px;
       color: var(--text);
       font-family: 'Sora', sans-serif;
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
       transition: border-color 0.2s, background 0.2s;
     }
@@ -383,6 +383,28 @@
       background: rgba(124, 131, 253, 0.15);
       color: var(--accent2);
     }
+
+    .resend-row {
+      margin-top: 12px;
+      text-align: center;
+    }
+    .resend-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      padding: 8px 18px;
+      cursor: not-allowed;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .resend-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      cursor: pointer;
+    }
+    .resend-btn.active:hover { opacity: 0.8; }
   </style>
 </head>
 
@@ -444,24 +466,24 @@
         label: 'Patient', cls: 'patient', bodyCls: 'role-patient',
         showRegister: true,
         fields: [
-          { id: 'identifier', type: 'tel', label: 'Phone Number', placeholder: 'Enter your phone number', hint: '' },
-          { id: 'password', type: 'password', label: 'Password', placeholder: 'Enter your password', hint: '' },
+          { id: 'identifier', type: 'tel', label: 'Phone Number', placeholder: 'Enter your phone number', hint: '', autocomplete: 'tel' },
+          { id: 'password', type: 'password', label: 'Password', placeholder: 'Enter your password', hint: '', autocomplete: 'current-password' },
         ],
       },
       doctor: {
         label: 'Doctor', cls: 'doctor', bodyCls: 'role-doctor',
         showRegister: false,
         fields: [
-          { id: 'identifier', type: 'text', label: 'Doctor ID', placeholder: 'e.g. DOC1, DOC2...', hint: 'Enter your Doctor ID (e.g. DOC1)' },
-          { id: 'password', type: 'password', label: 'Password', placeholder: 'Enter your password', hint: '' },
+          { id: 'identifier', type: 'text', label: 'Doctor ID', placeholder: 'e.g. DOC1, DOC2...', hint: 'Enter your Doctor ID (e.g. DOC1)', autocomplete: 'username' },
+          { id: 'password', type: 'password', label: 'Password', placeholder: 'Enter your password', hint: '', autocomplete: 'current-password' },
         ],
       },
       admin: {
         label: 'Admin', cls: 'admin', bodyCls: 'role-admin',
         showRegister: false,
         fields: [
-          { id: 'identifier', type: 'email', label: 'Admin Email', placeholder: 'admin@hospital.gov.in', hint: '' },
-          { id: 'password', type: 'password', label: 'Password', placeholder: 'Enter your password', hint: '' },
+          { id: 'identifier', type: 'email', label: 'Admin Email', placeholder: 'admin@hospital.gov.in', hint: '', autocomplete: 'email' },
+          { id: 'password', type: 'password', label: 'Password', placeholder: 'Enter your password', hint: '', autocomplete: 'current-password' },
         ],
       },
     };
@@ -481,7 +503,7 @@
         div.style.animationDelay = `${i * 0.07}s`;
         div.innerHTML = `
         <label for="${f.id}">${f.label}</label>
-        <input id="${f.id}" type="${f.type}" placeholder="${f.placeholder}" autocomplete="off">
+        <input id="${f.id}" type="${f.type}" placeholder="${f.placeholder}" autocomplete="${f.autocomplete || 'off'}">
         ${f.hint ? `<p class="field-hint">${f.hint}</p>` : ''}
       `;
         fieldsWrap.appendChild(div);
@@ -495,6 +517,10 @@
     });
 
     /* ── LOGIN ── */
+    const BACKEND = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://127.0.0.1:8000'
+      : 'https://your-deployed-backend-url.railway.app';
+
     async function login() {
       const role = document.querySelector('input[name="role"]:checked').value;
       const identifier = document.getElementById('identifier')?.value.trim();
@@ -510,11 +536,10 @@
 
       /* Key sent to backend differs per role */
       const payloadKey = { patient: 'phone', doctor: 'doctor_id', admin: 'email' }[role];
-
       const payload = { role, password, [payloadKey]: identifier };
 
       try {
-        const res = await fetch('http://127.0.0.1:8000/login', {
+      const res = await fetch(`${BACKEND}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -527,30 +552,135 @@
           return;
         }
 
-        /* Store session */
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('role', role);
-        localStorage.setItem('name', data.user.name || 'User');
-        localStorage.setItem('phone', data.user.phone || '');
-        localStorage.setItem('lang', data.user.preferred_language || 'hi');
-        if (role === 'patient') {
-          localStorage.setItem('patient_id', data.user.id);
+        /* Patient with email → OTP step */
+        if (role === 'patient' && data.user.has_email) {
+          await startOtpFlow(data.user, identifier);
+          return;
         }
-        if (role === 'doctor') {
-  localStorage.setItem('doctor_id', data.user.id);
-}
 
-        /* Redirect to correct dashboard */
-        const redirectMap = {
-          patient: '../patient/patient_dashboard.html',
-          doctor: '../doctor/doctor_dashboard.html',
-          admin: '../admin/admin_dashboard.html',
-        };
-        window.location.href = redirectMap[role];
+        finishLogin(role, data.user);
 
       } catch (err) {
         msgEl.textContent = 'Could not connect to server. Please try again.';
       }
+    }
+
+    /* ── OTP FLOW ── */
+    let _resendTimer = null;
+
+    async function startOtpFlow(user, phone) {
+      const msgEl = document.getElementById('msg');
+      msgEl.textContent = '';
+
+      // Send OTP automatically
+      try {
+        await fetch(`${BACKEND}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone }),
+        });
+      } catch (e) { /* silent */ }
+
+      // Swap card content to OTP input + resend button
+      fieldsWrap.innerHTML = `
+        <div class="field field-enter">
+          <label for="otpInput">Enter OTP</label>
+          <input id="otpInput" type="text" placeholder="6-digit code" maxlength="6" autocomplete="one-time-code">
+          <p class="field-hint">A 6-digit OTP was sent to your registered email. Valid for 5 minutes.</p>
+        </div>
+        <div class="resend-row">
+          <button class="resend-btn" id="resendBtn" disabled>Resend OTP in 50s</button>
+        </div>
+      `;
+      document.querySelector('.btn').textContent = 'Verify OTP';
+      document.querySelector('.btn').onclick = () => verifyOtp(user, phone);
+      msgEl.style.color = 'var(--accent)';
+      msgEl.textContent = 'OTP sent to your email.';
+
+      startResendCountdown(phone);
+    }
+
+    function startResendCountdown(phone) {
+      if (_resendTimer) clearInterval(_resendTimer);
+      const btn = document.getElementById('resendBtn');
+      if (!btn) return;
+      btn.disabled = true;
+      btn.classList.remove('active');
+      let secs = 50;
+      btn.textContent = `Resend OTP in ${secs}s`;
+      _resendTimer = setInterval(() => {
+        secs--;
+        if (secs <= 0) {
+          clearInterval(_resendTimer);
+          btn.textContent = 'Resend OTP';
+          btn.disabled = false;
+          btn.classList.add('active');
+          btn.onclick = async () => {
+            btn.disabled = true;
+            btn.classList.remove('active');
+            btn.textContent = 'Sending…';
+            try {
+              await fetch(`${BACKEND}/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone }),
+              });
+            } catch (e) { /* silent */ }
+            const msgEl = document.getElementById('msg');
+            if (msgEl) { msgEl.style.color = 'var(--accent)'; msgEl.textContent = 'OTP resent to your email.'; }
+            startResendCountdown(phone);
+          };
+        } else {
+          btn.textContent = `Resend OTP in ${secs}s`;
+        }
+      }, 1000);
+    }
+
+    async function verifyOtp(user, phone) {
+      const otp = document.getElementById('otpInput')?.value.trim();
+      const msgEl = document.getElementById('msg');
+      msgEl.style.color = 'var(--error)';
+      msgEl.textContent = '';
+
+      if (!otp || otp.length !== 6) {
+        msgEl.textContent = 'Please enter the 6-digit OTP.';
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BACKEND}/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, otp }),
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          msgEl.textContent = data.message || 'Invalid or expired OTP.';
+          return;
+        }
+
+        finishLogin('patient', data.user);
+      } catch (err) {
+        msgEl.textContent = 'Could not connect to server. Please try again.';
+      }
+    }
+
+    function finishLogin(role, user) {
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('role', role);
+      localStorage.setItem('name', user.name || 'User');
+      localStorage.setItem('phone', user.phone || '');
+      localStorage.setItem('lang', user.preferred_language || 'hi');
+      if (role === 'patient') localStorage.setItem('patient_id', user.id);
+      if (role === 'doctor')  localStorage.setItem('doctor_id', user.id);
+
+      const redirectMap = {
+        patient: '../patient/patient_dashboard.html',
+        doctor:  '../doctor/doctor_dashboard.html',
+        admin:   '../admin/admin_dashboard.html',
+      };
+      window.location.href = redirectMap[role];
     }
   </script>
 

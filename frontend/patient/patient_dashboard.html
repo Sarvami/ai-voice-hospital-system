@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SwasthSeva Patient Dashboard</title>
 
 <link rel="stylesheet" href="patient.css">
@@ -35,6 +36,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 
 <li onclick="showSection('records')">
 <i class="fa fa-file"></i> Medical Records
+</li>
+
+<li onclick="showSection('messages', this)">
+<i class="fa fa-comments"></i> Messages
+<span class="unread-badge" id="patientUnreadBadge" style="display:none;"></span>
 </li>
 
 <li onclick="window.location.href='../index.html'">
@@ -94,11 +100,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
           <th>Doctor</th>
           <th>Contact</th>
           <th>Email</th>
-<th>Region</th>
-<th>Date</th>
+          <th>Region</th>
+          <th>Date</th>
           <th>Time</th>
           <th>Status</th>
           <th>Cancellation Reason</th>
+          <th>Join Meet</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -177,11 +184,33 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 
 </div>
 
+<!-- MESSAGES -->
+<div id="messages" class="section hidden">
+  <h2>Messages</h2>
+  <div class="messaging-layout">
+    <div class="conversations-list" id="conversationsList">
+      <div class="conv-empty">No conversations yet.</div>
+    </div>
+    <div class="chat-window" id="chatWindow">
+      <div class="chat-header" id="chatHeader">Select a conversation</div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-bar" id="chatInputBar" style="display:none;">
+        <input type="text" id="messageInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendPatientMessage()">
+        <button onclick="sendPatientMessage()"><i class="fa fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
 </div>
 
-</div>
+</div><!-- /main -->
+</div><!-- /dashboard -->
 
-<script src="patient.js"></script>
+<nav class="mobile-bottom-nav">
+  <a onclick="showSection('dashboard', this)"><i class="fa fa-home"></i><span>Home</span></a>
+  <a onclick="showSection('appointments', this)"><i class="fa fa-calendar"></i><span>Appointments</span></a>
+  <a onclick="showSection('records', this)"><i class="fa fa-file"></i><span>Records</span></a>
+  <a onclick="logout()"><i class="fa fa-sign-out"></i><span>Logout</span></a>
+</nav>
 
 </body>
 </html>

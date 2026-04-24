@@ -4,12 +4,14 @@ import sqlite3
 from fastapi import APIRouter, Request, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from gtts import gTTS
-from models import DateRequest, RegionRequest, RateRequest
+from models import DateRequest, RegionRequest, RateRequest, OtpRequest, VerifyOtpRequest
 from voice_service import gt_from_english
 from repositories.session_repo import get_session, set_session, delete_session
 from passlib.context import CryptContext
 from database import get_db
 from repositories import patient_repo, doctor_repo, appointment_repo, report_repo
+from email_service import generate_otp, send_otp_email, send_cancellation_email
+from datetime import datetime, timedelta
 
 router = APIRouter()
 REPORTS_DIR = os.path.join(os.path.dirname(__file__), "reports")
@@ -51,7 +53,8 @@ async def login(request: Request, db: sqlite3.Connection = Depends(get_db)):
             return {"success": True, "user": {
                 "id": user["patient_id"], "name": user["name"],
                 "phone": user["phone"],
-                "preferred_language": user.get("preferred_language") or "en"
+                "preferred_language": user.get("preferred_language") or "en",
+                "has_email": bool(user.get("email"))
             }}
 
         if role == "doctor":
@@ -84,13 +87,16 @@ async def register_patient(request: Request, db: sqlite3.Connection = Depends(ge
         gender   = data.get("gender", "Unknown")
         language = data.get("preferred_language", "en")
         region   = data.get("region", "Unknown")
+        email    = data.get("email", "").strip() or None
 
         if not name or not phone or not password:
             return {"success": False, "message": "Missing fields"}
+        if email and ("@" not in email or "." not in email):
+            return {"success": False, "message": "Invalid email address"}
         if patient_repo.patient_phone_exists(db, phone):
             return {"success": False, "message": "Phone number already registered"}
 
-        patient_repo.create_patient(db, name, age, gender, phone, language, region, hash_password(password))
+        patient_repo.create_patient(db, name, age, gender, phone, language, region, hash_password(password), email)
         return {"success": True}
     except Exception as e:
         print("ERROR in register:", e)
@@ -237,3 +243,211 @@ def doctors_by_region(region: str, db: sqlite3.Connection = Depends(get_db)):
     except Exception as e:
         print("ERROR in doctors_by_region:", e)
         return []
+
+# ── OTP ───────────────────────────────────────────────────────────────────────
+
+@router.post("/send-otp")
+async def send_otp(req: OtpRequest, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        user = patient_repo.get_patient_by_phone(db, req.phone)
+        if not user:
+            return {"success": False, "message": "User not found"}
+        if not user.get("email"):
+            return {"success": False, "message": "No email registered"}
+
+        otp = generate_otp()
+        expiry = (datetime.utcnow() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+        patient_repo.set_otp(db, req.phone, otp, expiry)
+        send_otp_email(user["email"], otp, user["name"])
+        return {"success": True, "message": "OTP sent"}
+    except Exception as e:
+        print("ERROR in send_otp:", e)
+        return {"success": False, "message": "Could not send OTP. Please try again."}
+
+
+@router.post("/verify-otp")
+async def verify_otp(req: VerifyOtpRequest, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        user = patient_repo.get_patient_by_phone(db, req.phone)
+        if not user:
+            return {"success": False, "message": "User not found"}
+
+        stored_otp    = user.get("otp")
+        stored_expiry = user.get("otp_expiry")
+
+        if not stored_otp or not stored_expiry:
+            return {"success": False, "message": "No OTP requested"}
+
+        if datetime.utcnow() > datetime.strptime(stored_expiry, "%Y-%m-%d %H:%M:%S"):
+            return {"success": False, "message": "Invalid or expired OTP"}
+
+        if req.otp.strip() != stored_otp:
+            return {"success": False, "message": "Invalid or expired OTP"}
+
+        patient_repo.clear_otp(db, req.phone)
+        return {"success": True, "user": {
+            "id": user["patient_id"], "name": user["name"],
+            "phone": user["phone"],
+            "preferred_language": user.get("preferred_language") or "en",
+            "has_email": True
+        }}
+    except Exception as e:
+        print("ERROR in verify_otp:", e)
+        return {"success": False, "message": "Server error. Please try again."}
+
+# ── CANCEL APPOINTMENT ────────────────────────────────────────────────────────
+
+@router.post("/patient/cancel-appointment/{appointment_id}")
+def cancel_appointment(appointment_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        appt = appointment_repo.get_appointment_by_id(db, appointment_id)
+        if not appt:
+            return {"success": False, "message": "Appointment not found"}
+        if appt["status"].lower() == "cancelled":
+            return {"success": False, "message": "Already cancelled"}
+
+        db.execute(
+            "UPDATE appointments SET status='Cancelled' WHERE appointment_id=?",
+            (appointment_id,)
+        )
+        db.commit()
+
+        # Send cancellation email if patient has one — fail silently
+        try:
+            patient = patient_repo.get_patient_by_id(db, appt["patient_id"])
+            if patient and patient.get("email"):
+                doc = doctor_repo.get_doctor_by_id(db, appt["doctor_id"])
+                doc_name = doc["name"] if doc else "Doctor"
+                send_cancellation_email(
+                    patient["email"], patient["name"], doc_name,
+                    appt.get("appointment_date", ""), appt.get("appointment_time", ""),
+                    appt.get("reason", "N/A")
+                )
+        except Exception as mail_err:
+            print("Cancellation email skipped:", mail_err)
+
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in cancel_appointment:", e)
+        return {"success": False, "message": "Could not cancel appointment."}
+
+
+# ── MESSAGING ─────────────────────────────────────────────────────────────────
+
+@router.post("/patient/send-message")
+async def patient_send_message(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        patient_id = data.get("patient_id")
+        doctor_id = data.get("doctor_id")
+        appointment_id = data.get("appointment_id")
+        message = data.get("message", "").strip()
+
+        if not patient_id or not doctor_id or not message:
+            return {"success": False, "message": "Missing fields"}
+
+        db.execute("""
+            INSERT INTO messages (sender_id, sender_role, receiver_id, receiver_role, appointment_id, message_text)
+            VALUES (?, 'patient', ?, 'doctor', ?, ?)
+        """, (patient_id, doctor_id, appointment_id, message))
+        db.commit()
+        msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return {"success": True, "message_id": msg_id}
+    except Exception as e:
+        print("ERROR in patient_send_message:", e)
+        return {"success": False, "message": "Could not send message."}
+
+
+@router.get("/patient/messages")
+def patient_get_messages(patient_id: int, doctor_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute("""
+            SELECT message_id, sender_id, sender_role, message_text, is_read, created_at
+            FROM messages
+            WHERE (sender_id=? AND sender_role='patient' AND receiver_id=? AND receiver_role='doctor')
+               OR (sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient')
+            ORDER BY created_at ASC
+        """, (patient_id, doctor_id, doctor_id, patient_id)).fetchall()
+        return {"messages": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in patient_get_messages:", e)
+        return {"messages": []}
+
+
+@router.get("/patient/conversations")
+def patient_get_conversations(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute("""
+            SELECT DISTINCT
+                CASE WHEN sender_role='patient' THEN receiver_id ELSE sender_id END AS doctor_id
+            FROM messages
+            WHERE (sender_id=? AND sender_role='patient') OR (receiver_id=? AND receiver_role='patient')
+        """, (patient_id, patient_id)).fetchall()
+
+        conversations = []
+        for row in rows:
+            doc_id = row["doctor_id"]
+            doc = doctor_repo.get_doctor_by_id(db, doc_id)
+            if not doc:
+                continue
+
+            last_msg = db.execute("""
+                SELECT message_text, created_at
+                FROM messages
+                WHERE (sender_id=? AND sender_role='patient' AND receiver_id=? AND receiver_role='doctor')
+                   OR (sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient')
+                ORDER BY created_at DESC LIMIT 1
+            """, (patient_id, doc_id, doc_id, patient_id)).fetchone()
+
+            unread = db.execute("""
+                SELECT COUNT(*) FROM messages
+                WHERE sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient' AND is_read=0
+            """, (doc_id, patient_id)).fetchone()[0]
+
+            conversations.append({
+                "doctor_id": doc_id,
+                "doctor_name": doc["name"],
+                "last_message": last_msg["message_text"] if last_msg else "",
+                "last_time": last_msg["created_at"] if last_msg else "",
+                "unread_count": unread
+            })
+
+        return {"conversations": conversations}
+    except Exception as e:
+        print("ERROR in patient_get_conversations:", e)
+        return {"conversations": []}
+
+
+@router.post("/patient/mark-read")
+async def patient_mark_read(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        patient_id = data.get("patient_id")
+        doctor_id = data.get("doctor_id")
+        db.execute("""
+            UPDATE messages SET is_read=1
+            WHERE sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient'
+        """, (doctor_id, patient_id))
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in patient_mark_read:", e)
+        return {"success": False}
+
+
+# ── MEET LINKS ────────────────────────────────────────────────────────────────
+
+@router.get("/patient/meet-links")
+def patient_meet_links(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute("""
+            SELECT m.*, d.name AS doctor_name
+            FROM meet_links m
+            JOIN doctors d ON m.doctor_id = d.doctor_id
+            WHERE m.patient_id = ?
+            ORDER BY m.created_at DESC
+        """, (patient_id,)).fetchall()
+        return {"meet_links": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in patient_meet_links:", e)
+        return {"meet_links": []}
