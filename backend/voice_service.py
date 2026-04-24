@@ -208,11 +208,12 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             if len(doctors) == 1:
                 d = doctors[0]
                 name = d['name'].replace('Dr.', 'Doctor')
-                rating = d['rating']
+                region_label = data.get("region", "your area")
                 if "nearby" in reply_prefix:
-                    reply = f"{name} (Rating {rating}) is available nearby."
+                    english_reply = f"We found {name} available nearby. Would you like to book with them? Say yes or no."
                 else:
-                    reply = f"In {region}, {name} (Rating {rating}) is available."
+                    english_reply = f"We found {name} in {region_label}. Would you like to book with them? Say yes or no."
+                reply = gt_from_english(english_reply, lang)
                 return reply, {"intent": "show_doctors_popup", "data": {"doctors": doctors}}
             else:
                 doctor_names = [f"{d['name'].replace('Dr.', 'Doctor')} (Rating {d['rating']})" for d in doctors]
@@ -251,7 +252,20 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             return (f"Here are {matched_dept} specialists from other areas. I'll show them one by one.",
                     {"intent": "show_doctors_popup", "data": {"doctors": nearby}})
 
-        if len(available) == 1 and any(w in text.lower() for w in ["yes", "book", "confirm", "okay", "sure", "that's fine"]):
+        if len(available) == 1 and any(w in text.lower() for w in [
+            # English
+            "yes", "book", "confirm", "okay", "sure", "that's fine",
+            # Hindi
+            "haan", "haa", "ha", "bilkul", "theek", "zaroor",
+            # Marathi
+            "ho", "hoy",
+            # Tamil
+            "aamam", "aama",
+            # Telugu
+            "avunu", "avun",
+            # Gujarati
+            "haa", "ha",
+        ]):
             chosen = available[0]["name"]
 
         if not chosen:
@@ -399,7 +413,15 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         confirm_words = ["yes", "confirm", "ok", "sure", "theek", "ha", "haa", "han",
                          "haan", "ho", "bilkul", "zaroor", "correct", "right", "book",
                          "please", "karo", "kar", "done", "proceed", "aage"]
-        cancel_words  = ["no", "nahi", "naa", "cancel", "band", "mat", "don't", "dont", "stop"]
+        cancel_words  = ["no", "nahi", "naa", "cancel", "band", "mat", "don't", "dont", "stop",
+                         # Marathi
+                         "nako", "nahi",
+                         # Tamil
+                         "illai", "venda",
+                         # Telugu
+                         "kadu", "vaddu",
+                         # Gujarati
+                         "na", "nahi"]
 
         if any(w in text for w in confirm_words):
             # Using data instead of global user_data

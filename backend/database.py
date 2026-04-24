@@ -72,9 +72,12 @@ class Patient(Base):
     age = Column(Integer)
     gender = Column(String)
     phone = Column(String, unique=True, index=True)
+    email = Column(String, nullable=True)
+    otp = Column(String, nullable=True)
+    otp_expiry = Column(String, nullable=True)
     preferred_language = Column(String, default="en")
     password_hash = Column(String, nullable=False)
-    region = Column(String) # Current selected region
+    region = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     appointments = relationship("Appointment", back_populates="patient")

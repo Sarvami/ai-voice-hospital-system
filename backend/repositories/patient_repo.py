@@ -8,10 +8,10 @@ def get_patient_by_id(conn, patient_id: int):
     return dict(row) if row else None
 
 
-def create_patient(conn, name, age, gender, phone, language, region, password_hash):
+def create_patient(conn, name, age, gender, phone, language, region, password_hash, email=None):
     conn.execute(
-        "INSERT INTO patients (name, age, gender, phone, preferred_language, region, password_hash) VALUES (?,?,?,?,?,?,?)",
-        (name, age, gender, phone, language, region, password_hash)
+        "INSERT INTO patients (name, age, gender, phone, preferred_language, region, password_hash, email) VALUES (?,?,?,?,?,?,?,?)",
+        (name, age, gender, phone, language, region, password_hash, email)
     )
     conn.commit()
 
@@ -50,3 +50,19 @@ def update_patient_region(conn, patient_id, region: str):
 def get_all_patients(conn):
     rows = conn.execute("SELECT * FROM patients ORDER BY patient_id DESC").fetchall()
     return [dict(r) for r in rows]
+
+
+def set_otp(conn, phone: str, otp: str, expiry: str):
+    conn.execute(
+        "UPDATE patients SET otp=?, otp_expiry=? WHERE phone=?",
+        (otp, expiry, phone)
+    )
+    conn.commit()
+
+
+def clear_otp(conn, phone: str):
+    conn.execute(
+        "UPDATE patients SET otp=NULL, otp_expiry=NULL WHERE phone=?",
+        (phone,)
+    )
+    conn.commit()
