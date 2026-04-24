@@ -38,6 +38,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <i class="fa fa-file"></i> Medical Records
 </li>
 
+<li onclick="showSection('messages', this)">
+<i class="fa fa-comments"></i> Messages
+<span class="unread-badge" id="patientUnreadBadge" style="display:none;"></span>
+</li>
+
 <li onclick="window.location.href='../index.html'">
 <i class="fa fa-microphone"></i> Book Appointment
 </li>
@@ -95,11 +100,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
           <th>Doctor</th>
           <th>Contact</th>
           <th>Email</th>
-<th>Region</th>
-<th>Date</th>
+          <th>Region</th>
+          <th>Date</th>
           <th>Time</th>
           <th>Status</th>
           <th>Cancellation Reason</th>
+          <th>Join Meet</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -178,11 +184,26 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 
 </div>
 
+<!-- MESSAGES -->
+<div id="messages" class="section hidden">
+  <h2>Messages</h2>
+  <div class="messaging-layout">
+    <div class="conversations-list" id="conversationsList">
+      <div class="conv-empty">No conversations yet.</div>
+    </div>
+    <div class="chat-window" id="chatWindow">
+      <div class="chat-header" id="chatHeader">Select a conversation</div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-bar" id="chatInputBar" style="display:none;">
+        <input type="text" id="messageInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendPatientMessage()">
+        <button onclick="sendPatientMessage()"><i class="fa fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
 </div>
 
-</div>
-
-<script src="patient.js"></script>
+</div><!-- /main -->
+</div><!-- /dashboard -->
 
 <nav class="mobile-bottom-nav">
   <a onclick="showSection('dashboard', this)"><i class="fa fa-home"></i><span>Home</span></a>

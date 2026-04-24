@@ -82,3 +82,20 @@ def send_cancellation_email(to_email: str, patient_name: str, doctor_name: str, 
     </div>
     """
     return send_email(to_email, subject, body)
+
+
+def send_meet_email(to_email: str, patient_name: str, doctor_name: str, meet_link: str, scheduled_time: str) -> bool:
+    subject = "Video Consultation Link - SwasthSewa Hospital"
+    body = f"""
+    <div style="font-family:sans-serif;max-width:400px;margin:auto;padding:32px;background:#0a0f1e;color:#e8eaf6;border-radius:16px;">
+      <h2 style="color:#4fc3f7;">Video Consultation 🎥</h2>
+      <p>Hello <b>{patient_name}</b>,</p>
+      <p>Dr. {doctor_name} has scheduled a video consultation with you.</p>
+      <p><b>Time:</b> {scheduled_time}</p>
+      <div style="margin:24px 0;">
+        <a href="{meet_link}" style="background:#4fc3f7;color:#0a0f1e;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Join Google Meet</a>
+      </div>
+      <p style="color:#7986cb;font-size:12px;">Link: {meet_link}</p>
+    </div>
+    """
+    return send_email(to_email, subject, body)

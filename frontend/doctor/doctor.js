@@ -269,7 +269,7 @@ function populateAppointmentTable(data) {
   const table = document.getElementById('appointmentTable');
   table.innerHTML = '';
   if (!data.length) {
-    table.innerHTML = "<tr><td colspan='7'>No appointments yet.</td></tr>";
+    table.innerHTML = "<tr><td colspan='8'>No appointments yet.</td></tr>";
     return;
   }
   data.forEach(a => {
@@ -277,9 +277,10 @@ function populateAppointmentTable(data) {
     const loweredStatus = status.toLowerCase();
     const reason = a.cancellation_reason || a.reason || '—';
     const canCancel = ['booked', 'scheduled', 'confirmed', 'upcoming', 'pending'].includes(loweredStatus);
-    const action = canCancel
+    const cancelBtn = canCancel
       ? `<button class="btn-cancel-appt" onclick="cancelAppointment(${a.id})">Cancel</button>`
-      : '<span style="color:#94a3b8;">—</span>';
+      : '';
+    const meetBtn = `<button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id || 0})"><i class="fa fa-video"></i> Meet</button>`;
 
     table.innerHTML += `
       <tr>
@@ -289,9 +290,38 @@ function populateAppointmentTable(data) {
         <td>${a.time}</td>
         <td>${status}</td>
         <td>${esc(reason)}</td>
-        <td>${action}</td>
+        <td>${cancelBtn}</td>
+        <td>${meetBtn}</td>
       </tr>`;
   });
+}
+
+async function createMeet(appointmentId, patientId) {
+  const scheduledTime = prompt('Enter meeting time (e.g. Today 3:00 PM):');
+  if (!scheduledTime) return;
+
+  const doctorId = localStorage.getItem('doctor_id');
+  try {
+    const res = await fetch(`${API}/doctor/create-meet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        doctor_id: parseInt(doctorId),
+        patient_id: patientId,
+        appointment_id: appointmentId,
+        scheduled_time: scheduledTime
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`Meet link created and sent to patient!\n\n${data.meet_link}`);
+      window.open(data.meet_link, '_blank');
+    } else {
+      alert(data.message || 'Could not create meet link.');
+    }
+  } catch (e) {
+    alert('Could not connect to server.');
+  }
 }
 
 async function cancelAppointment(appointmentId) {
@@ -412,3 +442,152 @@ function toggleTheme() {
 /* INIT */
 loadDoctor();
 loadAppointments();
+
+/* ── MESSAGING ── */
+let activeChatPatientId = null;
+let activeChatPatientName = null;
+let doctorMsgPollTimer = null;
+
+async function loadDoctorConversations() {
+  const doctorId = localStorage.getItem("doctor_id");
+  if (!doctorId) return;
+
+  try {
+    const res = await fetch(`${API}/doctor/conversations?doctor_id=${doctorId}`);
+    const data = await res.json();
+    const list = data.conversations || [];
+
+    const container = document.getElementById("conversationsList");
+    if (!container) return;
+
+    if (!list.length) {
+      container.innerHTML = '<div class="conv-empty">No conversations yet.</div>';
+      return;
+    }
+
+    let totalUnread = 0;
+    container.innerHTML = list.map(c => {
+      totalUnread += c.unread_count || 0;
+      const unreadHtml = c.unread_count > 0
+        ? `<span class="conv-unread">${c.unread_count}</span>` : '';
+      const isActive = c.patient_id === activeChatPatientId ? ' active' : '';
+      return `
+        <div class="conversation-item${isActive}" onclick="openDoctorChat(${c.patient_id}, '${esc(c.patient_name)}')">
+          <div class="conv-name">🧑‍⚕️ ${esc(c.patient_name)} ${unreadHtml}</div>
+          <div class="conv-last">${esc(c.last_message || 'No messages yet')}</div>
+        </div>`;
+    }).join('');
+
+    const badge = document.getElementById("doctorUnreadBadge");
+    if (badge) {
+      badge.textContent = totalUnread || '';
+      badge.style.display = totalUnread > 0 ? 'inline' : 'none';
+    }
+  } catch (e) {
+    console.error("loadDoctorConversations error:", e);
+  }
+}
+
+async function openDoctorChat(patientId, patientName) {
+  activeChatPatientId = patientId;
+  activeChatPatientName = patientName;
+
+  const header = document.getElementById("chatHeader");
+  const inputBar = document.getElementById("chatInputBar");
+  if (header) header.textContent = `🧑‍⚕️ ${patientName}`;
+  if (inputBar) inputBar.style.display = "flex";
+
+  const doctorId = localStorage.getItem("doctor_id");
+  await fetch(`${API}/doctor/mark-read`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ doctor_id: parseInt(doctorId), patient_id: patientId })
+  }).catch(() => {});
+
+  await loadDoctorMessages();
+  loadDoctorConversations();
+}
+
+async function loadDoctorMessages() {
+  const doctorId = localStorage.getItem("doctor_id");
+  if (!doctorId || !activeChatPatientId) return;
+
+  try {
+    const res = await fetch(`${API}/doctor/messages?doctor_id=${doctorId}&patient_id=${activeChatPatientId}`);
+    const data = await res.json();
+    const msgs = data.messages || [];
+
+    const container = document.getElementById("chatMessages");
+    if (!container) return;
+
+    if (!msgs.length) {
+      container.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px; font-size:13px;">No messages yet. Start the conversation!</div>';
+      return;
+    }
+
+    container.innerHTML = msgs.map(m => {
+      const isSent = m.sender_role === 'doctor';
+      const time = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      return `
+        <div class="message-bubble ${isSent ? 'message-sent' : 'message-received'}">
+          ${esc(m.message_text)}
+          <div class="message-time">${time}</div>
+        </div>`;
+    }).join('');
+
+    container.scrollTop = container.scrollHeight;
+  } catch (e) {
+    console.error("loadDoctorMessages error:", e);
+  }
+}
+
+async function sendDoctorMessage() {
+  const doctorId = localStorage.getItem("doctor_id");
+  const input = document.getElementById("messageInput");
+  const text = input ? input.value.trim() : '';
+
+  if (!text || !activeChatPatientId) return;
+  input.value = '';
+
+  try {
+    await fetch(`${API}/doctor/send-message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        doctor_id: parseInt(doctorId),
+        patient_id: activeChatPatientId,
+        message: text
+      })
+    });
+    await loadDoctorMessages();
+    loadDoctorConversations();
+  } catch (e) {
+    console.error("sendDoctorMessage error:", e);
+  }
+}
+
+/* ── Extend showSection to load conversations when messages tab opened ── */
+const _origDoctorShowSection = window.showSection || showSection;
+window.showSection = function(section, element) {
+  _origDoctorShowSection(section, element);
+  if (section === 'messages') loadDoctorConversations();
+};
+
+/* ── Poll for new messages every 5s ── */
+function startDoctorMsgPoll() {
+  if (doctorMsgPollTimer) clearInterval(doctorMsgPollTimer);
+  doctorMsgPollTimer = setInterval(() => {
+    loadDoctorConversations();
+    if (activeChatPatientId) loadDoctorMessages();
+  }, 5000);
+}
+
+window.openDoctorChat = openDoctorChat;
+window.sendDoctorMessage = sendDoctorMessage;
+window.loadDoctorConversations = loadDoctorConversations;
+
+/* ── Init messaging on load ── */
+document.addEventListener("DOMContentLoaded", () => {
+  loadDoctorConversations();
+  startDoctorMsgPoll();
+});

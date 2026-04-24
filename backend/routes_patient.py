@@ -330,3 +330,124 @@ def cancel_appointment(appointment_id: int, db: sqlite3.Connection = Depends(get
     except Exception as e:
         print("ERROR in cancel_appointment:", e)
         return {"success": False, "message": "Could not cancel appointment."}
+
+
+# ── MESSAGING ─────────────────────────────────────────────────────────────────
+
+@router.post("/patient/send-message")
+async def patient_send_message(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        patient_id = data.get("patient_id")
+        doctor_id = data.get("doctor_id")
+        appointment_id = data.get("appointment_id")
+        message = data.get("message", "").strip()
+
+        if not patient_id or not doctor_id or not message:
+            return {"success": False, "message": "Missing fields"}
+
+        db.execute("""
+            INSERT INTO messages (sender_id, sender_role, receiver_id, receiver_role, appointment_id, message_text)
+            VALUES (?, 'patient', ?, 'doctor', ?, ?)
+        """, (patient_id, doctor_id, appointment_id, message))
+        db.commit()
+        msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return {"success": True, "message_id": msg_id}
+    except Exception as e:
+        print("ERROR in patient_send_message:", e)
+        return {"success": False, "message": "Could not send message."}
+
+
+@router.get("/patient/messages")
+def patient_get_messages(patient_id: int, doctor_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute("""
+            SELECT message_id, sender_id, sender_role, message_text, is_read, created_at
+            FROM messages
+            WHERE (sender_id=? AND sender_role='patient' AND receiver_id=? AND receiver_role='doctor')
+               OR (sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient')
+            ORDER BY created_at ASC
+        """, (patient_id, doctor_id, doctor_id, patient_id)).fetchall()
+        return {"messages": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in patient_get_messages:", e)
+        return {"messages": []}
+
+
+@router.get("/patient/conversations")
+def patient_get_conversations(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute("""
+            SELECT DISTINCT
+                CASE WHEN sender_role='patient' THEN receiver_id ELSE sender_id END AS doctor_id
+            FROM messages
+            WHERE (sender_id=? AND sender_role='patient') OR (receiver_id=? AND receiver_role='patient')
+        """, (patient_id, patient_id)).fetchall()
+
+        conversations = []
+        for row in rows:
+            doc_id = row["doctor_id"]
+            doc = doctor_repo.get_doctor_by_id(db, doc_id)
+            if not doc:
+                continue
+
+            last_msg = db.execute("""
+                SELECT message_text, created_at
+                FROM messages
+                WHERE (sender_id=? AND sender_role='patient' AND receiver_id=? AND receiver_role='doctor')
+                   OR (sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient')
+                ORDER BY created_at DESC LIMIT 1
+            """, (patient_id, doc_id, doc_id, patient_id)).fetchone()
+
+            unread = db.execute("""
+                SELECT COUNT(*) FROM messages
+                WHERE sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient' AND is_read=0
+            """, (doc_id, patient_id)).fetchone()[0]
+
+            conversations.append({
+                "doctor_id": doc_id,
+                "doctor_name": doc["name"],
+                "last_message": last_msg["message_text"] if last_msg else "",
+                "last_time": last_msg["created_at"] if last_msg else "",
+                "unread_count": unread
+            })
+
+        return {"conversations": conversations}
+    except Exception as e:
+        print("ERROR in patient_get_conversations:", e)
+        return {"conversations": []}
+
+
+@router.post("/patient/mark-read")
+async def patient_mark_read(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        patient_id = data.get("patient_id")
+        doctor_id = data.get("doctor_id")
+        db.execute("""
+            UPDATE messages SET is_read=1
+            WHERE sender_id=? AND sender_role='doctor' AND receiver_id=? AND receiver_role='patient'
+        """, (doctor_id, patient_id))
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in patient_mark_read:", e)
+        return {"success": False}
+
+
+# ── MEET LINKS ────────────────────────────────────────────────────────────────
+
+@router.get("/patient/meet-links")
+def patient_meet_links(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute("""
+            SELECT m.*, d.name AS doctor_name
+            FROM meet_links m
+            JOIN doctors d ON m.doctor_id = d.doctor_id
+            WHERE m.patient_id = ?
+            ORDER BY m.created_at DESC
+        """, (patient_id,)).fetchall()
+        return {"meet_links": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in patient_meet_links:", e)
+        return {"meet_links": []}
