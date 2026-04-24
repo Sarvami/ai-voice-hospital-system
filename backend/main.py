@@ -155,8 +155,17 @@ if (FRONTEND_DIR / "doctor").exists():
     app.mount("/doctor", StaticFiles(directory=str(FRONTEND_DIR / "doctor")), name="doctor_ui")
 if (FRONTEND_DIR / "patient").exists():
     app.mount("/patient", StaticFiles(directory=str(FRONTEND_DIR / "patient")), name="patient_ui")
+if (FRONTEND_DIR / "admin").exists():
+    app.mount("/admin", StaticFiles(directory=str(FRONTEND_DIR / "admin")), name="admin_ui")
+if (FRONTEND_DIR / "pages").exists():
+    app.mount("/pages", StaticFiles(directory=str(FRONTEND_DIR / "pages")), name="pages_ui")
+if (FRONTEND_DIR / "shared").exists():
+    app.mount("/shared", StaticFiles(directory=str(FRONTEND_DIR / "shared")), name="shared_ui")
 if (FRONTEND_DIR / "assets").exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR / "assets")), name="assets")
+
+# Finally, mount the root directory for index.html and other top-level files
+app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
 
 @app.get("/temp-audio/{filename}")
 async def serve_temp_audio(filename: str):

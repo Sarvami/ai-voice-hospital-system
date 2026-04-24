@@ -1051,8 +1051,40 @@ button, .bubble, .mic-orb, .nav-btn, .play-btn, .doctor-popup-yes, .doctor-popup
 
 /* ── MOBILE OVERRIDES (≤ 768px) ── */
 @media (max-width: 768px) {
-  .navbar { padding: 0 16px; height: 56px; }
-  .nav-btn span { display: none; }
+  .navbar { 
+    padding: 0 12px; 
+    height: 60px; 
+    justify-content: space-between; 
+  }
+  
+  .logo { 
+    font-size: 15px; 
+    flex: 1;
+    text-align: left;
+  }
+
+  .nav-right {
+    flex: 2;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .theme-btn {
+    order: -1; /* Move moon to the middle of the right section */
+    margin-right: 4px;
+    padding: 6px 8px;
+  }
+
+  .custom-dropdown .dropdown-trigger {
+    min-width: 100px;
+    padding: 6px 10px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .nav-pin { width: 14px; height: 14px; }
+  .chevron { width: 12px; height: 12px; }
+
   #subtitleBar { max-height: 150px; }
   .caption-user, .caption-ai { font-size: 12px; padding: 6px 10px; }
 }

@@ -121,14 +121,35 @@
     <h2>Patients</h2>
     
     <div class="filter-bar patient-filter-bar">
-      <input type="text" id="patientSearchFilter" placeholder="🔍 Search by name..." onkeyup="filterPatientsTable()">
+      <div class="search-box">
+        <i class="fa fa-search"></i>
+        <input type="text" id="patientSearchFilter" placeholder="Search name or email..." onkeyup="filterPatientsTable()">
+      </div>
+      
+      <select id="patientGenderFilter" onchange="filterPatientsTable()">
+        <option value="all">All Genders</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <select id="patientAgeFilter" onchange="filterPatientsTable()">
+        <option value="all">All Ages</option>
+        <option value="0-18">Kids (0-18)</option>
+        <option value="19-45">Adults (19-45)</option>
+        <option value="46-120">Seniors (46+)</option>
+      </select>
+
       <select id="patientLangFilter" onchange="filterPatientsTable()">
         <option value="all">All Languages</option>
         <option value="en">English</option>
         <option value="hi">Hindi</option>
         <option value="mr">Marathi</option>
       </select>
-      <button onclick="clearPatientFilters()" class="clear-btn">Clear</button>
+      
+      <button onclick="clearPatientFilters()" class="clear-btn">
+        <i class="fa fa-rotate-left"></i> Reset
+      </button>
     </div>
 
     <table>

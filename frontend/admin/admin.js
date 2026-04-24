@@ -97,12 +97,22 @@ async function loadPatients() {
 function filterPatientsTable() {
   const query = document.getElementById('patientSearchFilter').value.toLowerCase();
   const lang = document.getElementById('patientLangFilter').value;
+  const gender = document.getElementById('patientGenderFilter').value;
+  const ageRange = document.getElementById('patientAgeFilter').value;
   const table = document.getElementById('patientsTable');
   
   const filtered = allPatients.filter(p => {
     const matchesQuery = p.name.toLowerCase().includes(query) || p.email.toLowerCase().includes(query);
     const matchesLang = (lang === 'all') || (p.preferred_language === lang);
-    return matchesQuery && matchesLang;
+    const matchesGender = (gender === 'all') || (p.gender === gender);
+    
+    let matchesAge = true;
+    if (ageRange !== 'all') {
+      const [min, max] = ageRange.split('-').map(Number);
+      matchesAge = p.age >= min && p.age <= max;
+    }
+
+    return matchesQuery && matchesLang && matchesGender && matchesAge;
   });
 
   table.innerHTML = '';
@@ -135,6 +145,8 @@ function filterPatientsTable() {
 function clearPatientFilters() {
   document.getElementById('patientSearchFilter').value = '';
   document.getElementById('patientLangFilter').value = 'all';
+  document.getElementById('patientGenderFilter').value = 'all';
+  document.getElementById('patientAgeFilter').value = 'all';
   filterPatientsTable();
 }
 

@@ -14,24 +14,33 @@ function showSection(section, element) {
   const targetSection = document.getElementById(section);
   if (targetSection) targetSection.classList.remove("hidden");
 
+  // Sync title
+  const titleMap = {
+    'dashboard': 'Dashboard',
+    'appointments': 'Appointments',
+    'prescription': 'Prescription',
+    'ratings': 'My Ratings',
+    'patients': 'My Patients',
+    'messages': 'Messages'
+  };
+  document.getElementById('currentPageTitle').textContent = titleMap[section] || 'Dashboard';
+
   if (section === 'ratings') loadRatings();
   if (section === 'patients') loadPatients();
   if (section === 'appointments') loadAppointments();
 
-  // If element is not provided (e.g. clicked from a card), find the sidebar item manually
-  if (!element) {
-    const sidebarItems = document.querySelectorAll(".sidebar ul li");
-    if (section === 'dashboard') element = sidebarItems[0];
-    else if (section === 'appointments') element = sidebarItems[1];
-    else if (section === 'prescription') element = sidebarItems[2];
-    else if (section === 'ratings') element = sidebarItems[3];
-    else if (section === 'patients') element = sidebarItems[4];
-  }
+  // Highlight logic for BOTH sidebar and mobile nav
+  document.querySelectorAll(".sidebar ul li, .mobile-bottom-nav a").forEach(l => {
+    l.classList.remove("active");
+    // If this link's onclick contains the section name, mark it active
+    const onclickStr = l.getAttribute('onclick') || "";
+    if (onclickStr.includes(`'${section}'`)) {
+      l.classList.add("active");
+    }
+  });
 
-  if (element) {
-    document.querySelectorAll(".sidebar ul li").forEach(l => l.classList.remove("active"));
-    element.classList.add("active");
-  }
+  // Ensure we scroll to top when changing sections
+  window.scrollTo(0,0);
 }
 
 async function loadDoctor() {
