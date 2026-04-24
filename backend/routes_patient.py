@@ -258,8 +258,12 @@ async def send_otp(req: OtpRequest, db: sqlite3.Connection = Depends(get_db)):
         otp = generate_otp()
         expiry = (datetime.utcnow() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
         patient_repo.set_otp(db, req.phone, otp, expiry)
-        send_otp_email(user["email"], otp, user["name"])
-        return {"success": True, "message": "OTP sent"}
+        
+        sent = send_otp_email(user["email"], otp, user["name"])
+        if sent:
+            return {"success": True, "message": "OTP sent"}
+        else:
+            return {"success": False, "message": "Failed to deliver OTP email. Please check your email settings."}
     except Exception as e:
         print("ERROR in send_otp:", e)
         return {"success": False, "message": "Could not send OTP. Please try again."}
