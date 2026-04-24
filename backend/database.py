@@ -157,6 +157,23 @@ def _create_meet_links_table():
 
 _create_meet_links_table()
 
+def _create_reports_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS patient_reports (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id   INTEGER NOT NULL,
+            report_type  TEXT NOT NULL,
+            filename     TEXT NOT NULL,
+            filepath     TEXT NOT NULL,
+            uploaded_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_reports_table()
+
 # SQLAlchemy Database dependency (unused by current repositories)
 def get_sqlalchemy_db():
     db = SessionLocal()

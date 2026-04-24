@@ -354,34 +354,47 @@ function selectRegion(region) {
   updateRegion(region);
 }
 
+function isDayAllowed(dayAbbr, availDays) {
+  if (!availDays) return true;
+  const dayOrder = ['sun','mon','tue','wed','thu','fri','sat'];
+  const daysLower = availDays.toLowerCase();
+  const rangeMatch = daysLower.match(/(\w+)\s*[-–]\s*(\w+)/);
+  let allowed = new Set();
+
+  if (rangeMatch) {
+    const si = dayOrder.indexOf(rangeMatch[1].slice(0,3));
+    const ei = dayOrder.indexOf(rangeMatch[2].slice(0,3));
+    if (si !== -1 && ei !== -1) {
+      if (si <= ei) {
+        for (let i = si; i <= ei; i++) allowed.add(dayOrder[i]);
+      } else {
+        // Wrap around (e.g., Tue-Sun)
+        for (let i = si; i <= 6; i++) allowed.add(dayOrder[i]);
+        for (let i = 0; i <= ei; i++) allowed.add(dayOrder[i]);
+      }
+    }
+  } else {
+    dayOrder.forEach(d => { if (daysLower.includes(d)) allowed.add(d); });
+  }
+  return allowed.size === 0 || allowed.has(dayAbbr);
+}
+
 function selectDate(date, doctorId) {
   // Client-side day validation using stored available_days
   const availDays = window._currentDoctorAvailDays || '';
-  if (availDays) {
-    const dayOrder = ['sun','mon','tue','wed','thu','fri','sat'];
-    const d = new Date(date);
-    const dayAbbr = ['sun','mon','tue','wed','thu','fri','sat'][d.getDay()];
-    const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
-    const daysLower = availDays.toLowerCase();
-    const rangeMatch = daysLower.match(/(\w+)\s*[-–]\s*(\w+)/);
-    let allowed = new Set();
-    if (rangeMatch) {
-      const si = dayOrder.indexOf(rangeMatch[1].slice(0,3));
-      const ei = dayOrder.indexOf(rangeMatch[2].slice(0,3));
-      if (si !== -1 && ei !== -1) for (let i = si; i <= ei; i++) allowed.add(dayOrder[i]);
-    } else {
-      dayOrder.forEach(d => { if (daysLower.includes(d)) allowed.add(d); });
+  const d = new Date(date);
+  const dayAbbr = ['sun','mon','tue','wed','thu','fri','sat'][d.getDay()];
+  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+
+  if (!isDayAllowed(dayAbbr, availDays)) {
+    const msg = document.getElementById("calPastMsg");
+    if (msg) {
+      msg.textContent = `⛔ Doctor not available on ${dayName}. Available: ${availDays}`;
+      msg.style.opacity = "1";
+      clearTimeout(msg._t);
+      msg._t = setTimeout(() => { msg.style.opacity = "0"; msg.textContent = "⛔ Cannot select a past date"; }, 3000);
     }
-    if (allowed.size && !allowed.has(dayAbbr)) {
-      const msg = document.getElementById("calPastMsg");
-      if (msg) {
-        msg.textContent = `⛔ Doctor not available on ${dayName}. Available: ${availDays}`;
-        msg.style.opacity = "1";
-        clearTimeout(msg._t);
-        msg._t = setTimeout(() => { msg.style.opacity = "0"; msg.textContent = "⛔ Cannot select a past date"; }, 3000);
-      }
-      return; // block submission
-    }
+    return; // block submission
   }
 
   showLoader();
@@ -597,18 +610,7 @@ function renderCalPopup() {
     let isDayBlocked = false;
     const availDays = window._currentDoctorAvailDays || '';
     if (availDays && !isPast) {
-      const dayOrder = ['sun','mon','tue','wed','thu','fri','sat'];
-      const daysLower = availDays.toLowerCase();
-      const rangeMatch = daysLower.match(/(\w+)\s*[-–]\s*(\w+)/);
-      let allowed = new Set();
-      if (rangeMatch) {
-        const si = dayOrder.indexOf(rangeMatch[1].slice(0,3));
-        const ei = dayOrder.indexOf(rangeMatch[2].slice(0,3));
-        if (si !== -1 && ei !== -1) for (let i = si; i <= ei; i++) allowed.add(dayOrder[i]);
-      } else {
-        dayOrder.forEach(d => { if (daysLower.includes(d)) allowed.add(d); });
-      }
-      if (allowed.size && !allowed.has(dayAbbr)) isDayBlocked = true;
+      if (!isDayAllowed(dayAbbr, availDays)) isDayBlocked = true;
     }
 
     if (isPast) {

@@ -404,8 +404,8 @@ async function loadPatients() {
     const data = await res.json();
 
     tbody.innerHTML = '';
-    if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="empty-row">No patients found</td></tr>`;
+    if (!data || !data.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-row">No patients found</td></tr>`;
       return;
     }
 
@@ -417,16 +417,19 @@ async function loadPatients() {
           <td>${esc(p.age)}</td>
           <td>${esc(p.gender)}</td>
           <td>${esc(p.phone)}</td>
-          <td>
+          <td class="action-cell">
             <button class="btn-chat" onclick="jumpToPatientChat(${p.patient_id}, '${esc(p.name)}')">
               <i class="fa fa-comments"></i> Message
+            </button>
+            <button class="btn-history" onclick="viewPatientHistory(${p.patient_id}, '${esc(p.name)}')">
+              <i class="fa fa-book-medical"></i> History
             </button>
           </td>
         </tr>`;
     });
 
   } catch(e) {
-    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="empty-row">Could not load patients</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="empty-row">Could not load patients</td></tr>`;
   }
 }
 
@@ -604,3 +607,59 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDoctorConversations();
   startDoctorMsgPoll();
 });
+async function viewPatientHistory(patientId, patientName) {
+  const modal = document.getElementById('historyModal');
+  const title = document.getElementById('historyModalTitle');
+  const body  = document.getElementById('historyModalBody');
+  
+  title.textContent = `Medical History: ${patientName}`;
+  body.innerHTML = '<div class="loading-spinner">Loading reports...</div>';
+  modal.classList.add('show');
+
+  try {
+    const res = await fetch(`${API}/doctor/patient-reports/${patientId}`);
+    const data = await res.json();
+    const reports = data.reports || [];
+
+    if (!reports.length) {
+      body.innerHTML = '<div class="empty-history">No medical reports uploaded by this patient.</div>';
+      return;
+    }
+
+    body.innerHTML = `
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Filename</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reports.map(r => `
+            <tr>
+              <td><span class="report-type-badge">${esc(r.report_type)}</span></td>
+              <td>${esc(r.filename)}</td>
+              <td>${r.uploaded_at ? r.uploaded_at.split('T')[0] : '—'}</td>
+              <td>
+                <a href="${API}/patient/report-file/${r.id}" target="_blank" class="btn-view-file">
+                  <i class="fa fa-eye"></i> View
+                </a>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    body.innerHTML = '<div class="error-msg">Failed to load reports.</div>';
+  }
+}
+
+function closeHistoryModal() {
+  document.getElementById('historyModal').classList.remove('show');
+}
+
+window.viewPatientHistory = viewPatientHistory;
+window.closeHistoryModal = closeHistoryModal;

@@ -59,6 +59,14 @@ def get_doctor_patients(doctor_id: int, db: sqlite3.Connection = Depends(get_db)
     except Exception as e:
         return db_error(e)
 
+@router.get("/doctor/patient-reports/{patient_id}")
+def get_patient_reports_for_doctor(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        from repositories import report_repo
+        return {"reports": report_repo.get_reports_by_patient(db, patient_id)}
+    except Exception as e:
+        return db_error(e)
+
 @router.get("/doctor/ratings")
 def get_doctor_ratings(doctor_id: int, db: sqlite3.Connection = Depends(get_db)):
     try:

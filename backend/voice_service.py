@@ -145,8 +145,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
     # Load session from DB
     state, data = get_session(user_id)
 
-    # Initialize data if it's a new or idle session with a known patient
-    if not data and str(user_id).isdigit():
+    # Initialize data if it's a new session or patient_id is missing
+    if ("patient_id" not in data) and str(user_id).isdigit():
         conn = get_db_connection()
         patient = patient_repo.get_patient_by_id(conn, int(user_id))
         conn.close()
@@ -426,6 +426,8 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
         if any(w in text for w in confirm_words):
             # Using data instead of global user_data
             pid = data.get("patient_id")
+            if pid is None and str(user_id).isdigit():
+                pid = int(user_id)
             name = data.get("name", "Patient")
             phone = data.get("phone", "")
             patient = get_or_create_patient(name, phone, lang) if phone else {"patient_id": pid}
