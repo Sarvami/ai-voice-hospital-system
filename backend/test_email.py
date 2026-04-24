@@ -1,59 +1,38 @@
 """
-Run this to test email sending directly:
-  venv/Scripts/python.exe test_email.py your_target@gmail.com
+Run: venv/Scripts/python.exe test_email.py your@email.com
 """
-import sys
-import os
-import smtplib
+import sys, os, requests
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
-host     = os.getenv("EMAIL_HOST", "smtp-relay.brevo.com")
-port     = int(os.getenv("EMAIL_PORT", "587"))
-sender   = os.getenv("EMAIL_SENDER", "")
-login    = os.getenv("EMAIL_LOGIN", sender)
-password = os.getenv("EMAIL_PASSWORD", "")
+api_key = os.getenv("BREVO_API_KEY", "")
+sender  = os.getenv("EMAIL_SENDER", "")
+to      = sys.argv[1] if len(sys.argv) > 1 else sender
 
-print(f"EMAIL_HOST     = {host}")
-print(f"EMAIL_PORT     = {port}")
-print(f"EMAIL_SENDER   = {sender!r}")
-print(f"EMAIL_LOGIN    = {login!r}")
-print(f"EMAIL_PASSWORD = {'*' * len(password) if password else '(empty)'}")
+print(f"BREVO_API_KEY = {api_key[:20]}...")
+print(f"EMAIL_SENDER  = {sender}")
+print(f"Sending to    : {to}")
 print()
 
-if not sender:
-    print("ERROR: EMAIL_SENDER is not set in .env")
-    sys.exit(1)
-if not password or password == "<brevo_smtp_key>":
-    print("ERROR: EMAIL_PASSWORD is not set — replace <brevo_smtp_key> with your actual Brevo SMTP key in .env")
+if not api_key:
+    print("ERROR: BREVO_API_KEY not set in .env")
     sys.exit(1)
 
-# Raw SMTP login test first
-print(f"Connecting to {host}:{port} ...")
-try:
-    server = smtplib.SMTP(host, port)
-    server.ehlo()
-    server.starttls()
-    server.ehlo()
-    server.login(login, password)
-    print("LOGIN SUCCESS — credentials are correct!")
-    server.quit()
-except smtplib.SMTPAuthenticationError as e:
-    print(f"Auth FAILED: {e}")
-    print()
-    print("Fix: Go to https://app.brevo.com → SMTP & API → SMTP tab")
-    print("     Copy the SMTP key and paste it as EMAIL_PASSWORD in .env")
-    sys.exit(1)
-except Exception as e:
-    print(f"Connection error: {e}")
-    sys.exit(1)
+resp = requests.post(
+    "https://api.brevo.com/v3/smtp/email",
+    headers={"api-key": api_key, "Content-Type": "application/json"},
+    json={
+        "sender":      {"name": "SwasthSewa Hospital", "email": sender},
+        "to":          [{"email": to}],
+        "subject":     "Your OTP - SwasthSewa Hospital",
+        "htmlContent": "<p>Your OTP is <b>123456</b>. Valid for 5 minutes.</p>"
+    },
+    timeout=15
+)
 
-# Now send a real test email
-to = sys.argv[1] if len(sys.argv) > 1 else sender
-print(f"\nSending test OTP email to: {to}")
-
-from email_service import send_otp_email
-result = send_otp_email(to, "123456", "Test User")
-print("Result:", "SUCCESS — check your inbox!" if result else "FAILED — check the error above")
+if resp.status_code in (200, 201):
+    print("SUCCESS — check your inbox!")
+else:
+    print(f"FAILED {resp.status_code}: {resp.text}")

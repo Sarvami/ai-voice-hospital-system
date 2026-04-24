@@ -2,6 +2,7 @@ import smtplib
 import random
 import string
 import os
+import requests as _requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from pathlib import Path
@@ -15,37 +16,38 @@ def generate_otp() -> str:
 
 
 def send_email(to_email: str, subject: str, body: str) -> bool:
-    # Read at call-time so dotenv is guaranteed to be loaded
-    host     = os.getenv("EMAIL_HOST", "smtp-relay.brevo.com")
-    port     = int(os.getenv("EMAIL_PORT", "587"))
-    sender   = os.getenv("EMAIL_SENDER", "")
-    login    = os.getenv("EMAIL_LOGIN", sender)
-    password = os.getenv("EMAIL_PASSWORD", "")
+    api_key = os.getenv("BREVO_API_KEY", "")
 
-    if not sender or not login or not password:
-        print("Email error: EMAIL_SENDER / EMAIL_LOGIN / EMAIL_PASSWORD not configured in .env")
+    if not api_key:
+        print("Email error: BREVO_API_KEY not set in .env")
         return False
+
     try:
-        msg = MIMEMultipart()
-        msg["From"] = f"SwasthSewa Hospital <{sender}>"
-        msg["To"] = to_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "html"))
+        sender_name  = os.getenv("EMAIL_SENDER_NAME", "SwasthSewa Hospital")
+        sender_email = os.getenv("EMAIL_SENDER", "swasthsewa.voiceagent1@gmail.com")
 
-        server = smtplib.SMTP(host, port)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(login, password)
-        server.sendmail(sender, to_email, msg.as_string())
-        server.quit()
-        
-        print(f"Email sent to {to_email}")
-        return True
-    except smtplib.SMTPAuthenticationError as e:
-        print(f"Email error: Authentication failed — check EMAIL_SENDER and EMAIL_PASSWORD in .env")
-        print(f"  Details: {e}")
-        return False
+        resp = _requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": api_key,
+                "Content-Type": "application/json"
+            },
+            json={
+                "sender":     {"name": sender_name, "email": sender_email},
+                "to":         [{"email": to_email}],
+                "subject":    subject,
+                "htmlContent": body
+            },
+            timeout=15
+        )
+
+        if resp.status_code in (200, 201):
+            print(f"Email sent to {to_email} via Brevo API")
+            return True
+        else:
+            print(f"Brevo API error {resp.status_code}: {resp.text}")
+            return False
+
     except Exception as e:
         print(f"Email error: {e}")
         return False
