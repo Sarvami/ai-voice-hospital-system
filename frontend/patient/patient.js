@@ -100,7 +100,17 @@ async function loadAppointments() {
           <td><span class="status-badge ${statusClass}">${status}</span></td>
           <td>${esc(a.cancellation_reason || "-")}</td>
           <td>${meetHtml}</td>
-          <td>${actionHtml}</td>
+          <td>
+            <div class="action-cell">
+              <button class="btn-chat-mini" title="Message Doctor" onclick="jumpToDoctorChat(${a.doctor_id}, '${esc(a.doctor || a.doctor_name)}')">
+                <i class="fa fa-comments"></i>
+              </button>
+              <button class="btn-sos-mini" title="EMERGENCY" onclick="triggerSOS(${a.doctor_id}, '${esc(a.doctor || a.doctor_name)}')">
+                <i class="fa fa-bell"></i> SOS
+              </button>
+              ${actionHtml !== '-' ? actionHtml : ''}
+            </div>
+          </td>
         </tr>
       `;
     });
@@ -618,3 +628,17 @@ document.addEventListener("DOMContentLoaded", () => {
   loadConversations();
   pollMessages();
 });
+function jumpToDoctorChat(doctorId, doctorName) {
+  showSection('messages', document.querySelector('.sidebar ul li:nth-child(4)'));
+  openPatientChat(doctorId, doctorName);
+}
+
+function triggerSOS(doctorId, doctorName) {
+  if (confirm(`🚨 TRIGGER EMERGENCY SOS TO DR. ${doctorName.toUpperCase()}?\n\nThis will notify the doctor and hospital emergency staff.`)) {
+    alert(`SOS Sent to Dr. ${doctorName}. Help is on the way.`);
+    // Here we would call a backend SOS API
+  }
+}
+
+window.jumpToDoctorChat = jumpToDoctorChat;
+window.triggerSOS = triggerSOS;

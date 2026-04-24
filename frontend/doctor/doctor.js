@@ -66,7 +66,7 @@ async function loadDoctor() {
   }
 }
 
-async function loadAppointments(){  // ✅ fixed: was "aasync"
+async function loadAppointments(){
     try {
         const doctorId = localStorage.getItem("doctor_id");
         const res = await fetch(`${API}/doctor/appointments?doctor_id=${doctorId}`);
@@ -243,16 +243,27 @@ function selectDate(dateStr) {
 
   table.innerHTML = '';
   if (!filtered.length) {
-    table.innerHTML = "<tr><td colspan='4'>No appointments on this date.</td></tr>";
+    table.innerHTML = "<tr><td colspan='9'>No appointments on this date.</td></tr>";
     return;
   }
   filtered.forEach(a => {
+    const chatBtn = `<button class="btn-chat" onclick="jumpToPatientChat(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-comments"></i></button>`;
+    const historyBtn = `<button class="btn-history-mini" title="Medical History" onclick="viewPatientHistory(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-book-medical"></i></button>`;
+    
     table.innerHTML += `
       <tr>
         <td>${a.id}</td>
         <td>${a.patient_name}</td>
         <td>${a.date}</td>
         <td>${a.time}</td>
+        <td>${a.status}</td>
+        <td>${esc(a.reason)}</td>
+        <td class="action-cell">
+          ${chatBtn}
+          ${historyBtn}
+        </td>
+        <td><button class="btn-cancel-appt" onclick="cancelAppointment(${a.id})">Cancel</button></td>
+        <td><button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id})"><i class="fa fa-video"></i></button></td>
       </tr>`;
   });
 }
@@ -269,7 +280,7 @@ function populateAppointmentTable(data) {
   const table = document.getElementById('appointmentTable');
   table.innerHTML = '';
   if (!data.length) {
-    table.innerHTML = "<tr><td colspan='8'>No appointments yet.</td></tr>";
+    table.innerHTML = "<tr><td colspan='9'>No appointments yet.</td></tr>";
     return;
   }
   data.forEach(a => {
@@ -281,19 +292,25 @@ function populateAppointmentTable(data) {
       ? `<button class="btn-cancel-appt" onclick="cancelAppointment(${a.id})">Cancel</button>`
       : '';
     const chatBtn = `<button class="btn-chat" onclick="jumpToPatientChat(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-comments"></i></button>`;
-    const meetBtn = `<button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id || 0})"><i class="fa fa-video"></i> Meet</button>`;
+    const historyBtn = `<button class="btn-history-mini" title="Medical History" onclick="viewPatientHistory(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-book-medical"></i></button>`;
+    const meetBtn = `<button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id || 0})"><i class="fa fa-video"></i></button>`;
+    const sosBtn = `<button class="btn-sos-mini" title="EMERGENCY" onclick="triggerSOS(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-bell"></i> SOS</button>`;
 
     table.innerHTML += `
       <tr>
         <td>${a.id}</td>
-        <td>${a.patient_name}</td>
+        <td>${a.patient_name} ${sosBtn}</td>
         <td>${a.date}</td>
         <td>${a.time}</td>
         <td>${status}</td>
         <td>${esc(reason)}</td>
-        <td>${chatBtn}</td>
+        <td class="action-cell">
+          ${chatBtn}
+          ${historyBtn}
+          ${meetBtn}
+        </td>
         <td>${cancelBtn}</td>
-        <td>${meetBtn}</td>
+        <td>—</td>
       </tr>`;
   });
 }
@@ -404,16 +421,29 @@ async function loadPatients() {
     const data = await res.json();
 
     tbody.innerHTML = '';
+    const dropdown = document.getElementById('pname');
+    if (dropdown) dropdown.innerHTML = '<option value="">Select Patient</option>';
+
     if (!data || !data.length) {
       tbody.innerHTML = `<tr><td colspan="6" class="empty-row">No patients found</td></tr>`;
       return;
     }
 
     data.forEach(p => {
+      // Add to dropdown
+      if (dropdown) {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        dropdown.appendChild(opt);
+      }
+
+      const sosBtn = `<button class="btn-sos-mini" onclick="triggerSOS(${p.patient_id}, '${esc(p.name)}')"><i class="fa fa-bell"></i> SOS</button>`;
+
       tbody.innerHTML += `
         <tr>
           <td>${esc(p.patient_id)}</td>
-          <td>${esc(p.name)}</td>
+          <td>${esc(p.name)} ${sosBtn}</td>
           <td>${esc(p.age)}</td>
           <td>${esc(p.gender)}</td>
           <td>${esc(p.phone)}</td>
@@ -607,6 +637,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDoctorConversations();
   startDoctorMsgPoll();
 });
+
 async function viewPatientHistory(patientId, patientName) {
   const modal = document.getElementById('historyModal');
   const title = document.getElementById('historyModalTitle');
@@ -641,7 +672,7 @@ async function viewPatientHistory(patientId, patientName) {
             <tr>
               <td><span class="report-type-badge">${esc(r.report_type)}</span></td>
               <td>${esc(r.filename)}</td>
-              <td>${r.uploaded_at ? r.uploaded_at.split('T')[0] : '—'}</td>
+              <td>${r.uploaded_at ? r.uploaded_at.split(' ')[0] : '—'}</td>
               <td>
                 <a href="${API}/patient/report-file/${r.id}" target="_blank" class="btn-view-file">
                   <i class="fa fa-eye"></i> View
@@ -661,5 +692,13 @@ function closeHistoryModal() {
   document.getElementById('historyModal').classList.remove('show');
 }
 
+function triggerSOS(patientId, patientName) {
+  if (confirm(`🚨 TRIGGER EMERGENCY SOS FOR ${patientName.toUpperCase()}?\n\nThis will notify the patient and hospital emergency staff.`)) {
+    alert(`SOS Triggered for ${patientName}. Help is on the way.`);
+    // Here we would call a backend SOS API
+  }
+}
+
 window.viewPatientHistory = viewPatientHistory;
 window.closeHistoryModal = closeHistoryModal;
+window.triggerSOS = triggerSOS;

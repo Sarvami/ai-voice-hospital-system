@@ -63,8 +63,11 @@ def get_doctor_patients(doctor_id: int, db: sqlite3.Connection = Depends(get_db)
 def get_patient_reports_for_doctor(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
     try:
         from repositories import report_repo
-        return {"reports": report_repo.get_reports_by_patient(db, patient_id)}
+        reports = report_repo.get_reports_by_patient(db, patient_id)
+        print(f"DEBUG: Fetching reports for patient {patient_id}. Found {len(reports)} reports.")
+        return {"reports": reports}
     except Exception as e:
+        print(f"ERROR: Failed to fetch reports for patient {patient_id}: {e}")
         return db_error(e)
 
 @router.get("/doctor/ratings")

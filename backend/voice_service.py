@@ -435,7 +435,7 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             aid = create_appointment(final_pid, data["doctor_id"], data["date"], data["time"], data["dept"], lang)
             if aid:
                 delete_session(user_id)
-                return "Confirmed! Your appointment is booked. See you then!", {"booked": True}
+                return "Confirmed! Your appointment is booked.", {"booked": True}
             delete_session(user_id)
             return "You already have an appointment on that date.", {}
         elif any(w in text for w in cancel_words):

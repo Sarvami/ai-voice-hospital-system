@@ -802,6 +802,53 @@ th, td { white-space: nowrap; }
   font-weight: 700;
 }
 
+.action-cell {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-chat-mini {
+  background: rgba(129, 140, 248, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-chat-mini:hover {
+  background: rgba(129, 140, 248, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-sos-mini {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.btn-sos-mini:hover {
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
   .messaging-layout { flex-direction: column; height: auto; min-height: 400px; }
   .conversations-list { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 200px; }
