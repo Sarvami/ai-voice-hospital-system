@@ -482,6 +482,48 @@ body.light-theme .chat-input-bar input { background: #f8fafc; border-color: #e2e
 /* MOBILE */
 @media (max-width: 768px) {
   .sidebar { display: none; }
-  .section { padding: 16px; }
+  .section { padding: 16px; padding-bottom: 80px; }
   .doctor-profile-card { padding: 16px; }
+  .main { margin-left: 0; padding: 0; }
+  
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    height: 70px;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 9999;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-bottom-nav a {
+    color: #64748b;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    flex: 1;
+    transition: all 0.2s;
+  }
+
+  .mobile-bottom-nav a i {
+    font-size: 20px;
+  }
+
+  .mobile-bottom-nav a.active {
+    color: #38bdf8;
+    transform: translateY(-2px);
+  }
+
+  .mobile-bottom-nav a.active i {
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  }
 }
