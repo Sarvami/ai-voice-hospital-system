@@ -47,7 +47,7 @@ function toggleDoctorMenu(liEl) {
 /* ── OVERVIEW ── */
 async function loadOverview() {
   try {
-    const res  = await fetch(`${API}/admin-api/overview`);
+    const res  = await fetch(`${API}/api/admin/overview`);
     const data = await res.json();
     document.getElementById('totalPatients').innerText     = data.patients     ?? 0;
     document.getElementById('totalDoctors').innerText      = data.doctors      ?? 0;
@@ -62,7 +62,7 @@ let allPatients = [];
 async function loadPatients() {
   const table = document.getElementById('patientsTable');
   try {
-    const res  = await fetch(`${API}/admin-api/patients`);
+    const res  = await fetch(`${API}/api/admin/patients`);
     const data = await res.json();
     allPatients = data;
     table.innerHTML = '';
@@ -121,7 +121,7 @@ async function savePatientEdit() {
   const preferred_language = document.getElementById('editPatientLang').value;
 
   try {
-    const res = await fetch(`${API}/admin-api/update-patient`, {
+    const res = await fetch(`${API}/api/admin/update-patient`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ patient_id: parseInt(patient_id), name, age: parseInt(age), gender, phone, email, preferred_language })
@@ -195,7 +195,7 @@ async function sendMessage() {
   if (!message) { alert("Please type a message."); return; }
 
   try {
-    const res = await fetch(`${API}/admin-api/send-message`, {
+    const res = await fetch(`${API}/api/admin/send-message`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
@@ -219,7 +219,7 @@ async function sendMessage() {
 async function loadDoctors() {
   const table = document.getElementById('doctorsTable');
   try {
-    const res  = await fetch(`${API}/admin-api/doctors`);
+    const res  = await fetch(`${API}/api/admin/doctors`);
     const data = await res.json();
     allDoctors = data;
     renderDoctors(allDoctors);
@@ -300,7 +300,7 @@ async function saveDoctorEdit() {
     };
 
     try {
-        const res = await fetch(`${API}/admin-api/update-doctor`, {
+        const res = await fetch(`${API}/api/admin/update-doctor`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -381,7 +381,7 @@ async function createDoctor() {
   }
 
   try {
-    const res = await fetch(`${API}/admin-api/add-doctor`, {
+    const res = await fetch(`${API}/api/admin/add-doctor`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
@@ -419,7 +419,7 @@ async function createDoctor() {
 async function loadAppointments() {
   const table = document.getElementById('appointmentsTable');
   try {
-    const res  = await fetch(`${API}/admin-api/appointments`);
+    const res  = await fetch(`${API}/api/admin/appointments`);
     const data = await res.json();
     allAppointments = data;
     renderAppointments(allAppointments);
@@ -481,7 +481,7 @@ let allRatings = [];
 async function loadRatings() {
   const table = document.getElementById('ratingsTable');
   try {
-    const res  = await fetch(`${API}/admin-api/ratings`);
+    const res  = await fetch(`${API}/api/admin/ratings`);
     const data = await res.json();
     allRatings = data;
     renderRatings(allRatings);
@@ -532,7 +532,7 @@ async function addLeave() {
   if (!name || !date) { msgEl.innerText = 'Please fill in both fields.'; return; }
 
   try {
-    const res  = await fetch(`${API}/admin-api/leave`, {
+    const res  = await fetch(`${API}/api/admin/leave`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, date }),
     });

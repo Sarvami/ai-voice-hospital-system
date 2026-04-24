@@ -17,28 +17,32 @@ def db_error(e):
     print("DB ERROR:", e)
     return JSONResponse({"success": False, "message": f"Database error: {str(e)}"}, status_code=500)
 
-@router.get("/admin-api/overview")
+@router.get("/test-admin")
+def test_admin():
+    return {"status": "ok"}
+
+@router.get("/api/admin/overview")
 def get_admin_overview(db: sqlite3.Connection = Depends(get_db)):
     try:
         return appointment_repo.get_overview_counts(db)
     except Exception as e:
         return db_error(e)
 
-@router.get("/admin-api/patients")
+@router.get("/api/admin/patients")
 def get_admin_patients(db: sqlite3.Connection = Depends(get_db)):
     try:
         return patient_repo.get_all_patients(db)
     except Exception as e:
         return db_error(e)
 
-@router.get("/admin-api/doctors")
+@router.get("/api/admin/doctors")
 def get_admin_doctors(db: sqlite3.Connection = Depends(get_db)):
     try:
         return doctor_repo.get_all_doctors(db)
     except Exception as e:
         return db_error(e)
 
-@router.post("/admin-api/add-doctor")
+@router.post("/api/admin/add-doctor")
 def add_doctor(req: AddDoctorRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         if doctor_repo.doc_id_exists(db, req.doc_id):
@@ -55,7 +59,7 @@ def add_doctor(req: AddDoctorRequest, db: sqlite3.Connection = Depends(get_db)):
     except Exception as e:
         return db_error(e)
 
-@router.put("/admin-api/update-doctor")
+@router.put("/api/admin/update-doctor")
 def update_doctor(req: UpdateDoctorRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         doctor_repo.update_doctor(
@@ -67,7 +71,7 @@ def update_doctor(req: UpdateDoctorRequest, db: sqlite3.Connection = Depends(get
     except Exception as e:
         return db_error(e)
 
-@router.put("/admin-api/update-patient")
+@router.put("/api/admin/update-patient")
 def update_patient(req: UpdatePatientRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         patient_repo.update_patient(
@@ -78,24 +82,24 @@ def update_patient(req: UpdatePatientRequest, db: sqlite3.Connection = Depends(g
     except Exception as e:
         return db_error(e)
 
-@router.get("/admin-api/appointments")
+@router.get("/api/admin/appointments")
 def get_admin_appointments(patient_id: int = None, db: sqlite3.Connection = Depends(get_db)):
     try:
         return appointment_repo.get_all_appointments(db, patient_id)
     except Exception as e:
         return db_error(e)
 
-@router.get("/admin-api/ratings")
+@router.get("/api/admin/ratings")
 def get_admin_ratings(db: sqlite3.Connection = Depends(get_db)):
     try:
         return appointment_repo.get_all_ratings(db)
     except Exception as e:
         return db_error(e)
 
-@router.post("/admin-api/leave")
+@router.post("/api/admin/leave")
 def add_leave(data: dict):
     return {"message": f"Leave recorded for {data.get('name')} on {data.get('date')}"}
-@router.post("/admin-api/send-message")
+@router.post("/api/admin/send-message")
 def admin_send_message(req: MessageRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         db.execute("""
