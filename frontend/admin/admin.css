@@ -453,3 +453,66 @@ body.light-theme .form-card input, body.light-theme .form-card select { backgrou
 #viewDoctors {
   overflow-x: auto;
 }
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0;
+  width: 100%;
+  background: var(--sidebar);
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+  z-index: 1000;
+}
+
+.mobile-bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.mobile-bottom-nav a i { font-size: 18px; }
+.mobile-bottom-nav a.active { color: var(--accent); }
+
+/* ── MOBILE MEDIA QUERIES ── */
+@media (max-width: 768px) {
+  body { overflow: auto; height: auto; }
+
+  .dashboard { flex-direction: column; height: auto; }
+
+  .sidebar { display: none; }
+
+  .main {
+    margin-left: 0;
+    width: 100%;
+    padding: 16px;
+    height: auto;
+    overflow-y: visible;
+    padding-bottom: 70px;
+  }
+
+  .cards { flex-direction: column; }
+  .stat-card { width: 100%; margin-bottom: 12px; }
+
+  .section { padding: 12px 0; }
+
+  table { font-size: 12px; overflow-x: auto; display: block; }
+  th, td { padding: 8px 6px; }
+
+  .form-card { padding: 16px; }
+  input, select, button { font-size: 16px; }
+
+  .filter-bar { flex-direction: column; gap: 8px; }
+  .filter-bar select, .filter-bar input { width: 100%; }
+
+  .modal-content { width: 95%; padding: 20px; }
+
+  .mobile-bottom-nav { display: flex; justify-content: space-around; }
+}

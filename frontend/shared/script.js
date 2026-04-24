@@ -1,5 +1,7 @@
 /* ── CONSTANTS & GLOBAL STATE ── */
-const BACKEND = "http://127.0.0.1:8000";
+const BACKEND = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://127.0.0.1:8000'
+  : 'https://your-deployed-backend-url.railway.app';
 let selectedLang = localStorage.getItem("lang") || "hi";
 let captionHistory = [];
 let mediaRecorder = null;
@@ -84,6 +86,8 @@ function renderCaptions() {
     const div = document.createElement('div');
     div.className = msg.type === 'user' ? 'caption-user' : 'caption-ai';
     div.innerHTML = `<span class="caption-time">${msg.time}</span> ${escapeHtml(msg.text)}`;
+
+    // AI captions: "See translation" → translate AI reply into English
     if (msg.type === 'ai' && selectedLang !== 'en') {
       const btn = document.createElement('button');
       btn.className = 'translate-btn';
@@ -104,12 +108,39 @@ function renderCaptions() {
             transDiv.textContent = '🇬🇧 ' + data.translation;
             div.appendChild(transDiv);
             btn.remove();
-          } else btn.textContent = 'Translation failed';
-        } catch (e) { btn.textContent = 'Translation failed'; }
-        btn.disabled = false;
+          } else { btn.textContent = 'Translation failed'; btn.disabled = false; }
+        } catch (e) { btn.textContent = 'Translation failed'; btn.disabled = false; }
       };
       div.appendChild(btn);
     }
+
+    // User captions: "See in English" → show what the patient's speech was understood as
+    if (msg.type === 'user' && selectedLang !== 'en') {
+      const btn = document.createElement('button');
+      btn.className = 'translate-btn';
+      btn.textContent = 'See in English';
+      btn.onclick = async () => {
+        btn.textContent = 'Translating...';
+        btn.disabled = true;
+        try {
+          const res = await fetch(`${BACKEND}/translate-text`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: msg.text, target_lang: 'en' })
+          });
+          const data = await res.json();
+          if (data.success) {
+            const transDiv = document.createElement('div');
+            transDiv.className = 'translation-text';
+            transDiv.textContent = '🇬🇧 ' + data.translation;
+            div.appendChild(transDiv);
+            btn.remove();
+          } else { btn.textContent = 'Translation failed'; btn.disabled = false; }
+        } catch (e) { btn.textContent = 'Translation failed'; btn.disabled = false; }
+      };
+      div.appendChild(btn);
+    }
+
     captionContainer.appendChild(div);
   });
   if (subtitleBar) subtitleBar.scrollTop = subtitleBar.scrollHeight;
@@ -129,13 +160,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Language Bubbles
   document.querySelectorAll(".bubble").forEach(btn => {
     if (btn.dataset.lang === selectedLang) btn.classList.add("active");
-    btn.addEventListener("click", () => {
+    const switchLang = () => {
       document.querySelectorAll(".bubble").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       selectedLang = btn.dataset.lang;
       localStorage.setItem("lang", selectedLang);
       addCaptionToHistory(t('langSwitched', selectedLang.toUpperCase()), 'ai');
-    });
+    };
+    btn.addEventListener("click", switchLang);
+    btn.addEventListener("touchend", (e) => { e.preventDefault(); switchLang(); });
   });
 
   // Theme
@@ -166,7 +199,10 @@ function setupEventListeners() {
   const playBtn = document.getElementById("playBtn");
   const progress = document.getElementById("progress");
 
-  if (recordBtn) recordBtn.addEventListener("click", handleMicClick);
+  if (recordBtn) {
+    recordBtn.addEventListener("click", handleMicClick);
+    recordBtn.addEventListener("touchend", (e) => { e.preventDefault(); handleMicClick(); });
+  }
 
   if (audioPlayer && playBtn) {
     playBtn.addEventListener("click", () => {
@@ -202,7 +238,13 @@ async function handleMicClick() {
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 16000
+      }
+    });
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();

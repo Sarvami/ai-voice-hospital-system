@@ -72,9 +72,12 @@ class Patient(Base):
     age = Column(Integer)
     gender = Column(String)
     phone = Column(String, unique=True, index=True)
+    email = Column(String, nullable=True)
+    otp = Column(String, nullable=True)
+    otp_expiry = Column(String, nullable=True)
     preferred_language = Column(String, default="en")
     password_hash = Column(String, nullable=False)
-    region = Column(String) # Current selected region
+    region = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     appointments = relationship("Appointment", back_populates="patient")
@@ -113,6 +116,46 @@ class ConversationSession(Base):
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# Create messages table via raw SQL (not in SQLAlchemy models to keep it simple)
+def _create_messages_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            message_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id     INTEGER NOT NULL,
+            sender_role   TEXT NOT NULL,
+            receiver_id   INTEGER NOT NULL,
+            receiver_role TEXT NOT NULL,
+            appointment_id INTEGER,
+            message_text  TEXT NOT NULL,
+            is_read       INTEGER DEFAULT 0,
+            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_messages_table()
+
+def _create_meet_links_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS meet_links (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            doctor_id      INTEGER NOT NULL,
+            patient_id     INTEGER NOT NULL,
+            appointment_id INTEGER,
+            meet_link      TEXT NOT NULL,
+            created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+            scheduled_time TEXT,
+            status         TEXT DEFAULT 'active'
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_meet_links_table()
 
 # SQLAlchemy Database dependency (unused by current repositories)
 def get_sqlalchemy_db():

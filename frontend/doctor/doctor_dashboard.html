@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SwasthSeva Doctor Dashboard</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
@@ -44,6 +45,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 
 <li onclick="showSection('patients', this)">
 <i class="fa fa-users"></i> Patients
+</li>
+
+<li onclick="showSection('messages', this)">
+<i class="fa fa-comments"></i> Messages
+<span class="unread-badge" id="doctorUnreadBadge" style="display:none;"></span>
 </li>
 
 <li onclick="logout()">
@@ -155,7 +161,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
           <th>Time</th>
           <th>Status</th>
           <th>Reason</th>
-          <th>Actions</th>
+          <th>Cancel</th>
+          <th>Meet</th>
         </tr>
       </thead>
       <tbody id="appointmentTable"></tbody>
@@ -225,10 +232,35 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
   </div>
 </div>
 
+<!-- MESSAGES -->
+<div id="messages" class="section hidden">
+  <h2>Messages</h2>
+  <div class="messaging-layout">
+    <div class="conversations-list" id="conversationsList">
+      <div class="conv-empty">No conversations yet.</div>
+    </div>
+    <div class="chat-window" id="chatWindow">
+      <div class="chat-header" id="chatHeader">Select a conversation</div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-bar" id="chatInputBar" style="display:none;">
+        <input type="text" id="messageInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendDoctorMessage()">
+        <button onclick="sendDoctorMessage()"><i class="fa fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 </div><!-- /dashboard -->
 
 <script src="doctor.js"></script>
+
+<nav class="mobile-bottom-nav">
+  <a onclick="showSection('dashboard', this)"><i class="fa fa-home"></i><span>Home</span></a>
+  <a onclick="showSection('appointments', this)"><i class="fa fa-calendar"></i><span>Appointments</span></a>
+  <a onclick="showSection('patients', this)"><i class="fa fa-users"></i><span>Patients</span></a>
+  <a onclick="logout()"><i class="fa fa-sign-out"></i><span>Logout</span></a>
+</nav>
 
 </body>
 </html>
