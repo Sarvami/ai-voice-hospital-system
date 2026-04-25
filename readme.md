@@ -20,11 +20,10 @@ An AI-powered multilingual voice assistant that simplifies hospital appointment 
 - 👨‍⚕️ **Doctor popup** — when only one doctor is available in your area, a card popup shows their name, rating, region, and hours with Yes/No booking buttons
 - 📅 **Smart calendar** — greys out past dates and days the doctor doesn't work; shows error message on invalid selection
 - � **Specialist scheduling** — respects each doctor's available days and hours; rejects bookings outside their schedule
-- ⭐ **Doctor rating system** — patients rate after completed appointments; ratings ≤3 stars show a comment box for feedback; low ratings flagged in red on doctor and admin dashboards
-- 📁 **Medical report uploads** — patients can upload blood tests, scans, prescriptions etc. (PDF/JPG/PNG); admins can view them per patient
-- 👨‍⚕️ **Doctor dashboard** — appointments calendar, patient list, ratings & reviews
-- 🛠️ **Admin dashboard** — manage patients & doctors, view all appointments, ratings, and patient-uploaded reports
-- 🔐 **Secure auth** — separate portals for patients, doctors, and admins with bcrypt password hashing
+- 💬 **Two-way messaging** — real-time chat between doctors and patients for follow-ups
+- 📹 **Video Consultations** — doctors can generate Google Meet links directly from the dashboard; links are auto-sent via chat and email
+- 🚨 **Emergency SOS Alerts** — one-tap emergency triggers to notify hospital staff and doctors instantly
+- 🔐 **Secure auth** — separate portals for patients, doctors, and admins with bcrypt password hashing and OTP verification
 - 🔊 **Text-to-speech replies** — natural audio responses in the user's language via gTTS
 - 🌙 **Dark/Light theme** — across all dashboards
 
@@ -188,6 +187,21 @@ Bibewadi, Kalyani Nagar, Ravet, PCMC, Sangamvadi, Wanowrie, Hadapsar
 
 ---
 
+---
+
+## 🧠 AI & Multilingual Pipeline
+
+SwasthSeva uses a sophisticated pipeline to ensure accessibility for all users:
+
+1.  **Speech-to-Text (STT):** We use **AssemblyAI**'s high-accuracy API to transcribe user voice input into text in real-time.
+2.  **Machine Translation:** To support regional languages (Hindi, Marathi, etc.), we utilize the **Google Translate API** via `deep-translator`. All user input is translated to English for processing, and responses are translated back to the user's native tongue.
+3.  **Natural Language Processing (NLP):**
+    *   **Intent Mapping:** A custom rule-based engine maps symptoms (e.g., "chest pain") to medical departments (e.g., "cardiology").
+    *   **Fuzzy Matching:** We use `difflib` to handle typos and slight variations in doctor names or department names spoken by the user.
+4.  **Text-to-Speech (TTS):** Responses are converted to natural-sounding speech using **gTTS (Google Text-to-Speech)**, allowing for a completely hands-free experience.
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
@@ -196,7 +210,7 @@ Bibewadi, Kalyani Nagar, Ravet, PCMC, Sangamvadi, Wanowrie, Hadapsar
 | Database | SQLite |
 | Speech-to-Text | AssemblyAI |
 | Text-to-Speech | gTTS |
-| Translation | Google Translate (googletrans) |
+| Translation | Google Translate (deep-translator) |
 | Frontend | Vanilla JS, HTML, CSS |
 | Auth | bcrypt (passlib) |
 | Email / OTP | Brevo API |
