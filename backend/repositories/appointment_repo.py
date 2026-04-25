@@ -29,7 +29,7 @@ def get_appointments_by_patient(conn, patient_id: int):
 def get_appointments_by_doctor(conn, doctor_id: int):
     ensure_cancellation_columns(conn)
     rows = conn.execute("""
-        SELECT a.appointment_id AS id, p.name AS patient_name,
+        SELECT a.appointment_id AS id, a.patient_id, p.name AS patient_name,
                a.appointment_date AS date, a.appointment_time AS time,
                a.status, a.reason, a.cancellation_reason, a.cancelled_by
         FROM appointments a
@@ -42,7 +42,7 @@ def get_appointments_by_doctor(conn, doctor_id: int):
 
 def get_all_appointments(conn, patient_id: int = None):
     ensure_cancellation_columns(conn)
-    sql = """SELECT a.appointment_id AS id, p.name AS patient, d.name AS doctor,
+    sql = """SELECT a.appointment_id AS id, a.patient_id, p.name AS patient, d.name AS doctor,
                     d.department, d.region, a.appointment_date AS date,
                     a.appointment_time AS time, a.status, a.reason, a.cancellation_reason, a.cancelled_by
              FROM appointments a

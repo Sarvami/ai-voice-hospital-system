@@ -242,8 +242,17 @@ async def create_meet(request: Request, db: sqlite3.Connection = Depends(get_db)
         appointment_id = data.get("appointment_id")
         scheduled_time = data.get("scheduled_time", "")
 
-        if not doctor_id or not patient_id:
-            return {"success": False, "message": "Missing fields"}
+        if not doctor_id:
+            return {"success": False, "message": "Missing doctor_id"}
+
+        if not patient_id and appointment_id:
+            # Try to recover patient_id from appointment
+            appt = appointment_repo.get_appointment_by_id(db, appointment_id)
+            if appt:
+                patient_id = appt["patient_id"]
+
+        if not patient_id:
+            return {"success": False, "message": "Missing patient_id"}
 
         meet_link = _generate_meet_link()
 
@@ -264,6 +273,17 @@ async def create_meet(request: Request, db: sqlite3.Connection = Depends(get_db)
                 )
         except Exception as mail_err:
             print("Meet email skipped:", mail_err)
+
+        # ── AUTO-SEND CHAT MESSAGE ──
+        try:
+            msg_text = f"📅 Video Meeting scheduled for {scheduled_time}.\nJoin link: {meet_link}"
+            db.execute("""
+                INSERT INTO messages (sender_id, sender_role, receiver_id, receiver_role, appointment_id, message_text)
+                VALUES (?, 'doctor', ?, 'patient', ?, ?)
+            """, (doctor_id, patient_id, appointment_id, msg_text))
+            db.commit()
+        except Exception as msg_err:
+            print("Auto-message skipped:", msg_err)
 
         return {"success": True, "meet_link": meet_link}
     except Exception as e:

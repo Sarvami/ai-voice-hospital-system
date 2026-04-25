@@ -272,7 +272,7 @@ function selectDate(dateStr) {
           ${historyBtn}
         </td>
         <td><button class="btn-cancel-appt" onclick="cancelAppointment(${a.id})">Cancel</button></td>
-        <td><button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id})"><i class="fa fa-video"></i></button></td>
+        <td><button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id || 0})"><i class="fa fa-video"></i></button></td>
       </tr>`;
   });
 }
@@ -316,10 +316,9 @@ function populateAppointmentTable(data) {
         <td class="action-cell">
           ${chatBtn}
           ${historyBtn}
-          ${meetBtn}
         </td>
         <td>${cancelBtn}</td>
-        <td>—</td>
+        <td>${meetBtn}</td>
       </tr>`;
   });
 }
