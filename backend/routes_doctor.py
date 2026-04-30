@@ -6,6 +6,8 @@ from datetime import date
 from models import CancelAppointmentRequest
 from database import get_db
 from repositories import doctor_repo, appointment_repo
+from websocket_manager import manager
+import asyncio
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -140,6 +142,14 @@ async def doctor_send_message(request: Request, db: sqlite3.Connection = Depends
         """, (doctor_id, patient_id, appointment_id, message))
         db.commit()
         msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        
+        # Notify patient via WebSocket
+        asyncio.create_task(manager.send_personal_message(
+            {"type": "new_message", "message_id": msg_id},
+            "patient",
+            patient_id
+        ))
+        
         return {"success": True, "message_id": msg_id}
     except Exception as e:
         print("ERROR in doctor_send_message:", e)
@@ -282,6 +292,14 @@ async def create_meet(request: Request, db: sqlite3.Connection = Depends(get_db)
                 VALUES (?, 'doctor', ?, 'patient', ?, ?)
             """, (doctor_id, patient_id, appointment_id, msg_text))
             db.commit()
+            msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+            
+            # Notify patient via WebSocket
+            asyncio.create_task(manager.send_personal_message(
+                {"type": "new_message", "message_id": msg_id},
+                "patient",
+                patient_id
+            ))
         except Exception as msg_err:
             print("Auto-message skipped:", msg_err)
 
@@ -312,7 +330,7 @@ def trigger_sos(data: dict, db: sqlite3.Connection = Depends(get_db)):
         patient_id = data.get("patient_id")
         doctor_id = data.get("doctor_id")
         
-        doctor = db.execute("SELECT name FROM doctors WHERE id = ?", (doctor_id,)).fetchone()
+        doctor = db.execute("SELECT name FROM doctors WHERE doctor_id = ?", (doctor_id,)).fetchone()
         doctor_name = doctor['name'] if doctor else "Doctor"
         
         db.execute(
@@ -320,6 +338,14 @@ def trigger_sos(data: dict, db: sqlite3.Connection = Depends(get_db)):
             (patient_id, doctor_id, doctor_name)
         )
         db.commit()
+        
+        # Notify patient via WebSocket
+        asyncio.create_task(manager.send_personal_message(
+            {"type": "new_alert"},
+            "patient",
+            patient_id
+        ))
+        
         return {"success": True}
     except Exception as e:
         return db_error(e)

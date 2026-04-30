@@ -28,6 +28,9 @@ from voice_service import (
     generate_reply
 )
 from deep_translator import GoogleTranslator
+import asyncio
+from fastapi import WebSocket, WebSocketDisconnect, HTTPException
+from websocket_manager import manager, generate_ws_token, validate_ws_token, revoke_ws_token
 import routes_patient
 import routes_doctor
 import routes_admin
@@ -54,6 +57,41 @@ FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 app.include_router(routes_patient.router)
 app.include_router(routes_doctor.router)
 app.include_router(routes_admin.router, prefix="/api/admin")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(manager.ping_clients())
+
+# ------------------ WEBSOCKETS ------------------
+
+@app.get("/generate-ws-token")
+def generate_token(user_type: str, user_id: int):
+    if user_type not in ["patient", "doctor", "admin"]:
+        raise HTTPException(status_code=400, detail="Invalid user_type")
+    token = generate_ws_token(user_type, user_id)
+    return {"token": token}
+
+@app.websocket("/ws/{user_type}/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_type: str, user_id: int, token: str = None):
+    # Authenticate via token
+    if not token:
+        await websocket.close(code=1008)
+        return
+        
+    valid_type, valid_id = validate_ws_token(token)
+    if valid_type != user_type or valid_id != user_id:
+        await websocket.close(code=1008)
+        return
+
+    await manager.connect(websocket, user_type, user_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Handle incoming ping/pong or messages if needed
+            if data == "pong":
+                pass
+    except WebSocketDisconnect:
+        manager.disconnect(user_type, user_id)
 
 # ------------------ CORE VOICE API ------------------
 

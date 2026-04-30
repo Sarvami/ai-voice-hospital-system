@@ -191,6 +191,21 @@ def _create_emergency_alerts_table():
 
 _create_emergency_alerts_table()
 
+def _create_ws_tokens_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ws_tokens (
+            token TEXT PRIMARY KEY,
+            user_type TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            expires_at DATETIME NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_ws_tokens_table()
+
 # SQLAlchemy Database dependency (unused by current repositories)
 def get_sqlalchemy_db():
     db = SessionLocal()

@@ -626,13 +626,85 @@ window.showSection = function(section, element) {
   if (section === 'messages') loadDoctorConversations();
 };
 
-/* ── Poll for new messages every 5s ── */
+let doctorWs = null;
+let doctorReconnectAttempts = 0;
+const DOCTOR_MAX_RECONNECT = 5;
+
+async function setupDoctorWebSocket() {
+  const doctorId = localStorage.getItem("doctor_id");
+  if (!doctorId) return;
+
+  try {
+    const res = await fetch(`${API}/generate-ws-token?user_type=doctor&user_id=${doctorId}`);
+    const data = await res.json();
+    if (!data.token) throw new Error("No token received");
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/doctor/${doctorId}?token=${data.token}`;
+    
+    doctorWs = new WebSocket(wsUrl);
+
+    doctorWs.onopen = () => {
+      console.log("Doctor WebSocket connected.");
+      doctorReconnectAttempts = 0;
+      removeDoctorOfflineBanner();
+    };
+
+    doctorWs.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "new_message") {
+          loadDoctorConversations();
+          if (activeChatPatientId !== null) loadDoctorMessages();
+        } else if (payload.type === "ping") {
+          doctorWs.send("pong");
+        }
+      } catch(e) {}
+    };
+
+    doctorWs.onclose = () => {
+      console.log("Doctor WebSocket disconnected.");
+      attemptDoctorReconnect();
+    };
+  } catch (err) {
+    console.error("Failed to setup Doctor WebSocket:", err);
+    attemptDoctorReconnect();
+  }
+}
+
+function attemptDoctorReconnect() {
+  if (doctorReconnectAttempts >= DOCTOR_MAX_RECONNECT) {
+    showDoctorOfflineBanner();
+    setInterval(() => {
+      loadDoctorConversations();
+      if (activeChatPatientId) loadDoctorMessages();
+    }, 5000);
+    return;
+  }
+  
+  const delay = Math.min(1000 * Math.pow(2, doctorReconnectAttempts), 10000);
+  doctorReconnectAttempts++;
+  setTimeout(setupDoctorWebSocket, delay);
+}
+
+function showDoctorOfflineBanner() {
+  let banner = document.getElementById("doctorOfflineBanner");
+  if (!banner) {
+    banner = document.createElement("div");
+    banner.id = "doctorOfflineBanner";
+    banner.style.cssText = "position:fixed;top:0;left:0;width:100%;background:#ef5350;color:white;text-align:center;padding:10px;z-index:9999;font-weight:bold;";
+    banner.textContent = "Connection Lost - Offline. Falling back to basic mode.";
+    document.body.appendChild(banner);
+  }
+}
+
+function removeDoctorOfflineBanner() {
+  const banner = document.getElementById("doctorOfflineBanner");
+  if (banner) banner.remove();
+}
+
 function startDoctorMsgPoll() {
-  if (doctorMsgPollTimer) clearInterval(doctorMsgPollTimer);
-  doctorMsgPollTimer = setInterval(() => {
-    loadDoctorConversations();
-    if (activeChatPatientId) loadDoctorMessages();
-  }, 5000);
+  // Replaced by WebSockets
 }
 
 window.openDoctorChat = openDoctorChat;
@@ -643,7 +715,7 @@ window.jumpToPatientChat = jumpToPatientChat;
 /* ── Init messaging on load ── */
 document.addEventListener("DOMContentLoaded", () => {
   loadDoctorConversations();
-  startDoctorMsgPoll();
+  setupDoctorWebSocket();
 });
 
 async function viewPatientHistory(patientId, patientName) {

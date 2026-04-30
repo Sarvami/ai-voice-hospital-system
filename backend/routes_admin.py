@@ -6,6 +6,8 @@ from models import AddDoctorRequest, UpdateDoctorRequest, UpdatePatientRequest, 
 from passlib.context import CryptContext
 from database import get_db
 from repositories import patient_repo, doctor_repo, appointment_repo
+from websocket_manager import manager
+import asyncio
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -104,6 +106,15 @@ def admin_send_message(req: MessageRequest, db: sqlite3.Connection = Depends(get
             VALUES (?, ?, ?, ?, ?)
         """, (req.sender_id, req.sender_role, req.receiver_id, req.receiver_role, req.message_text))
         db.commit()
+        msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        
+        # Notify receiver via WebSocket
+        asyncio.create_task(manager.send_personal_message(
+            {"type": "new_message", "message_id": msg_id},
+            req.receiver_role,
+            req.receiver_id
+        ))
+        
         return {"success": True, "message": "Message sent successfully"}
     except Exception as e:
         return db_error(e)

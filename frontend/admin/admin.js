@@ -691,13 +691,83 @@ async function sendAdminReply() {
     } catch(e) { console.error("sendAdminReply error:", e); }
 }
 
+let adminWs = null;
+let adminReconnectAttempts = 0;
+const ADMIN_MAX_RECONNECT = 5;
+
+async function setupAdminWebSocket() {
+    try {
+        const res = await fetch(`${API}/generate-ws-token?user_type=admin&user_id=0`);
+        const data = await res.json();
+        if (!data.token) throw new Error("No token received");
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/admin/0?token=${data.token}`;
+        
+        adminWs = new WebSocket(wsUrl);
+
+        adminWs.onopen = () => {
+            console.log("Admin WebSocket connected.");
+            adminReconnectAttempts = 0;
+            removeAdminOfflineBanner();
+        };
+
+        adminWs.onmessage = (event) => {
+            try {
+                const payload = JSON.parse(event.data);
+                if (payload.type === "new_message") {
+                    loadAdminConversations();
+                    if (activeAdminChatPatientId !== null) loadAdminMessages();
+                } else if (payload.type === "ping") {
+                    adminWs.send("pong");
+                }
+            } catch(e) {}
+        };
+
+        adminWs.onclose = () => {
+            console.log("Admin WebSocket disconnected.");
+            attemptAdminReconnect();
+        };
+    } catch (err) {
+        console.error("Failed to setup Admin WebSocket:", err);
+        attemptAdminReconnect();
+    }
+}
+
+function attemptAdminReconnect() {
+    if (adminReconnectAttempts >= ADMIN_MAX_RECONNECT) {
+        showAdminOfflineBanner();
+        setInterval(() => {
+            if (document.getElementById('messages').classList.contains('hidden')) return;
+            loadAdminConversations();
+            if (activeAdminChatPatientId !== null) loadAdminMessages();
+        }, 5000);
+        return;
+    }
+    
+    const delay = Math.min(1000 * Math.pow(2, adminReconnectAttempts), 10000);
+    adminReconnectAttempts++;
+    setTimeout(setupAdminWebSocket, delay);
+}
+
+function showAdminOfflineBanner() {
+    let banner = document.getElementById("adminOfflineBanner");
+    if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "adminOfflineBanner";
+        banner.style.cssText = "position:fixed;top:0;left:0;width:100%;background:#ef5350;color:white;text-align:center;padding:10px;z-index:9999;font-weight:bold;";
+        banner.textContent = "Connection Lost - Offline. Falling back to basic mode.";
+        document.body.appendChild(banner);
+    }
+}
+
+function removeAdminOfflineBanner() {
+    const banner = document.getElementById("adminOfflineBanner");
+    if (banner) banner.remove();
+}
+
 function startAdminMsgPolling() {
-    if (adminMessagesPollTimer) clearInterval(adminMessagesPollTimer);
-    adminMessagesPollTimer = setInterval(() => {
-        if (document.getElementById('messages').classList.contains('hidden')) return;
-        loadAdminConversations();
-        if (activeAdminChatPatientId !== null) loadAdminMessages();
-    }, 5000);
+    // Replaced by WebSockets
 }
 
 /* ── OVERRIDE SHOWSECTION TO LOAD CONVERSATIONS ── */
@@ -706,7 +776,6 @@ window.showSection = function(section, liEl) {
     _origShowSection(section, liEl);
     if (section === 'messages') {
         loadAdminConversations();
-        startAdminMsgPolling();
     }
 };
 
@@ -717,9 +786,9 @@ window.showSection = showSection;
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
   loadOverview();
+  setupAdminWebSocket();
   // If we are in the messages tab on load (unlikely but possible)
   if (!document.getElementById('messages').classList.contains('hidden')) {
       loadAdminConversations();
-      startAdminMsgPolling();
   }
 });
