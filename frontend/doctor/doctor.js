@@ -783,7 +783,7 @@ async function triggerSOS(patientId, patientName) {
   if (confirm(`🚨 TRIGGER EMERGENCY SOS FOR ${patientName.toUpperCase()}?\n\nThis will notify the patient and hospital emergency staff.`)) {
     try {
       const doctorId = localStorage.getItem("doctor_id");
-      const res = await fetch(`${BACKEND}/doctor/trigger-sos`, {
+      const res = await fetch(`${API}/doctor/trigger-sos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ patient_id: patientId, doctor_id: doctorId })
