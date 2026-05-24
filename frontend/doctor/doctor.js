@@ -76,6 +76,8 @@ async function loadDoctor() {
 }
 
 async function loadAppointments(){
+    const table = document.getElementById('appointmentTable');
+    if (table) table.innerHTML = skeletonTableRows(9, 5);
     try {
         const doctorId = localStorage.getItem("doctor_id");
         const res = await fetch(`${API}/doctor/appointments?doctor_id=${doctorId}`);

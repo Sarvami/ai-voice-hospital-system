@@ -878,6 +878,20 @@ th, td { white-space: nowrap; }
 @media (max-width: 768px) {
   .messaging-layout { flex-direction: column; height: auto; min-height: 400px; }
   .conversations-list { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 200px; }
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .statCard { padding: 16px; }
+  .main { padding: 12px 10px 88px !important; margin-left: 0 !important; width: 100% !important; }
+  .appointments-table-container,
+  .table-scroll-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .appointments-table-container table,
+  #uploadsTable { min-width: 720px; }
+  h1 { font-size: 1.35rem; }
 }
 
 /* ── MEET BUTTON ── */

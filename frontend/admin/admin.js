@@ -10,16 +10,21 @@ function esc(str) {
 }
 
 const sectionTitles = {
-  overview:     'Overview',
-  patients:     'Patients',
-  viewDoctors:  'Doctors — View',
-  createDoctor: 'Doctors — Create',
-  appointments: 'Appointments',
-  nurses:       'Assign Nurses',
-  leaves:       'Staff Leaves',
-  ratings:      'Ratings & Reviews',
-  voice:        'Voice Notes',
+  overview:      'Overview',
+  analytics:     'Analytics',
+  patients:      'Patients',
+  viewDoctors:   'Doctors — View',
+  createDoctor:  'Doctors — Create',
+  bulkImport:    'Bulk Import',
+  appointments:  'Appointments',
+  messages:      'Messages',
+  leaves:        'Staff Leaves',
+  ratings:       'Ratings & Reviews',
+  announcements: 'Announcements',
+  auditLog:      'Audit Log',
 };
+
+let chartAppts = null, chartDept = null, chartRegion = null;
 
 function showSection(section, liEl) {
   document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
@@ -27,10 +32,13 @@ function showSection(section, liEl) {
   document.querySelectorAll('.sidebar li').forEach(l => l.classList.remove('active'));
   if (liEl) liEl.classList.add('active');
   document.getElementById('currentPageTitle').textContent = sectionTitles[section] || '';
-  if (section === 'patients')     loadPatients();
-  if (section === 'viewDoctors')  loadDoctors();
-  if (section === 'appointments') loadAppointments();
-  if (section === 'ratings')      loadRatings();
+  if (section === 'patients')      loadPatients();
+  if (section === 'viewDoctors')   loadDoctors();
+  if (section === 'appointments')  loadAppointments();
+  if (section === 'ratings')       loadRatings();
+  if (section === 'analytics')     loadAnalytics();
+  if (section === 'auditLog')      loadAuditLog();
+  if (section === 'announcements') loadAnnouncements();
 }
 
 function toggleDoctorMenu(liEl) {
@@ -61,6 +69,7 @@ let allPatients = [];
 
 async function loadPatients() {
   const table = document.getElementById('patientsTable');
+  table.innerHTML = skeletonTableRows(8, 6);
   try {
     const res  = await fetch(`${API}/api/admin/patients`);
     const data = await res.json();
@@ -85,12 +94,25 @@ async function loadPatients() {
               <i class="fa-solid fa-pen-to-square" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
               <i class="fa-solid fa-paper-plane" title="Message Patient" style="color:#69f0ae;" onclick="openMessageModal(${p.patient_id}, '${esc(p.name)}')"></i>
               <i class="fa-solid fa-folder-open" title="View Reports" style="color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${esc(p.name)}')"></i>
+              <i class="fa-solid fa-trash" title="Delete Patient" style="color:#ef5350;" onclick="deletePatient(${p.patient_id}, '${esc(p.name)}')"></i>
             </div>
           </td>
         </tr>`;
     });
   } catch(e) {
-    table.innerHTML = `<tr><td colspan="7" class="empty-row">Could not load</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8" class="empty-row">Could not load</td></tr>`;
+  }
+}
+
+async function deletePatient(id, name) {
+  if (!confirm(`Delete patient "${name}" and all their appointments?`)) return;
+  try {
+    const res = await fetch(`${API}/api/admin/patients/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) loadPatients();
+    else alert(data.message || 'Delete failed');
+  } catch (e) {
+    alert('Could not delete patient.');
   }
 }
 
@@ -136,6 +158,7 @@ function filterPatientsTable() {
             <i class="fa-solid fa-pen-to-square" title="Edit" onclick="openEditModal(${p.patient_id})"></i>
             <i class="fa-solid fa-paper-plane" title="Message Patient" style="color:#69f0ae;" onclick="openMessageModal(${p.patient_id}, '${esc(p.name)}')"></i>
             <i class="fa-solid fa-folder-open" title="View Reports" style="color:#38bdf8;" onclick="openReportsModal(${p.patient_id}, '${esc(p.name)}')"></i>
+            <i class="fa-solid fa-trash" title="Delete Patient" style="color:#ef5350;" onclick="deletePatient(${p.patient_id}, '${esc(p.name)}')"></i>
           </div>
         </td>
       </tr>`;
@@ -276,6 +299,7 @@ async function sendMessage() {
 /* ── DOCTORS ── */
 async function loadDoctors() {
   const table = document.getElementById('doctorsTable');
+  table.innerHTML = skeletonTableRows(11, 5);
   try {
     const res  = await fetch(`${API}/api/admin/doctors`);
     const data = await res.json();
@@ -476,6 +500,7 @@ async function createDoctor() {
 /* ── APPOINTMENTS ── */
 async function loadAppointments() {
   const table = document.getElementById('appointmentsTable');
+  table.innerHTML = skeletonTableRows(8, 6);
   try {
     const res  = await fetch(`${API}/api/admin/appointments`);
     const data = await res.json();
@@ -538,6 +563,7 @@ let allRatings = [];
 
 async function loadRatings() {
   const table = document.getElementById('ratingsTable');
+  table.innerHTML = skeletonTableRows(6, 5);
   try {
     const res  = await fetch(`${API}/api/admin/ratings`);
     const data = await res.json();
@@ -782,6 +808,156 @@ window.showSection = function(section, liEl) {
 window.openAdminChat = openAdminChat;
 window.sendAdminReply = sendAdminReply;
 window.showSection = showSection;
+
+/* ── ANALYTICS ── */
+async function loadAnalytics() {
+  try {
+    const res = await fetch(`${API}/api/admin/analytics`);
+    const data = await res.json();
+    const days = data.appointments_per_day || [];
+    const depts = data.by_department || [];
+    const regions = data.patients_by_region || [];
+
+    const chartOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#b0bec5' } } } };
+    const gridColor = 'rgba(255,255,255,0.08)';
+
+    if (chartAppts) chartAppts.destroy();
+    chartAppts = new Chart(document.getElementById('chartApptsPerDay'), {
+      type: 'line',
+      data: {
+        labels: days.map(d => d.day),
+        datasets: [{ label: 'Appointments', data: days.map(d => d.count), borderColor: '#4fc3f7', backgroundColor: 'rgba(79,195,247,0.2)', fill: true, tension: 0.3 }],
+      },
+      options: { ...chartOpts, scales: { x: { ticks: { color: '#90a4ae' }, grid: { color: gridColor } }, y: { ticks: { color: '#90a4ae' }, grid: { color: gridColor } } } },
+    });
+
+    if (chartDept) chartDept.destroy();
+    chartDept = new Chart(document.getElementById('chartDepartments'), {
+      type: 'doughnut',
+      data: {
+        labels: depts.map(d => d.department),
+        datasets: [{ data: depts.map(d => d.count), backgroundColor: ['#4fc3f7', '#69f0ae', '#ffa726', '#ef5350', '#ab47bc', '#26c6da', '#8d6e63', '#78909c'] }],
+      },
+      options: chartOpts,
+    });
+
+    if (chartRegion) chartRegion.destroy();
+    chartRegion = new Chart(document.getElementById('chartRegions'), {
+      type: 'bar',
+      data: {
+        labels: regions.map(r => r.region),
+        datasets: [{ label: 'Patients', data: regions.map(r => r.count), backgroundColor: '#69f0ae' }],
+      },
+      options: { ...chartOpts, scales: { x: { ticks: { color: '#90a4ae' }, grid: { color: gridColor } }, y: { ticks: { color: '#90a4ae' }, grid: { color: gridColor } } } },
+    });
+  } catch (e) {
+    console.error('Analytics load failed', e);
+  }
+}
+
+/* ── AUDIT LOG ── */
+async function loadAuditLog() {
+  const table = document.getElementById('auditLogTable');
+  table.innerHTML = skeletonTableRows(5, 8);
+  try {
+    const res = await fetch(`${API}/api/admin/audit-log`);
+    const rows = await res.json();
+    table.innerHTML = '';
+    if (!rows.length) {
+      table.innerHTML = '<tr><td colspan="5" class="empty-row">No audit entries yet.</td></tr>';
+      return;
+    }
+    rows.forEach(r => {
+      const det = typeof r.details === 'object' ? JSON.stringify(r.details) : (r.details || '');
+      const time = r.created_at ? String(r.created_at).replace('T', ' ').slice(0, 19) : '—';
+      table.innerHTML += `<tr>
+        <td>${esc(time)}</td>
+        <td>${esc(r.actor)}</td>
+        <td>${esc(r.action)}</td>
+        <td>${esc(r.entity_type)} #${esc(r.entity_id)}</td>
+        <td style="max-width:280px; font-size:12px;">${esc(det)}</td>
+      </tr>`;
+    });
+  } catch (e) {
+    table.innerHTML = '<tr><td colspan="5" class="empty-row">Could not load audit log.</td></tr>';
+  }
+}
+
+/* ── BULK IMPORT ── */
+async function bulkImportDoctors() {
+  const fileInput = document.getElementById('bulkCsvFile');
+  const out = document.getElementById('bulkImportResult');
+  if (!fileInput.files.length) {
+    out.textContent = 'Please select a CSV file.';
+    return;
+  }
+  const form = new FormData();
+  form.append('file', fileInput.files[0]);
+  out.textContent = 'Importing…';
+  try {
+    const res = await fetch(`${API}/api/admin/doctors/bulk-import`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (data.success) {
+      out.textContent = `Created: ${data.created}, Skipped: ${data.skipped}\n${(data.errors || []).join('\n')}`;
+      fileInput.value = '';
+      if (data.created) loadDoctors();
+    } else {
+      out.textContent = data.message || 'Import failed';
+    }
+  } catch (e) {
+    out.textContent = 'Server error during import.';
+  }
+}
+
+/* ── ANNOUNCEMENTS ── */
+async function loadAnnouncements() {
+  const list = document.getElementById('announceHistory');
+  if (!list) return;
+  list.innerHTML = '<li>Loading…</li>';
+  try {
+    const res = await fetch(`${API}/api/admin/announcements`);
+    const rows = await res.json();
+    list.innerHTML = rows.length
+      ? rows.map(a => `<li><strong>${esc(a.title)}</strong> — ${esc(a.message)}<br><small>${esc(a.created_at)}</small></li>`).join('')
+      : '<li>No announcements yet.</li>';
+  } catch (e) {
+    list.innerHTML = '<li>Could not load history.</li>';
+  }
+}
+
+async function broadcastAnnouncement() {
+  const title = document.getElementById('announceTitle').value.trim();
+  const message = document.getElementById('announceMessage').value.trim();
+  const msgEl = document.getElementById('announceMsg');
+  if (!title || !message) {
+    msgEl.style.color = '#ef9a9a';
+    msgEl.textContent = 'Title and message are required.';
+    return;
+  }
+  try {
+    const res = await fetch(`${API}/api/admin/announcements/broadcast`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, message }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      msgEl.style.color = '#69f0ae';
+      msgEl.textContent = `Sent! ${data.patients_notified} patients notified (${data.push_sent || 0} push).`;
+      document.getElementById('announceTitle').value = '';
+      document.getElementById('announceMessage').value = '';
+      loadAnnouncements();
+    } else {
+      msgEl.textContent = data.message || 'Failed';
+    }
+  } catch (e) {
+    msgEl.textContent = 'Could not connect.';
+  }
+}
+
+window.deletePatient = deletePatient;
+window.bulkImportDoctors = bulkImportDoctors;
+window.broadcastAnnouncement = broadcastAnnouncement;
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {

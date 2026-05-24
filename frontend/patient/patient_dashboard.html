@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SwasthSeva Patient Dashboard</title>
-
-<link rel="stylesheet" href="patient.css">
-
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#4fc3f7">
+  <link rel="stylesheet" href="patient.css">
+  <link rel="stylesheet" href="../shared/skeletons.css">
+  <link rel="stylesheet" href="../shared/onboarding.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
-<body>
+<body class="patient-dashboard">
 
 <div class="dashboard">
 
@@ -67,6 +67,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 <!-- DASHBOARD -->
 
 <div id="dashboard" class="section">
+
+<div id="announcementBanners"></div>
 
 <div class="stats">
 
@@ -222,6 +224,9 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
     </div>
   </div>
 
+<script src="../shared/ui-helpers.js"></script>
+<script src="../shared/pwa.js"></script>
+<script src="../shared/onboarding.js"></script>
 <script src="patient.js"></script>
 </body>
 </html>

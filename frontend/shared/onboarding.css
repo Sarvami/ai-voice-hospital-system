@@ -1,0 +1,102 @@
+/* First-time patient guided tour */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.onboarding-overlay.hidden { display: none; }
+
+.onboarding-card {
+  max-width: 420px;
+  width: 100%;
+  background: linear-gradient(145deg, #1a2332, #0f1624);
+  border: 1px solid rgba(79, 195, 247, 0.35);
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.onboarding-card h2 {
+  margin: 0 0 8px;
+  color: #4fc3f7;
+  font-size: 1.35rem;
+}
+
+.onboarding-card p {
+  color: #b0bec5;
+  line-height: 1.5;
+  margin: 0 0 20px;
+  font-size: 0.95rem;
+}
+
+.onboarding-steps {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.onboarding-steps span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.onboarding-steps span.active {
+  background: #4fc3f7;
+  width: 22px;
+  border-radius: 4px;
+}
+
+.onboarding-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.onboarding-actions button {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.onboarding-actions .btn-skip {
+  background: transparent;
+  color: #90a4ae;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.onboarding-actions .btn-next {
+  background: #4fc3f7;
+  color: #0a0f1e;
+}
+
+.announcement-banner {
+  background: linear-gradient(90deg, rgba(79, 195, 247, 0.15), rgba(105, 240, 174, 0.1));
+  border: 1px solid rgba(79, 195, 247, 0.35);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.announcement-banner h4 {
+  margin: 0 0 6px;
+  color: #4fc3f7;
+  font-size: 0.95rem;
+}
+
+.announcement-banner p {
+  margin: 0;
+  color: #cfd8dc;
+  font-size: 0.88rem;
+}

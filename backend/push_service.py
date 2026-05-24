@@ -18,10 +18,13 @@ def _load_or_create_vapid():
         from py_vapid import Vapid
         v = Vapid()
         v.generate_keys()
-        keys = {
-            "publicKey": v.public_key.decode() if isinstance(v.public_key, bytes) else str(v.public_key),
-            "privateKey": v.private_key.decode() if isinstance(v.private_key, bytes) else str(v.private_key),
-        }
+        pub = v.public_key
+        priv = v.private_key
+        if callable(getattr(pub, "decode", None)):
+            pub = pub.decode("utf-8")
+        if callable(getattr(priv, "decode", None)):
+            priv = priv.decode("utf-8")
+        keys = {"publicKey": str(pub), "privateKey": str(priv)}
         VAPID_FILE.parent.mkdir(parents=True, exist_ok=True)
         VAPID_FILE.write_text(json.dumps(keys), encoding="utf-8")
         return keys

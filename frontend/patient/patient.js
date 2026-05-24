@@ -27,6 +27,8 @@ async function loadAppointments() {
     return;
   }
 
+  table.innerHTML = skeletonTableRows(11, 5);
+
   try {
     const res  = await fetch(`${BACKEND}/patient/appointments?patient_id=${patientId}`);
     const data = await res.json();
@@ -457,11 +459,33 @@ function toggleTheme() {
 })();
 
 /* ── Initialize everything on page load ── */
+async function loadPatientAnnouncements() {
+  const patientId = localStorage.getItem('patient_id');
+  const box = document.getElementById('announcementBanners');
+  if (!patientId || !box) return;
+  try {
+    const res = await fetch(`${BACKEND}/patient/announcements?patient_id=${patientId}`);
+    const data = await res.json();
+    const list = data.announcements || [];
+    const unread = list.filter(a => !a.is_read);
+    box.innerHTML = unread.slice(0, 3).map(a => `
+      <div class="announcement-banner" data-id="${a.id}">
+        <h4>${esc(a.title)}</h4>
+        <p>${esc(a.message)}</p>
+      </div>`).join('');
+    unread.forEach(a => {
+      fetch(`${BACKEND}/patient/announcements/${a.id}/read?patient_id=${patientId}`, { method: 'POST' }).catch(() => {});
+    });
+  } catch (_) {}
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   loadAppointments();
   loadRecords();
   loadDashboardStats();
   loadUploadedReports();
+  loadPatientAnnouncements();
+  if (window.initPatientOnboarding) initPatientOnboarding();
 });
 
 /* ── Make functions global for HTML onclick ── */
@@ -638,7 +662,12 @@ async function setupWebSocket() {
           loadConversations();
           if (activeChatDoctorId !== null) loadPatientMessages();
         } else if (payload.type === "new_alert") {
-          fetchAlerts(); // Renamed from pollAlerts
+          fetchAlerts();
+        } else if (payload.type === "announcement") {
+          loadPatientAnnouncements();
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            new Notification(payload.title || 'SwasthSeva', { body: payload.message || '' });
+          }
         } else if (payload.type === "ping") {
           ws.send("pong");
         }
