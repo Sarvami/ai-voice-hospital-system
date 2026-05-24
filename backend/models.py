@@ -197,3 +197,14 @@ class MessageRequest(BaseModel):
     sender_id: int = 0  # 0 for Admin
     sender_role: str = "admin"
     receiver_role: str = "patient"
+
+
+class AnnouncementBroadcast(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    message: str = Field(..., min_length=1, max_length=5000)
+    actor: str = "admin"
+
+
+class PushSubscriptionBody(BaseModel):
+    patient_id: int = Field(..., gt=0)
+    subscription: dict

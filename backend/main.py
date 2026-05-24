@@ -223,8 +223,16 @@ async def serve_temp_audio(filename: str):
         return FileResponse(path, media_type="audio/mpeg")
     return JSONResponse({"error": "File not found"}, status_code=404)
 
+@app.get("/push/vapid-public-key")
+def vapid_public_key():
+    from push_service import get_vapid_public_key
+    key = get_vapid_public_key()
+    return {"publicKey": key}
+
+
 @app.post("/translate-text")
-def translate_text_api(req: TranslateRequest):
+@limiter.limit("30/minute")
+def translate_text_api(request: Request, req: TranslateRequest):
     try:
         translated = GoogleTranslator(source='auto', target=req.target_lang).translate(req.text)
         return {"success": True, "translation": translated}

@@ -4,7 +4,8 @@ import sqlite3
 from fastapi import APIRouter, Request, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from gtts import gTTS
-from models import DateRequest, RegionRequest, RateRequest, OtpRequest, VerifyOtpRequest
+from models import DateRequest, RegionRequest, RateRequest, OtpRequest, VerifyOtpRequest, PushSubscriptionBody
+from push_service import save_subscription
 from voice_service import gt_from_english
 from repositories.session_repo import get_session, set_session, delete_session
 from passlib.context import CryptContext
@@ -491,3 +492,44 @@ def dismiss_alert(alert_id: int, db: sqlite3.Connection = Depends(get_db)):
         return {"success": True}
     except Exception as e:
         return {"success": False}
+
+
+@router.get("/patient/announcements")
+def patient_announcements(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            """SELECT a.id, a.title, a.message, a.created_at,
+                      CASE WHEN r.patient_id IS NOT NULL THEN 1 ELSE 0 END AS is_read
+               FROM announcements a
+               LEFT JOIN announcement_reads r
+                 ON r.announcement_id = a.id AND r.patient_id = ?
+               ORDER BY a.created_at DESC LIMIT 30""",
+            (patient_id,),
+        ).fetchall()
+        return {"announcements": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR patient_announcements:", e)
+        return {"announcements": []}
+
+
+@router.post("/patient/announcements/{announcement_id}/read")
+def mark_announcement_read(announcement_id: int, patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        db.execute(
+            "INSERT OR IGNORE INTO announcement_reads (announcement_id, patient_id) VALUES (?, ?)",
+            (announcement_id, patient_id),
+        )
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False}
+
+
+@router.post("/patient/push-subscribe")
+def patient_push_subscribe(body: PushSubscriptionBody, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        save_subscription(db, body.patient_id, body.subscription)
+        return {"success": True}
+    except Exception as e:
+        print("ERROR push-subscribe:", e)
+        return {"success": False, "message": str(e)}

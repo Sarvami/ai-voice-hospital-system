@@ -436,11 +436,13 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             patient = get_or_create_patient(name, phone, lang) if phone else {"patient_id": pid}
             final_pid = patient.get("patient_id") or pid
             aid = create_appointment(final_pid, data["doctor_id"], data["date"], data["time"], data["dept"], lang)
+            if aid == "slot_taken":
+                return f"Sorry, {data['doctor']} is already booked at {data['time']} on {data['date']}. Please choose another time.", {}
             if aid:
                 delete_session(user_id)
                 return "Confirmed! Your appointment is booked.", {"booked": True}
             delete_session(user_id)
-            return "You already have an appointment on that date.", {}
+            return "You already have an appointment with this doctor on that date.", {}
         elif any(w in text for w in cancel_words):
             delete_session(user_id)
             return "Booking cancelled. Say 'book appointment' to restart.", {}

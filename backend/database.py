@@ -206,6 +206,63 @@ def _create_ws_tokens_table():
 
 _create_ws_tokens_table()
 
+def _create_audit_log_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            actor        TEXT NOT NULL DEFAULT 'admin',
+            action       TEXT NOT NULL,
+            entity_type  TEXT NOT NULL,
+            entity_id    TEXT,
+            details      TEXT,
+            created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_audit_log_table()
+
+def _create_announcements_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS announcements (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            title        TEXT NOT NULL,
+            message      TEXT NOT NULL,
+            created_by   TEXT DEFAULT 'admin',
+            created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS announcement_reads (
+            announcement_id INTEGER NOT NULL,
+            patient_id      INTEGER NOT NULL,
+            read_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (announcement_id, patient_id)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_announcements_table()
+
+def _create_push_subscriptions_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            patient_id         INTEGER NOT NULL,
+            endpoint           TEXT PRIMARY KEY,
+            subscription_json  TEXT NOT NULL,
+            created_at         DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_push_subscriptions_table()
+
 # SQLAlchemy Database dependency (unused by current repositories)
 def get_sqlalchemy_db():
     db = SessionLocal()

@@ -34,12 +34,34 @@ def patient_phone_exists(conn, phone: str) -> bool:
     return conn.execute("SELECT 1 FROM patients WHERE phone=?", (phone,)).fetchone() is not None
 
 
-def update_patient(conn, patient_id, name, age, gender, phone, preferred_language):
-    conn.execute(
-        "UPDATE patients SET name=?, age=?, gender=?, phone=?, preferred_language=? WHERE patient_id=?",
-        (name, age, gender, phone, preferred_language, patient_id)
-    )
+def update_patient(conn, patient_id, name, age, gender, phone, preferred_language, email=None):
+    if email is not None:
+        conn.execute(
+            """UPDATE patients SET name=?, age=?, gender=?, phone=?, preferred_language=?, email=?
+               WHERE patient_id=?""",
+            (name, age, gender, phone, preferred_language, email, patient_id),
+        )
+    else:
+        conn.execute(
+            "UPDATE patients SET name=?, age=?, gender=?, phone=?, preferred_language=? WHERE patient_id=?",
+            (name, age, gender, phone, preferred_language, patient_id),
+        )
     conn.commit()
+
+
+def delete_patient(conn, patient_id: int) -> bool:
+    row = conn.execute("SELECT patient_id FROM patients WHERE patient_id=?", (patient_id,)).fetchone()
+    if not row:
+        return False
+    conn.execute("DELETE FROM appointments WHERE patient_id=?", (patient_id,))
+    conn.execute("DELETE FROM patient_reports WHERE patient_id=?", (patient_id,))
+    conn.execute("DELETE FROM messages WHERE sender_id=? AND sender_role='patient'", (patient_id,))
+    conn.execute("DELETE FROM messages WHERE receiver_id=? AND receiver_role='patient'", (patient_id,))
+    conn.execute("DELETE FROM push_subscriptions WHERE patient_id=?", (patient_id,))
+    conn.execute("DELETE FROM announcement_reads WHERE patient_id=?", (patient_id,))
+    conn.execute("DELETE FROM patients WHERE patient_id=?", (patient_id,))
+    conn.commit()
+    return True
 
 
 def update_patient_region(conn, patient_id, region: str):
