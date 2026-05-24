@@ -14,7 +14,6 @@ from repositories import patient_repo, doctor_repo, appointment_repo, report_rep
 from email_service import generate_otp, send_otp_email, send_cancellation_email
 from datetime import datetime, timedelta
 from websocket_manager import manager
-import asyncio
 
 router = APIRouter()
 REPORTS_DIR = os.path.join(os.path.dirname(__file__), "reports")
@@ -192,7 +191,7 @@ def set_region_api(req: RegionRequest, db: sqlite3.Connection = Depends(get_db))
         final = gt_from_english(text, req.lang)
         out   = f"{TEMP_DIR}/{uuid.uuid4()}.mp3"
         gTTS(text=final, lang=req.lang).save(out)
-        return {"text": final, "audio_url": f"/temp-audio/{os.path.basename(out)}"}
+        return {"success": True, "text": final, "audio_url": f"/temp-audio/{os.path.basename(out)}"}
     except Exception as e:
         print("ERROR in set_region:", e)
         return {"text": "", "audio_url": ""}
@@ -405,12 +404,11 @@ async def patient_send_message(request: Request, db: sqlite3.Connection = Depend
         db.commit()
         msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
         
-        # Notify receiver via WebSocket
-        asyncio.create_task(manager.send_personal_message(
+        await manager.send_personal_message(
             {"type": "new_message", "message_id": msg_id},
             receiver_role,
-            doctor_id
-        ))
+            doctor_id,
+        )
         
         return {"success": True, "message_id": msg_id}
     except Exception as e:

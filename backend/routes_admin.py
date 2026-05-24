@@ -12,7 +12,6 @@ from repositories import analytics_repo
 from audit_service import log_audit, get_audit_logs
 from push_service import send_push_to_all
 from websocket_manager import manager
-import asyncio
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -80,11 +79,11 @@ async def broadcast_announcement(req: AnnouncementBroadcast, db: sqlite3.Connect
         rows = db.execute("SELECT patient_id FROM patients").fetchall()
         for row in rows:
             pid = row["patient_id"]
-            asyncio.create_task(manager.send_personal_message(
+            await manager.send_personal_message(
                 {"type": "announcement", "id": ann_id, "title": req.title, "message": req.message},
                 "patient",
                 pid,
-            ))
+            )
 
         return {"success": True, "id": ann_id, "push_sent": push_count, "patients_notified": len(rows)}
     except Exception as e:
@@ -227,7 +226,7 @@ def add_leave(data: dict, db: sqlite3.Connection = Depends(get_db)):
     return {"message": f"Leave recorded for {data.get('name')} on {data.get('date')}"}
 
 @router.post("/send-message")
-def admin_send_message(req: MessageRequest, db: sqlite3.Connection = Depends(get_db)):
+async def admin_send_message(req: MessageRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
         db.execute("""
             INSERT INTO messages (sender_id, sender_role, receiver_id, receiver_role, message_text)
@@ -236,11 +235,11 @@ def admin_send_message(req: MessageRequest, db: sqlite3.Connection = Depends(get
         db.commit()
         msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
         
-        asyncio.create_task(manager.send_personal_message(
+        await manager.send_personal_message(
             {"type": "new_message", "message_id": msg_id},
             req.receiver_role,
-            req.receiver_id
-        ))
+            req.receiver_id,
+        )
         
         return {"success": True, "message": "Message sent successfully"}
     except Exception as e:

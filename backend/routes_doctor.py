@@ -7,7 +7,6 @@ from models import CancelAppointmentRequest
 from database import get_db
 from repositories import doctor_repo, appointment_repo
 from websocket_manager import manager
-import asyncio
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -143,12 +142,11 @@ async def doctor_send_message(request: Request, db: sqlite3.Connection = Depends
         db.commit()
         msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
         
-        # Notify patient via WebSocket
-        asyncio.create_task(manager.send_personal_message(
+        await manager.send_personal_message(
             {"type": "new_message", "message_id": msg_id},
             "patient",
-            patient_id
-        ))
+            patient_id,
+        )
         
         return {"success": True, "message_id": msg_id}
     except Exception as e:
@@ -294,12 +292,11 @@ async def create_meet(request: Request, db: sqlite3.Connection = Depends(get_db)
             db.commit()
             msg_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
             
-            # Notify patient via WebSocket
-            asyncio.create_task(manager.send_personal_message(
+            await manager.send_personal_message(
                 {"type": "new_message", "message_id": msg_id},
                 "patient",
-                patient_id
-            ))
+                patient_id,
+            )
         except Exception as msg_err:
             print("Auto-message skipped:", msg_err)
 
@@ -325,7 +322,7 @@ def doctor_meet_links(doctor_id: int, db: sqlite3.Connection = Depends(get_db)):
         return {"meet_links": []}
 
 @router.post("/doctor/trigger-sos")
-def trigger_sos(data: dict, db: sqlite3.Connection = Depends(get_db)):
+async def trigger_sos(data: dict, db: sqlite3.Connection = Depends(get_db)):
     try:
         patient_id = data.get("patient_id")
         doctor_id = data.get("doctor_id")
@@ -339,12 +336,11 @@ def trigger_sos(data: dict, db: sqlite3.Connection = Depends(get_db)):
         )
         db.commit()
         
-        # Notify patient via WebSocket
-        asyncio.create_task(manager.send_personal_message(
+        await manager.send_personal_message(
             {"type": "new_alert"},
             "patient",
-            patient_id
-        ))
+            patient_id,
+        )
         
         return {"success": True}
     except Exception as e:

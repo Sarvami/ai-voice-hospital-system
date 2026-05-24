@@ -47,6 +47,16 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+
+def notify_personal(message: dict, user_type: str, user_id: int):
+    """Schedule a WebSocket notification when a loop is running; no-op in sync contexts."""
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(manager.send_personal_message(message, user_type, user_id))
+    except RuntimeError:
+        pass
+
+
 def generate_ws_token(user_type: str, user_id: int) -> str:
     """Generate and store a token for WS auth."""
     token = secrets.token_urlsafe(32)

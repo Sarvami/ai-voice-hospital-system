@@ -8,6 +8,9 @@ def ensure_cancellation_columns(conn):
     if "cancelled_by" not in col_names:
         conn.execute("ALTER TABLE appointments ADD COLUMN cancelled_by TEXT")
         changed = True
+    if "review" not in col_names:
+        conn.execute("ALTER TABLE appointments ADD COLUMN review TEXT")
+        changed = True
     if changed:
         conn.commit()
 
@@ -101,6 +104,7 @@ def set_appointment_review(conn, appointment_id: int, review: str):
 
 
 def get_ratings_by_doctor(conn, doctor_id: int):
+    ensure_cancellation_columns(conn)
     rows = conn.execute("""
         SELECT p.name AS patient_name, a.rating, a.review, a.appointment_date AS date
         FROM appointments a
@@ -112,6 +116,7 @@ def get_ratings_by_doctor(conn, doctor_id: int):
 
 
 def get_all_ratings(conn):
+    ensure_cancellation_columns(conn)
     rows = conn.execute("""
         SELECT p.name AS patient, d.name AS doctor, d.department,
                a.rating, a.review, a.appointment_date AS date
