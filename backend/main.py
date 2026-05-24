@@ -28,7 +28,7 @@ from database import get_db
 from models import TextInput, TranslateRequest
 from voice_service import (
     speech_to_text, gt_to_english, gt_from_english, 
-    generate_reply
+    generate_reply, save_conversation_log
 )
 from deep_translator import GoogleTranslator
 import asyncio
@@ -37,12 +37,12 @@ from websocket_manager import manager, generate_ws_token, validate_ws_token, rev
 import routes_patient
 import routes_doctor
 import routes_admin
+from scheduler import scheduler as daily_scheduler
 
 # ------------------ SETUP ------------------
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 app = FastAPI(title="SwasthSeva API")
-
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
@@ -121,6 +121,9 @@ async def process_audio(
         reply, meta = generate_reply(english, user_id=str(patient_id), lang=lang, original=original)
         final = gt_from_english(reply, lang)
 
+        # Save conversation log
+        save_conversation_log(str(patient_id), original, reply, lang)
+
         print(f"\n{'─'*50}")
         print(f"  original  : {original}")
         print(f"  english   : {english}")
@@ -150,6 +153,7 @@ async def process_audio(
         "reply_in_lang": final,
         "audio_url": audio_url,
         "booked": meta.get("booked", False),
+        "sos": meta.get("sos", False),
         "intent": meta.get("intent", ""),
         "doctor_id": meta.get("data", {}).get("doctor_id"),
         "available_days": meta.get("data", {}).get("available_days", ""),
@@ -163,6 +167,8 @@ def process_text(request: Request, data: TextInput):
         english = gt_to_english(data.text)
         reply, meta = generate_reply(english, user_id=str(data.patient_id), lang=data.lang, original=data.text)
         final = gt_from_english(reply, data.lang)
+        # Save conversation log
+        save_conversation_log(str(data.patient_id), data.text, reply, data.lang)
     except Exception as e:
         print("ERROR in process_text:", e)
         final = "Sorry, something went wrong. Please try again."
@@ -184,6 +190,7 @@ def process_text(request: Request, data: TextInput):
         "reply_in_lang": final,
         "audio_url": audio_url,
         "booked": meta.get("booked", False),
+        "sos": meta.get("sos", False),
         "intent": meta.get("intent", ""),
         "doctor_id": meta.get("data", {}).get("doctor_id"),
         "available_days": meta.get("data", {}).get("available_days", ""),
@@ -198,6 +205,24 @@ async def serve_temp_audio(filename: str):
     if os.path.exists(path):
         return FileResponse(path, media_type="audio/mpeg")
     return JSONResponse({"error": "File not found"}, status_code=404)
+
+
+@app.post("/sos-alert")
+async def sos_alert(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    """Triggered when voice AI detects an emergency keyword."""
+    try:
+        data = await request.json()
+        patient_id = data.get("patient_id")
+        if patient_id:
+            from email_service import send_sos_email
+            from repositories import patient_repo as _pr
+            patient = _pr.get_patient_by_id(db, int(patient_id))
+            if patient and patient.get("email"):
+                send_sos_email(patient["email"], patient["name"])
+        return {"success": True}
+    except Exception as e:
+        print("SOS alert error:", e)
+        return {"success": False}
 
 
 @app.get("/push/vapid-public-key")

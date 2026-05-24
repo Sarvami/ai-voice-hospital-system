@@ -345,3 +345,184 @@ async def trigger_sos(data: dict, db: sqlite3.Connection = Depends(get_db)):
         return {"success": True}
     except Exception as e:
         return db_error(e)
+
+
+# ── PRESCRIPTIONS ─────────────────────────────────────────────────────────────
+
+@router.post("/doctor/save-prescription")
+async def save_prescription(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        doctor_id = data.get("doctor_id")
+        patient_id = data.get("patient_id")
+        appointment_id = data.get("appointment_id")
+        medicine = data.get("medicine", "").strip()
+        dosage = data.get("dosage", "").strip()
+        notes = data.get("notes", "").strip()
+
+        if not doctor_id or not medicine:
+            return {"success": False, "message": "doctor_id and medicine required"}
+
+        db.execute(
+            """INSERT INTO prescriptions (doctor_id, patient_id, appointment_id, medicine, dosage, notes)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (doctor_id, patient_id, appointment_id, medicine, dosage, notes)
+        )
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in save_prescription:", e)
+        return {"success": False, "message": "Could not save prescription."}
+
+
+# ── PATIENT NOTES ─────────────────────────────────────────────────────────────
+
+@router.post("/doctor/add-note")
+async def add_patient_note(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        doctor_id = data.get("doctor_id")
+        patient_id = data.get("patient_id")
+        note_text = data.get("note_text", "").strip()
+        is_private = data.get("is_private", 1)
+
+        if not doctor_id or not patient_id or not note_text:
+            return {"success": False, "message": "Missing required fields"}
+
+        db.execute(
+            """INSERT INTO patient_notes (doctor_id, patient_id, note_text, is_private)
+               VALUES (?, ?, ?, ?)""",
+            (doctor_id, patient_id, note_text, is_private)
+        )
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in add_patient_note:", e)
+        return {"success": False, "message": "Could not save note."}
+
+
+@router.get("/doctor/patient-notes")
+def get_patient_notes(doctor_id: int, patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            """SELECT id, note_text, is_private, created_at
+               FROM patient_notes
+               WHERE doctor_id=? AND patient_id=?
+               ORDER BY created_at DESC""",
+            (doctor_id, patient_id)
+        ).fetchall()
+        return {"notes": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in get_patient_notes:", e)
+        return {"notes": []}
+
+
+# ── APPOINTMENT STATUS UPDATE ─────────────────────────────────────────────────
+
+@router.post("/doctor/update-appointment-status")
+async def update_appointment_status(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        status = data.get("status")
+        appointment_id = data.get("appointment_id")
+        doctor_id = data.get("doctor_id")
+
+        if not all([status, appointment_id, doctor_id]):
+            return {"success": False, "message": "Missing required fields"}
+
+        db.execute(
+            "UPDATE appointments SET status=? WHERE appointment_id=? AND doctor_id=?",
+            (status, appointment_id, doctor_id)
+        )
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in update_appointment_status:", e)
+        return {"success": False, "message": "Could not update status."}
+
+
+# ── EXPORT APPOINTMENTS ───────────────────────────────────────────────────────
+
+import csv
+import io
+from fastapi.responses import StreamingResponse
+
+@router.get("/doctor/export-appointments")
+def export_appointments(doctor_id: int, format: str = "csv", db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            """SELECT a.appointment_id, p.name AS patient_name, a.appointment_date,
+                      a.appointment_time, a.status, a.reason
+               FROM appointments a
+               JOIN patients p ON a.patient_id = p.patient_id
+               WHERE a.doctor_id = ?
+               ORDER BY a.appointment_date DESC""",
+            (doctor_id,)
+        ).fetchall()
+
+        if format == "csv":
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["ID", "Patient", "Date", "Time", "Status", "Reason"])
+            for r in rows:
+                writer.writerow([
+                    r["appointment_id"], r["patient_name"],
+                    r["appointment_date"], r["appointment_time"],
+                    r["status"], r["reason"] or ""
+                ])
+            output.seek(0)
+            return StreamingResponse(
+                io.BytesIO(output.getvalue().encode()),
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=appointments.csv"}
+            )
+
+        elif format == "pdf":
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+                from reportlab.lib import colors
+                from reportlab.lib.styles import getSampleStyleSheet
+
+                buf = io.BytesIO()
+                doc = SimpleDocTemplate(buf, pagesize=letter)
+                styles = getSampleStyleSheet()
+                elements = []
+                elements.append(Paragraph("Appointments Report", styles["Title"]))
+
+                table_data = [["ID", "Patient", "Date", "Time", "Status", "Reason"]]
+                for r in rows:
+                    table_data.append([
+                        str(r["appointment_id"]), r["patient_name"],
+                        r["appointment_date"], r["appointment_time"],
+                        r["status"], r["reason"] or ""
+                    ])
+
+                t = Table(table_data)
+                t.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a3a5c")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f0f4f8")]),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("PADDING", (0, 0), (-1, -1), 6),
+                ]))
+                elements.append(t)
+                doc.build(elements)
+                buf.seek(0)
+                return StreamingResponse(
+                    buf,
+                    media_type="application/pdf",
+                    headers={"Content-Disposition": "attachment; filename=appointments.pdf"}
+                )
+            except ImportError:
+                return JSONResponse(
+                    {"error": "reportlab not installed. Run: pip install reportlab"},
+                    status_code=500
+                )
+
+        return JSONResponse({"error": "Invalid format. Use csv or pdf."}, status_code=400)
+    except Exception as e:
+        print("ERROR in export_appointments:", e)
+        return JSONResponse({"error": str(e)}, status_code=500)

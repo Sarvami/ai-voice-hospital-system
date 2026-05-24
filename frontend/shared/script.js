@@ -302,6 +302,16 @@ async function handleMicClick() {
 
         if (json.booked) showSuccessPopup("Appointment booked!");
 
+        // SOS Emergency Detection
+        if (json.sos) {
+          showSOSPopup();
+          fetch(`${BACKEND}/sos-alert`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ patient_id: parseInt(localStorage.getItem("patient_id") || "0") })
+          }).catch(() => {});
+        }
+
         if (json.intent === "ask_date") {
            window._currentDoctorAvailDays = json.available_days || '';
            const date = await openCalendarPopup();
@@ -692,6 +702,24 @@ function logout() {
 
 function closeSuccessPopup() {
   document.getElementById('successPopup')?.classList.remove('show');
+}
+
+function showSOSPopup() {
+  let popup = document.getElementById('sosEmergencyPopup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'sosEmergencyPopup';
+    popup.innerHTML = `
+      <div class="sos-emergency-box">
+        <div class="sos-emergency-icon">🚨</div>
+        <h2>EMERGENCY DETECTED</h2>
+        <p>Please call <strong>108</strong> immediately for emergency services.</p>
+        <button onclick="document.getElementById('sosEmergencyPopup').classList.remove('show')">I understand</button>
+      </div>
+    `;
+    document.body.appendChild(popup);
+  }
+  popup.classList.add('show');
 }
 
 // Expose functions called from inline HTML onclick handlers

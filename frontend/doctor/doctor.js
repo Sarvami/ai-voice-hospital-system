@@ -102,19 +102,40 @@ function renderStars(rating){
 }
 
 function savePrescription() {
-  const patient  = document.getElementById('pname').value.trim();
+  const patientEl = document.getElementById('pname');
+  const patient  = patientEl ? patientEl.value.trim() : '';
   const medicine = document.getElementById('medicine').value.trim();
   const dosage   = document.getElementById('dosage').value.trim();
+  const notes    = document.getElementById('prescNotes') ? document.getElementById('prescNotes').value.trim() : '';
 
   if (!patient || !medicine || !dosage) {
-    alert('Please fill in all fields.');
+    alert('Please fill in all required fields.');
     return;
   }
 
+  const doctorId   = localStorage.getItem('doctor_id');
   const doctorName = localStorage.getItem('name') || 'Doctor';
   const date       = new Date().toLocaleDateString('en-IN', {
     day: '2-digit', month: 'long', year: 'numeric'
   });
+
+  // Save to DB (find patient_id from name)
+  fetch(`${API}/doctor/patients?doctor_id=${doctorId}`)
+    .then(r => r.json())
+    .then(patients => {
+      const found = (patients || []).find(p => p.name === patient);
+      if (found) {
+        fetch(`${API}/doctor/save-prescription`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            doctor_id: parseInt(doctorId),
+            patient_id: found.patient_id,
+            medicine, dosage, notes
+          })
+        }).catch(() => {});
+      }
+    }).catch(() => {});
 
   const win = window.open('', '_blank');
   win.document.write(`
@@ -186,6 +207,7 @@ function savePrescription() {
   document.getElementById('pname').value    = '';
   document.getElementById('medicine').value = '';
   document.getElementById('dosage').value   = '';
+  if (document.getElementById('prescNotes')) document.getElementById('prescNotes').value = '';
 }
 
 /* LOGOUT */
@@ -260,6 +282,10 @@ function selectDate(dateStr) {
   filtered.forEach(a => {
     const chatBtn = `<button class="btn-chat" onclick="jumpToPatientChat(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-comments"></i></button>`;
     const historyBtn = `<button class="btn-history-mini" title="Medical History" onclick="viewPatientHistory(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-book-medical"></i></button>`;
+    const notesBtn = `<button class="btn-history-mini" title="Patient Notes" onclick="openNotes(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-sticky-note"></i></button>`;
+    const doneBtn = (a.status || '').toLowerCase() !== 'completed'
+      ? `<button class="btn-meet" style="background:rgba(76,175,80,0.2);color:#a5d6a7;" onclick="markCompleted(${a.id})" title="Mark Completed"><i class="fa fa-check"></i></button>`
+      : '';
     
     table.innerHTML += `
       <tr>
@@ -273,6 +299,8 @@ function selectDate(dateStr) {
           ${chatBtn}
           ${historyBtn}
         </td>
+        <td>${notesBtn}</td>
+        <td>${doneBtn}</td>
         <td><button class="btn-cancel-appt" onclick="cancelAppointment(${a.id})">Cancel</button></td>
         <td><button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id || 0})"><i class="fa fa-video"></i></button></td>
       </tr>`;
@@ -306,6 +334,10 @@ function populateAppointmentTable(data) {
     const historyBtn = `<button class="btn-history-mini" title="Medical History" onclick="viewPatientHistory(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-book-medical"></i></button>`;
     const meetBtn = `<button class="btn-meet" onclick="createMeet(${a.id}, ${a.patient_id || 0})"><i class="fa fa-video"></i></button>`;
     const sosBtn = `<button class="btn-sos-mini" title="EMERGENCY" onclick="triggerSOS(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-bell"></i> SOS</button>`;
+    const notesBtn = `<button class="btn-history-mini" title="Patient Notes" onclick="openNotes(${a.patient_id}, '${esc(a.patient_name)}')"><i class="fa fa-sticky-note"></i></button>`;
+    const doneBtn = (status.toLowerCase() !== 'completed' && status.toLowerCase() !== 'cancelled')
+      ? `<button class="btn-meet" style="background:rgba(76,175,80,0.2);border-color:rgba(76,175,80,0.4);color:#a5d6a7;" onclick="markCompleted(${a.id})" title="Mark Completed"><i class="fa fa-check"></i></button>`
+      : '';
 
     table.innerHTML += `
       <tr>
@@ -319,6 +351,8 @@ function populateAppointmentTable(data) {
           ${chatBtn}
           ${historyBtn}
         </td>
+        <td>${notesBtn}</td>
+        <td>${doneBtn}</td>
         <td>${cancelBtn}</td>
         <td>${meetBtn}</td>
       </tr>`;
@@ -804,3 +838,121 @@ async function triggerSOS(patientId, patientName) {
 window.viewPatientHistory = viewPatientHistory;
 window.closeHistoryModal = closeHistoryModal;
 window.triggerSOS = triggerSOS;
+
+
+/* ── MARK APPOINTMENT COMPLETED ── */
+async function markCompleted(appointmentId) {
+  if (!confirm('Mark this appointment as Completed?')) return;
+  const doctorId = localStorage.getItem('doctor_id');
+  try {
+    const res = await fetch(`${API}/doctor/update-appointment-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        appointment_id: appointmentId,
+        doctor_id: parseInt(doctorId),
+        status: 'Completed'
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      await loadAppointments();
+    } else {
+      alert(data.message || 'Could not update status.');
+    }
+  } catch (e) {
+    alert('Could not connect to server.');
+  }
+}
+
+window.markCompleted = markCompleted;
+
+/* ── EXPORT APPOINTMENTS ── */
+function exportAppointments(format) {
+  const doctorId = localStorage.getItem('doctor_id');
+  window.open(`${API}/doctor/export-appointments?doctor_id=${doctorId}&format=${format}`, '_blank');
+}
+
+window.exportAppointments = exportAppointments;
+
+/* ── PATIENT NOTES ── */
+let activeNotesPatientId = null;
+let activeNotesPatientName = null;
+
+async function openNotes(patientId, patientName) {
+  activeNotesPatientId = patientId;
+  activeNotesPatientName = patientName;
+
+  const modal = document.getElementById('notesModal');
+  const title = document.getElementById('notesModalTitle');
+  const list  = document.getElementById('notesList');
+
+  title.textContent = `Notes: ${patientName}`;
+  list.innerHTML = '<div style="color:#a0aec0;font-size:13px;">Loading...</div>';
+  modal.classList.add('show');
+
+  await loadNotes();
+}
+
+async function loadNotes() {
+  const doctorId = localStorage.getItem('doctor_id');
+  const list = document.getElementById('notesList');
+  if (!list || !activeNotesPatientId) return;
+
+  try {
+    const res = await fetch(`${API}/doctor/patient-notes?doctor_id=${doctorId}&patient_id=${activeNotesPatientId}`);
+    const data = await res.json();
+    const notes = data.notes || [];
+
+    if (!notes.length) {
+      list.innerHTML = '<div style="color:#a0aec0;font-size:13px;text-align:center;padding:12px;">No notes yet.</div>';
+      return;
+    }
+
+    list.innerHTML = notes.map(n => `
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-bottom:10px;">
+        <div style="font-size:11px;color:#7986cb;margin-bottom:6px;">${n.created_at ? new Date(n.created_at).toLocaleString() : '—'} ${n.is_private ? '🔒' : '🌐'}</div>
+        <div style="color:#e2e8f0;font-size:13px;">${esc(n.note_text)}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div style="color:#ef9a9a;font-size:13px;">Could not load notes.</div>';
+  }
+}
+
+async function saveNote() {
+  const doctorId = localStorage.getItem('doctor_id');
+  const text = document.getElementById('newNoteText').value.trim();
+  if (!text) { alert('Please write a note first.'); return; }
+
+  try {
+    const res = await fetch(`${API}/doctor/add-note`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        doctor_id: parseInt(doctorId),
+        patient_id: activeNotesPatientId,
+        note_text: text,
+        is_private: 1
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('newNoteText').value = '';
+      await loadNotes();
+    } else {
+      alert(data.message || 'Could not save note.');
+    }
+  } catch (e) {
+    alert('Could not connect to server.');
+  }
+}
+
+function closeNotesModal() {
+  document.getElementById('notesModal').classList.remove('show');
+  activeNotesPatientId = null;
+}
+
+window.openNotes = openNotes;
+window.saveNote = saveNote;
+window.closeNotesModal = closeNotesModal;

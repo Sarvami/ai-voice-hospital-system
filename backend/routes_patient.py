@@ -574,3 +574,243 @@ def patient_push_subscribe(body: PushSubscriptionBody, db: sqlite3.Connection = 
     except Exception as e:
         print("ERROR push-subscribe:", e)
         return {"success": False, "message": str(e)}
+
+
+# ── CONVERSATION HISTORY ──────────────────────────────────────────────────────
+
+@router.get("/patient/conversation-history")
+def get_conversation_history(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            """SELECT id, user_text, ai_reply, language, created_at
+               FROM conversation_logs
+               WHERE patient_id = ?
+               ORDER BY created_at DESC LIMIT 50""",
+            (patient_id,)
+        ).fetchall()
+        return {"history": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in conversation_history:", e)
+        return {"history": []}
+
+
+# ── PRESCRIPTIONS ─────────────────────────────────────────────────────────────
+
+@router.get("/patient/prescriptions")
+def get_patient_prescriptions(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            """SELECT p.id, d.name AS doctor_name, p.medicine, p.dosage, p.notes,
+                      p.appointment_id, p.created_at
+               FROM prescriptions p
+               JOIN doctors d ON p.doctor_id = d.doctor_id
+               WHERE p.patient_id = ?
+               ORDER BY p.created_at DESC""",
+            (patient_id,)
+        ).fetchall()
+        return {"prescriptions": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in get_patient_prescriptions:", e)
+        return {"prescriptions": []}
+
+
+# ── RESCHEDULE APPOINTMENT ────────────────────────────────────────────────────
+
+@router.post("/patient/reschedule-appointment")
+async def reschedule_appointment(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        appointment_id = data.get("appointment_id")
+        patient_id = data.get("patient_id")
+        new_date = data.get("new_date")
+        new_time = data.get("new_time")
+
+        if not all([appointment_id, patient_id, new_date, new_time]):
+            return {"success": False, "message": "Missing required fields"}
+
+        db.execute(
+            """UPDATE appointments
+               SET appointment_date=?, appointment_time=?, status='Booked'
+               WHERE appointment_id=? AND patient_id=?""",
+            (new_date, new_time, appointment_id, patient_id)
+        )
+        db.commit()
+
+        # Send reschedule email — fail silently
+        try:
+            from email_service import send_reschedule_email
+            appt = db.execute(
+                """SELECT p.email, p.name, d.name AS doctor_name
+                   FROM appointments a
+                   JOIN patients p ON a.patient_id = p.patient_id
+                   JOIN doctors d ON a.doctor_id = d.doctor_id
+                   WHERE a.appointment_id = ?""",
+                (appointment_id,)
+            ).fetchone()
+            if appt and appt["email"]:
+                send_reschedule_email(appt["email"], appt["name"], appt["doctor_name"], new_date, new_time)
+        except Exception as mail_err:
+            print("Reschedule email skipped:", mail_err)
+
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in reschedule_appointment:", e)
+        return {"success": False, "message": "Could not reschedule appointment."}
+
+
+# ── WAITLIST ──────────────────────────────────────────────────────────────────
+
+@router.post("/patient/join-waitlist")
+async def join_waitlist(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        patient_id = data.get("patient_id")
+        doctor_id = data.get("doctor_id")
+        department = data.get("department", "")
+        region = data.get("region", "")
+
+        if not patient_id:
+            return {"success": False, "message": "patient_id required"}
+
+        # Check if already on waitlist
+        existing = db.execute(
+            "SELECT id FROM waitlist WHERE patient_id=? AND doctor_id=? AND status='waiting'",
+            (patient_id, doctor_id)
+        ).fetchone()
+        if existing:
+            return {"success": False, "message": "Already on waitlist"}
+
+        db.execute(
+            """INSERT INTO waitlist (patient_id, doctor_id, department, region)
+               VALUES (?, ?, ?, ?)""",
+            (patient_id, doctor_id, department, region)
+        )
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in join_waitlist:", e)
+        return {"success": False, "message": "Could not join waitlist."}
+
+
+@router.get("/patient/waitlist")
+def get_patient_waitlist(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            """SELECT w.id, w.department, w.region, w.joined_at, w.status,
+                      d.name AS doctor_name
+               FROM waitlist w
+               LEFT JOIN doctors d ON w.doctor_id = d.doctor_id
+               WHERE w.patient_id = ?
+               ORDER BY w.joined_at DESC""",
+            (patient_id,)
+        ).fetchall()
+        return {"waitlist": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in get_patient_waitlist:", e)
+        return {"waitlist": []}
+
+
+@router.delete("/patient/waitlist/{waitlist_id}")
+def leave_waitlist(waitlist_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        db.execute("DELETE FROM waitlist WHERE id=?", (waitlist_id,))
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in leave_waitlist:", e)
+        return {"success": False}
+
+
+# ── FAMILY MEMBERS ────────────────────────────────────────────────────────────
+
+@router.get("/patient/family-members")
+def get_family_members(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            "SELECT * FROM family_members WHERE primary_patient_id=? ORDER BY created_at DESC",
+            (patient_id,)
+        ).fetchall()
+        return {"family_members": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in get_family_members:", e)
+        return {"family_members": []}
+
+
+@router.post("/patient/family-members")
+async def add_family_member(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        patient_id = data.get("patient_id")
+        name = data.get("name", "").strip()
+        age = data.get("age", 0)
+        gender = data.get("gender", "Unknown")
+        relation = data.get("relation", "").strip()
+
+        if not patient_id or not name:
+            return {"success": False, "message": "patient_id and name required"}
+
+        db.execute(
+            "INSERT INTO family_members (primary_patient_id, name, age, gender, relation) VALUES (?,?,?,?,?)",
+            (patient_id, name, age, gender, relation)
+        )
+        db.commit()
+        member_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return {"success": True, "id": member_id}
+    except Exception as e:
+        print("ERROR in add_family_member:", e)
+        return {"success": False, "message": "Could not add family member."}
+
+
+@router.delete("/patient/family-members/{member_id}")
+def delete_family_member(member_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        db.execute("DELETE FROM family_members WHERE id=?", (member_id,))
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in delete_family_member:", e)
+        return {"success": False}
+
+
+# ── HEALTH VITALS ─────────────────────────────────────────────────────────────
+
+@router.post("/patient/log-vital")
+async def log_vital(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        patient_id = data.get("patient_id")
+        if not patient_id:
+            return {"success": False, "message": "patient_id required"}
+
+        db.execute(
+            """INSERT INTO health_vitals (patient_id, bp_systolic, bp_diastolic, blood_sugar, weight)
+               VALUES (?, ?, ?, ?, ?)""",
+            (
+                patient_id,
+                data.get("bp_systolic"),
+                data.get("bp_diastolic"),
+                data.get("blood_sugar"),
+                data.get("weight")
+            )
+        )
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in log_vital:", e)
+        return {"success": False, "message": "Could not log vital."}
+
+
+@router.get("/patient/vitals")
+def get_patient_vitals(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rows = db.execute(
+            """SELECT id, bp_systolic, bp_diastolic, blood_sugar, weight, recorded_at
+               FROM health_vitals
+               WHERE patient_id = ?
+               ORDER BY recorded_at DESC LIMIT 30""",
+            (patient_id,)
+        ).fetchall()
+        return {"vitals": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in get_patient_vitals:", e)
+        return {"vitals": []}

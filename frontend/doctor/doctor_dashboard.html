@@ -149,6 +149,14 @@
 
   <div class="appointments-card">
     <h2>Appointments</h2>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="nav-btn" onclick="exportAppointments('csv')" style="background:rgba(79,195,247,0.1);border-color:rgba(79,195,247,0.3);color:#4fc3f7;">
+        <i class="fa fa-download"></i> Export CSV
+      </button>
+      <button class="nav-btn" onclick="exportAppointments('pdf')" style="background:rgba(124,131,253,0.1);border-color:rgba(124,131,253,0.3);color:#7c83fd;">
+        <i class="fa fa-file-pdf"></i> Export PDF
+      </button>
+    </div>
 
     <div class="calendar-wrapper">
       <div class="calendar-header">
@@ -171,6 +179,8 @@
           <th>Status</th>
           <th>Reason</th>
           <th>Chat</th>
+          <th>Notes</th>
+          <th>Mark Done</th>
           <th>Cancel</th>
           <th>Meet</th>
         </tr>
@@ -193,8 +203,9 @@
 </select>
 <input type="text" id="medicine" placeholder="Medicine">
 <input type="text" id="dosage"   placeholder="Dosage">
+<input type="text" id="prescNotes" placeholder="Notes (optional)">
 
-<button onclick="savePrescription()">Generate</button>
+<button onclick="savePrescription()">Generate & Save</button>
 </div>
 
 </div>
@@ -275,6 +286,23 @@
     </div>
     <div class="modal-body" id="historyModalBody">
       <!-- Reports will be loaded here -->
+    </div>
+  </div>
+</div>
+
+<!-- PATIENT NOTES MODAL -->
+<div id="notesModal" class="modal-overlay">
+  <div class="modal-content history-modal">
+    <div class="modal-header">
+      <h3 id="notesModalTitle">Patient Notes</h3>
+      <button class="close-btn" onclick="closeNotesModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="notesModalBody">
+      <div style="margin-bottom:16px;">
+        <textarea id="newNoteText" placeholder="Write a note about this patient..." style="width:100%;min-height:80px;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#e2e8f0;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+        <button onclick="saveNote()" style="margin-top:8px;padding:9px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,#4fc3f7,#7c83fd);color:#0a0f1e;font-weight:700;cursor:pointer;">Save Note</button>
+      </div>
+      <div id="notesList"></div>
     </div>
   </div>
 </div>

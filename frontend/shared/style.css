@@ -1103,3 +1103,71 @@ button, .bubble, .mic-orb, .nav-btn, .play-btn, .doctor-popup-yes, .doctor-popup
   #regionPopup .region-box { width: 95%; padding: 20px; }
   #successPopup .success-box { width: 90%; padding: 24px; }
 }
+
+
+/* ── SOS EMERGENCY POPUP ── */
+#sosEmergencyPopup {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(100, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 99999;
+  align-items: center; justify-content: center;
+  animation: sosFlash 0.5s ease;
+}
+#sosEmergencyPopup.show { display: flex; }
+
+@keyframes sosFlash {
+  0%, 100% { background: rgba(100, 0, 0, 0.85); }
+  50%       { background: rgba(200, 0, 0, 0.95); }
+}
+
+.sos-emergency-box {
+  background: #1a0000;
+  border: 3px solid #ef5350;
+  border-radius: 20px;
+  padding: 40px 32px;
+  text-align: center;
+  max-width: 380px; width: 90%;
+  animation: popIn 0.3s ease;
+  box-shadow: 0 0 60px rgba(239, 83, 80, 0.6);
+}
+
+.sos-emergency-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: pulse 1s infinite;
+}
+
+.sos-emergency-box h2 {
+  color: #ef5350;
+  font-size: 1.6rem;
+  font-family: 'Sora', sans-serif;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+.sos-emergency-box p {
+  color: #e8eaf6;
+  font-size: 16px;
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.sos-emergency-box strong {
+  font-size: 28px;
+  color: #ef5350;
+  display: block;
+  margin: 8px 0;
+}
+
+.sos-emergency-box button {
+  padding: 12px 32px;
+  border-radius: 12px; border: none;
+  background: #ef5350;
+  color: #fff; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'Sora', sans-serif;
+  transition: opacity 0.2s;
+  width: auto;
+}
+.sos-emergency-box button:hover { opacity: 0.85; }

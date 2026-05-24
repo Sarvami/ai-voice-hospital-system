@@ -17,3 +17,5 @@ deep-translator==1.11.4
 pywebpush==1.14.0
 py-vapid==1.9.0
 cryptography>=41.0.0
+apscheduler==3.11.2
+reportlab==4.5.1

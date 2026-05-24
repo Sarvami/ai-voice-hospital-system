@@ -131,8 +131,19 @@ def speech_to_text(audio_path):
             raise TimeoutError("STT Timeout")
         time.sleep(STT_POLL_INTERVAL)
 
+SOS_KEYWORDS = [
+    "can't breathe", "cannot breathe", "chest pain severe",
+    "heart attack", "unconscious", "emergency", "bleeding heavily",
+    "saans nahi", "saans ruk", "bahut dard", "emergency hai"
+]
+
 def generate_reply(text, user_id="user1", lang="en", original=""):
-    text = text.lower().strip()
+    # ── SOS Detection (highest priority) ──
+    text_lower = text.lower().strip()
+    if any(kw in text_lower for kw in SOS_KEYWORDS):
+        return "EMERGENCY DETECTED. Please call 108 immediately.", {"sos": True}
+
+    text = text_lower
     combined = text + " " + original.lower()
 
     if "department" in text and ("which" in text or "what" in text or "belong" in text):
@@ -450,3 +461,20 @@ def generate_reply(text, user_id="user1", lang="en", original=""):
             return f"Please confirm — shall I book with {data['doctor']} on {data['date']} at {data['time']}? Say yes or no.", {}
 
     return "Sorry, I'm not sure how to respond to that.", {}
+
+
+def save_conversation_log(user_id: str, user_text: str, ai_reply: str, language: str):
+    """Persist a conversation exchange to the DB."""
+    try:
+        if not str(user_id).isdigit():
+            return
+        conn = get_db_connection()
+        conn.execute(
+            """INSERT INTO conversation_logs (patient_id, user_text, ai_reply, language)
+               VALUES (?, ?, ?, ?)""",
+            (int(user_id), user_text, ai_reply, language)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("conversation_log error:", e)

@@ -90,6 +90,11 @@ async function loadAppointments() {
         ? `<a href="${meetLink}" target="_blank" class="btn-meet"><i class="fa fa-video"></i> Join</a>`
         : '—';
 
+      const canReschedule = ['booked', 'scheduled', 'confirmed', 'pending'].includes(status.toLowerCase());
+      const rescheduleBtn = canReschedule
+        ? `<button class="btn-rate" onclick="openRescheduleModal(${apptId})" style="background:rgba(79,195,247,0.15);color:#4fc3f7;border:1px solid rgba(79,195,247,0.3);">Reschedule</button>`
+        : '';
+
       table.innerHTML += `
         <tr>
           <td>${apptId || "-"}</td>
@@ -110,6 +115,7 @@ async function loadAppointments() {
               <button class="btn-sos-mini" title="EMERGENCY" onclick="triggerSOS(${a.doctor_id}, '${esc(a.doctor || a.doctor_name)}')">
                 <i class="fa fa-bell"></i> SOS
               </button>
+              ${rescheduleBtn}
               ${actionHtml !== '-' ? actionHtml : ''}
             </div>
           </td>
@@ -808,3 +814,363 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.dismissSOS = dismissSOS;
 window.fetchAlerts = fetchAlerts;
+
+
+/* ── RESCHEDULE ── */
+function openRescheduleModal(apptId) {
+  document.getElementById('rescheduleApptId').value = apptId;
+  document.getElementById('rescheduleDate').value = '';
+  document.getElementById('rescheduleTime').value = '';
+  document.getElementById('rescheduleModal').style.display = 'flex';
+}
+
+async function submitReschedule() {
+  const patientId = localStorage.getItem('patient_id');
+  const apptId = document.getElementById('rescheduleApptId').value;
+  const newDate = document.getElementById('rescheduleDate').value;
+  const newTime = document.getElementById('rescheduleTime').value;
+
+  if (!newDate || !newTime) {
+    alert('Please select both date and time.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/reschedule-appointment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        appointment_id: parseInt(apptId),
+        patient_id: parseInt(patientId),
+        new_date: newDate,
+        new_time: newTime
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('rescheduleModal').style.display = 'none';
+      alert('Appointment rescheduled successfully!');
+      loadAppointments();
+    } else {
+      alert(data.message || 'Could not reschedule.');
+    }
+  } catch (e) {
+    alert('Could not connect to server.');
+  }
+}
+
+window.openRescheduleModal = openRescheduleModal;
+window.submitReschedule = submitReschedule;
+
+/* ── PRESCRIPTIONS ── */
+async function loadPrescriptions() {
+  const patientId = localStorage.getItem('patient_id');
+  const tbody = document.getElementById('prescriptionsTable');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/prescriptions?patient_id=${patientId}`);
+    const data = await res.json();
+    const list = data.prescriptions || [];
+
+    tbody.innerHTML = '';
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-row">No prescriptions yet.</td></tr>`;
+      return;
+    }
+
+    list.forEach(p => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${esc(p.doctor_name)}</td>
+          <td>${esc(p.medicine)}</td>
+          <td>${esc(p.dosage)}</td>
+          <td>${esc(p.notes || '—')}</td>
+          <td>${p.created_at ? p.created_at.split('T')[0] : '—'}</td>
+        </tr>`;
+    });
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="empty-row">Could not load prescriptions.</td></tr>`;
+  }
+}
+
+/* ── HEALTH VITALS ── */
+let vitalsChartInstance = null;
+
+async function loadVitals() {
+  const patientId = localStorage.getItem('patient_id');
+  const tbody = document.getElementById('vitalsTable');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/vitals?patient_id=${patientId}`);
+    const data = await res.json();
+    const list = (data.vitals || []).slice().reverse(); // oldest first for chart
+
+    tbody.innerHTML = '';
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-row">No vitals logged yet.</td></tr>`;
+    } else {
+      [...list].reverse().forEach(v => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${v.recorded_at ? v.recorded_at.split('T')[0] : '—'}</td>
+            <td>${v.bp_systolic || '—'}/${v.bp_diastolic || '—'}</td>
+            <td>${v.blood_sugar || '—'}</td>
+            <td>${v.weight || '—'}</td>
+          </tr>`;
+      });
+    }
+
+    // Chart
+    const canvas = document.getElementById('vitalsChart');
+    if (!canvas || !list.length) return;
+
+    const labels = list.map(v => v.recorded_at ? v.recorded_at.split('T')[0] : '');
+    const bpSys = list.map(v => v.bp_systolic);
+    const bpDia = list.map(v => v.bp_diastolic);
+    const sugar = list.map(v => v.blood_sugar);
+
+    if (vitalsChartInstance) vitalsChartInstance.destroy();
+    vitalsChartInstance = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'BP Systolic', data: bpSys, borderColor: '#ef5350', tension: 0.3, fill: false },
+          { label: 'BP Diastolic', data: bpDia, borderColor: '#4fc3f7', tension: 0.3, fill: false },
+          { label: 'Blood Sugar', data: sugar, borderColor: '#a5d6a7', tension: 0.3, fill: false }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#e8eaf6' } } },
+        scales: {
+          x: { ticks: { color: '#7986cb' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#7986cb' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  } catch (e) {
+    console.error('loadVitals error:', e);
+  }
+}
+
+async function logVital() {
+  const patientId = localStorage.getItem('patient_id');
+  const msgEl = document.getElementById('vitalMsg');
+  msgEl.textContent = '';
+
+  const payload = {
+    patient_id: parseInt(patientId),
+    bp_systolic: parseInt(document.getElementById('vitalBpSys').value) || null,
+    bp_diastolic: parseInt(document.getElementById('vitalBpDia').value) || null,
+    blood_sugar: parseInt(document.getElementById('vitalSugar').value) || null,
+    weight: parseFloat(document.getElementById('vitalWeight').value) || null
+  };
+
+  if (!payload.bp_systolic && !payload.blood_sugar && !payload.weight) {
+    msgEl.className = 'upload-msg error';
+    msgEl.textContent = 'Please fill in at least one field.';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/log-vital`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      msgEl.className = 'upload-msg success';
+      msgEl.textContent = '✓ Vital logged!';
+      ['vitalBpSys', 'vitalBpDia', 'vitalSugar', 'vitalWeight'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      loadVitals();
+    } else {
+      msgEl.className = 'upload-msg error';
+      msgEl.textContent = data.message || 'Could not log vital.';
+    }
+  } catch (e) {
+    msgEl.className = 'upload-msg error';
+    msgEl.textContent = 'Could not connect to server.';
+  }
+}
+
+window.logVital = logVital;
+
+/* ── FAMILY MEMBERS ── */
+async function loadFamilyMembers() {
+  const patientId = localStorage.getItem('patient_id');
+  const tbody = document.getElementById('familyTable');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/family-members?patient_id=${patientId}`);
+    const data = await res.json();
+    const list = data.family_members || [];
+
+    tbody.innerHTML = '';
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-row">No family members added yet.</td></tr>`;
+      return;
+    }
+
+    list.forEach(m => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${esc(m.name)}</td>
+          <td>${m.age || '—'}</td>
+          <td>${esc(m.gender || '—')}</td>
+          <td>${esc(m.relation || '—')}</td>
+          <td><button class="delete-report-btn" onclick="deleteFamilyMember(${m.id})"><i class="fa fa-trash"></i></button></td>
+        </tr>`;
+    });
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="empty-row">Could not load family members.</td></tr>`;
+  }
+}
+
+async function addFamilyMember() {
+  const patientId = localStorage.getItem('patient_id');
+  const name = document.getElementById('familyName').value.trim();
+  const age = parseInt(document.getElementById('familyAge').value) || 0;
+  const gender = document.getElementById('familyGender').value;
+  const relation = document.getElementById('familyRelation').value.trim();
+  const msgEl = document.getElementById('familyMsg');
+
+  if (!name) {
+    msgEl.className = 'upload-msg error';
+    msgEl.textContent = 'Name is required.';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/family-members`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_id: parseInt(patientId), name, age, gender, relation })
+    });
+    const data = await res.json();
+    if (data.success) {
+      msgEl.className = 'upload-msg success';
+      msgEl.textContent = '✓ Family member added!';
+      ['familyName', 'familyAge', 'familyRelation'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      document.getElementById('familyGender').value = '';
+      loadFamilyMembers();
+    } else {
+      msgEl.className = 'upload-msg error';
+      msgEl.textContent = data.message || 'Could not add member.';
+    }
+  } catch (e) {
+    msgEl.className = 'upload-msg error';
+    msgEl.textContent = 'Could not connect to server.';
+  }
+}
+
+async function deleteFamilyMember(memberId) {
+  if (!confirm('Remove this family member?')) return;
+  try {
+    const res = await fetch(`${BACKEND}/patient/family-members/${memberId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) loadFamilyMembers();
+    else alert('Could not remove member.');
+  } catch (e) {
+    alert('Could not connect to server.');
+  }
+}
+
+window.addFamilyMember = addFamilyMember;
+window.deleteFamilyMember = deleteFamilyMember;
+
+/* ── WAITLIST ── */
+async function loadWaitlist() {
+  const patientId = localStorage.getItem('patient_id');
+  const tbody = document.getElementById('waitlistTable');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/waitlist?patient_id=${patientId}`);
+    const data = await res.json();
+    const list = data.waitlist || [];
+
+    tbody.innerHTML = '';
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-row">You're not on any waitlist.</td></tr>`;
+      return;
+    }
+
+    list.forEach(w => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${esc(w.doctor_name || '—')}</td>
+          <td>${esc(w.department || '—')}</td>
+          <td>${esc(w.region || '—')}</td>
+          <td>${w.joined_at ? w.joined_at.split('T')[0] : '—'}</td>
+          <td><span class="status-badge">${esc(w.status)}</span></td>
+          <td><button class="btn-cancel-appt" onclick="leaveWaitlist(${w.id})">Leave</button></td>
+        </tr>`;
+    });
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="empty-row">Could not load waitlist.</td></tr>`;
+  }
+}
+
+async function leaveWaitlist(waitlistId) {
+  if (!confirm('Leave this waitlist?')) return;
+  try {
+    const res = await fetch(`${BACKEND}/patient/waitlist/${waitlistId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) loadWaitlist();
+    else alert('Could not leave waitlist.');
+  } catch (e) {
+    alert('Could not connect to server.');
+  }
+}
+
+window.leaveWaitlist = leaveWaitlist;
+
+/* ── CONVERSATION HISTORY ── */
+async function loadConversationHistory() {
+  const patientId = localStorage.getItem('patient_id');
+  const container = document.getElementById('conversationHistoryList');
+  if (!container) return;
+
+  try {
+    const res = await fetch(`${BACKEND}/patient/conversation-history?patient_id=${patientId}`);
+    const data = await res.json();
+    const list = data.history || [];
+
+    if (!list.length) {
+      container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">No conversation history yet. Use the voice assistant to get started.</p>';
+      return;
+    }
+
+    container.innerHTML = list.map(h => `
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:11px;color:#7986cb;margin-bottom:8px;">${h.created_at ? new Date(h.created_at).toLocaleString() : '—'} · ${esc(h.language || 'en').toUpperCase()}</div>
+        <div style="margin-bottom:8px;"><span style="color:#4fc3f7;font-size:12px;">You:</span> <span style="color:#e8eaf6;">${esc(h.user_text)}</span></div>
+        <div><span style="color:#69f0ae;font-size:12px;">AI:</span> <span style="color:#c5ffb0;">${esc(h.ai_reply)}</span></div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">Could not load history.</p>';
+  }
+}
+
+/* ── Override showSection to load new sections ── */
+const _origPatientShowSection = window.showSection;
+window.showSection = function(section, liEl) {
+  _origPatientShowSection(section, liEl);
+  if (section === 'prescriptions') loadPrescriptions();
+  if (section === 'vitals') loadVitals();
+  if (section === 'family') loadFamilyMembers();
+  if (section === 'waitlist') loadWaitlist();
+  if (section === 'history') loadConversationHistory();
+};

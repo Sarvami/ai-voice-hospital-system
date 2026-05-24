@@ -110,3 +110,67 @@ def send_meet_email(to_email: str, patient_name: str, doctor_name: str, meet_lin
     </div>
     """
     return send_email(to_email, subject, body)
+
+
+def send_reminder_email(to_email: str, patient_name: str, doctor_name: str, date: str, time: str) -> bool:
+    subject = "Appointment Reminder — SwasthSeva"
+    body = f"""
+    <div style="font-family:sans-serif;max-width:400px;margin:auto;padding:32px;background:#0a0f1e;color:#e8eaf6;border-radius:16px;">
+      <h2 style="color:#4fc3f7;">Appointment Reminder 📅</h2>
+      <p>Hello <b>{patient_name}</b>,</p>
+      <p>This is a reminder that you have an appointment <b>tomorrow</b>.</p>
+      <table style="width:100%;margin:16px 0;color:#e8eaf6;">
+        <tr><td style="color:#7986cb;">Doctor</td><td><b>{doctor_name}</b></td></tr>
+        <tr><td style="color:#7986cb;">Date</td><td>{date}</td></tr>
+        <tr><td style="color:#7986cb;">Time</td><td>{time}</td></tr>
+      </table>
+      <p style="color:#7986cb;">Please arrive 10 minutes early. Stay healthy!</p>
+    </div>
+    """
+    return send_email(to_email, subject, body)
+
+
+def send_sos_email(to_email: str, patient_name: str) -> bool:
+    subject = "🚨 EMERGENCY ALERT — SwasthSeva"
+    body = f"""
+    <div style="font-family:sans-serif;max-width:400px;margin:auto;padding:32px;background:#1a0000;color:#e8eaf6;border-radius:16px;border:2px solid #ef5350;">
+      <h2 style="color:#ef5350;">🚨 EMERGENCY DETECTED</h2>
+      <p>Hello <b>{patient_name}</b>,</p>
+      <p>An emergency keyword was detected during your voice session.</p>
+      <p style="font-size:20px;font-weight:700;color:#ef5350;">Please call <b>108</b> immediately for emergency services.</p>
+      <p style="color:#7986cb;">If this was a mistake, please ignore this message.</p>
+    </div>
+    """
+    return send_email(to_email, subject, body)
+
+
+def send_reschedule_email(to_email: str, patient_name: str, doctor_name: str, new_date: str, new_time: str) -> bool:
+    subject = "Appointment Rescheduled — SwasthSeva"
+    body = f"""
+    <div style="font-family:sans-serif;max-width:400px;margin:auto;padding:32px;background:#0a0f1e;color:#e8eaf6;border-radius:16px;">
+      <h2 style="color:#4fc3f7;">Appointment Rescheduled 🔄</h2>
+      <p>Hello <b>{patient_name}</b>,</p>
+      <p>Your appointment has been rescheduled.</p>
+      <table style="width:100%;margin:16px 0;color:#e8eaf6;">
+        <tr><td style="color:#7986cb;">Doctor</td><td><b>{doctor_name}</b></td></tr>
+        <tr><td style="color:#7986cb;">New Date</td><td>{new_date}</td></tr>
+        <tr><td style="color:#7986cb;">New Time</td><td>{new_time}</td></tr>
+      </table>
+      <p style="color:#7986cb;">Please arrive 10 minutes early.</p>
+    </div>
+    """
+    return send_email(to_email, subject, body)
+
+
+def send_waitlist_notification_email(to_email: str, patient_name: str, doctor_name: str, department: str) -> bool:
+    subject = "Slot Available — SwasthSeva Waitlist"
+    body = f"""
+    <div style="font-family:sans-serif;max-width:400px;margin:auto;padding:32px;background:#0a0f1e;color:#e8eaf6;border-radius:16px;">
+      <h2 style="color:#4fc3f7;">Good News! A Slot is Available 🎉</h2>
+      <p>Hello <b>{patient_name}</b>,</p>
+      <p>A slot has opened up for <b>{department}</b> with <b>Dr. {doctor_name}</b>.</p>
+      <p>Please log in to SwasthSeva and book your appointment before it fills up.</p>
+      <p style="color:#7986cb;">This notification was sent because you joined the waitlist.</p>
+    </div>
+    """
+    return send_email(to_email, subject, body)

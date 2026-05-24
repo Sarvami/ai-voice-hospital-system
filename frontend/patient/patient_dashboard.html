@@ -38,8 +38,28 @@
 <i class="fa fa-file"></i> Medical Records
 </li>
 
+<li onclick="showSection('prescriptions')">
+<i class="fa fa-pills"></i> Prescriptions
+</li>
+
+<li onclick="showSection('vitals')">
+<i class="fa fa-heartbeat"></i> Health Vitals
+</li>
+
+<li onclick="showSection('family')">
+<i class="fa fa-users"></i> Family Members
+</li>
+
+<li onclick="showSection('waitlist')">
+<i class="fa fa-clock"></i> Waitlist
+</li>
+
+<li onclick="showSection('history')">
+<i class="fa fa-comments"></i> AI History
+</li>
+
 <li onclick="showSection('messages', this)">
-<i class="fa fa-comments"></i> Messages
+<i class="fa fa-envelope"></i> Messages
 <span class="unread-badge" id="patientUnreadBadge" style="display:none;"></span>
 </li>
 
@@ -204,6 +224,122 @@
   </div>
 </div>
 
+<!-- PRESCRIPTIONS -->
+<div id="prescriptions" class="section hidden">
+  <h2>My Prescriptions</h2>
+  <div class="appointments-table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Doctor</th>
+          <th>Medicine</th>
+          <th>Dosage</th>
+          <th>Notes</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="prescriptionsTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- HEALTH VITALS -->
+<div id="vitals" class="section hidden">
+  <h2>Health Vitals</h2>
+  <div class="upload-card" style="margin-bottom:24px;">
+    <h3><i class="fa fa-plus"></i> Log New Vital</h3>
+    <div class="upload-form" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <input type="number" id="vitalBpSys" placeholder="BP Systolic (e.g. 120)">
+      <input type="number" id="vitalBpDia" placeholder="BP Diastolic (e.g. 80)">
+      <input type="number" id="vitalSugar" placeholder="Blood Sugar (mg/dL)">
+      <input type="number" id="vitalWeight" placeholder="Weight (kg)" step="0.1">
+    </div>
+    <button class="upload-btn" onclick="logVital()" style="margin-top:12px;">
+      <i class="fa fa-save"></i> Save Vital
+    </button>
+    <p id="vitalMsg" class="upload-msg"></p>
+  </div>
+  <canvas id="vitalsChart" style="max-height:300px;"></canvas>
+  <div class="appointments-table-container" style="margin-top:20px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>BP (Sys/Dia)</th>
+          <th>Blood Sugar</th>
+          <th>Weight</th>
+        </tr>
+      </thead>
+      <tbody id="vitalsTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FAMILY MEMBERS -->
+<div id="family" class="section hidden">
+  <h2>Family Members</h2>
+  <div class="upload-card" style="margin-bottom:24px;">
+    <h3><i class="fa fa-user-plus"></i> Add Family Member</h3>
+    <div class="upload-form" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <input type="text" id="familyName" placeholder="Full Name">
+      <input type="number" id="familyAge" placeholder="Age">
+      <select id="familyGender">
+        <option value="">Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+      <input type="text" id="familyRelation" placeholder="Relation (e.g. Spouse, Child)">
+    </div>
+    <button class="upload-btn" onclick="addFamilyMember()" style="margin-top:12px;">
+      <i class="fa fa-plus"></i> Add Member
+    </button>
+    <p id="familyMsg" class="upload-msg"></p>
+  </div>
+  <div class="appointments-table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Gender</th>
+          <th>Relation</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="familyTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- WAITLIST -->
+<div id="waitlist" class="section hidden">
+  <h2>My Waitlist</h2>
+  <p style="color:var(--muted);margin-bottom:16px;">You'll be notified when a slot opens up for doctors you're waiting for.</p>
+  <div class="appointments-table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Doctor</th>
+          <th>Department</th>
+          <th>Region</th>
+          <th>Joined</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="waitlistTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- AI CONVERSATION HISTORY -->
+<div id="history" class="section hidden">
+  <h2>AI Conversation History</h2>
+  <p style="color:var(--muted);margin-bottom:16px;">Your recent voice assistant conversations.</p>
+  <div id="conversationHistoryList"></div>
+</div>
+
 </div><!-- /main -->
 </div><!-- /dashboard -->
 
@@ -224,6 +360,23 @@
     </div>
   </div>
 
+  <!-- RESCHEDULE MODAL -->
+  <div id="rescheduleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;">
+    <div style="background:#0d1422;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:32px;width:360px;max-width:90%;">
+      <h3 style="color:#4fc3f7;margin-bottom:20px;">Reschedule Appointment</h3>
+      <input type="hidden" id="rescheduleApptId">
+      <label style="color:#a0aec0;font-size:13px;">New Date</label>
+      <input type="date" id="rescheduleDate" style="width:100%;padding:10px;margin:8px 0 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#e2e8f0;font-size:14px;">
+      <label style="color:#a0aec0;font-size:13px;">New Time</label>
+      <input type="time" id="rescheduleTime" style="width:100%;padding:10px;margin:8px 0 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#e2e8f0;font-size:14px;">
+      <div style="display:flex;gap:12px;">
+        <button onclick="submitReschedule()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#4fc3f7,#7c83fd);color:#0a0f1e;font-weight:700;cursor:pointer;">Confirm</button>
+        <button onclick="document.getElementById('rescheduleModal').style.display='none'" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#e2e8f0;cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="../shared/ui-helpers.js"></script>
 <script src="../shared/pwa.js"></script>
 <script src="../shared/onboarding.js"></script>

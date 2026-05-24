@@ -263,6 +263,120 @@ def _create_push_subscriptions_table():
 
 _create_push_subscriptions_table()
 
+
+def _create_conversation_logs_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS conversation_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER,
+            user_text TEXT,
+            ai_reply TEXT,
+            language TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_conversation_logs_table()
+
+
+def _create_prescriptions_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS prescriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            doctor_id INTEGER,
+            patient_id INTEGER,
+            appointment_id INTEGER,
+            medicine TEXT,
+            dosage TEXT,
+            notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_prescriptions_table()
+
+
+def _create_waitlist_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS waitlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER,
+            doctor_id INTEGER,
+            department TEXT,
+            region TEXT,
+            joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'waiting',
+            notified_at DATETIME
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_waitlist_table()
+
+
+def _create_family_members_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS family_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            primary_patient_id INTEGER,
+            name TEXT,
+            age INTEGER,
+            gender TEXT,
+            relation TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_family_members_table()
+
+
+def _create_health_vitals_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS health_vitals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER,
+            bp_systolic INTEGER,
+            bp_diastolic INTEGER,
+            blood_sugar INTEGER,
+            weight REAL,
+            recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_health_vitals_table()
+
+
+def _create_patient_notes_table():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS patient_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            doctor_id INTEGER,
+            patient_id INTEGER,
+            note_text TEXT,
+            is_private INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+_create_patient_notes_table()
+
 # SQLAlchemy Database dependency (unused by current repositories)
 def get_sqlalchemy_db():
     db = SessionLocal()
