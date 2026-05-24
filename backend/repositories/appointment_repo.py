@@ -68,6 +68,16 @@ def appointment_exists(conn, patient_id: int, doctor_id: int, date: str) -> bool
     ).fetchone() is not None
 
 
+def appointment_slot_taken(conn, doctor_id: int, date: str, time_str: str) -> bool:
+    """Check if a doctor already has a non-cancelled appointment at this exact date+time."""
+    return conn.execute(
+        """SELECT appointment_id FROM appointments
+           WHERE doctor_id=? AND appointment_date=? AND appointment_time=?
+           AND LOWER(status) NOT IN ('cancelled')""",
+        (doctor_id, date, time_str)
+    ).fetchone() is not None
+
+
 def create_appointment(conn, patient_id, doctor_id, date, time_str, status, reason, source, language):
     conn.execute("""
         INSERT INTO appointments

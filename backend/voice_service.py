@@ -97,6 +97,9 @@ def create_appointment(pid, did, date, time_str, reason, language):
     if appointment_repo.appointment_exists(conn, pid, did, date):
         conn.close()
         return None
+    if appointment_repo.appointment_slot_taken(conn, did, date, time_str):
+        conn.close()
+        return "slot_taken"
     aid = appointment_repo.create_appointment(conn, pid, did, date, time_str, "Booked", reason, "voice", language)
     conn.close()
     return aid

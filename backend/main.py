@@ -9,6 +9,9 @@ from fastapi import FastAPI, UploadFile, File, Form, Request, Depends
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 from gtts import gTTS
 from pathlib import Path
@@ -39,6 +42,11 @@ import routes_admin
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 app = FastAPI(title="SwasthSeva API")
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS
 app.add_middleware(
@@ -96,7 +104,9 @@ async def websocket_endpoint(websocket: WebSocket, user_type: str, user_id: int,
 # ------------------ CORE VOICE API ------------------
 
 @app.post("/process-audio")
+@limiter.limit("10/minute")
 async def process_audio(
+    request: Request,
     audio: UploadFile = File(...),
     lang: str = Form(...),
     patient_id: int = Form(...)
@@ -147,7 +157,8 @@ async def process_audio(
     })
 
 @app.post("/process-text")
-def process_text(data: TextInput):
+@limiter.limit("20/minute")
+def process_text(request: Request, data: TextInput):
     try:
         english = gt_to_english(data.text)
         reply, meta = generate_reply(english, user_id=str(data.patient_id), lang=data.lang, original=data.text)
