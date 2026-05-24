@@ -116,6 +116,49 @@ def patient_appointments(patient_id: int, db: sqlite3.Connection = Depends(get_d
         return []
 
 
+@router.get("/patient/records")
+def patient_records(patient_id: int, db: sqlite3.Connection = Depends(get_db)):
+    """Doctor visit history derived from appointments (used by patient dashboard)."""
+    try:
+        rows = db.execute(
+            """SELECT d.name AS doctor, d.name AS doctor_name,
+                      COALESCE(NULLIF(TRIM(a.reason), ''), 'General consultation') AS diagnosis,
+                      a.appointment_date AS date, a.status
+               FROM appointments a
+               JOIN doctors d ON a.doctor_id = d.doctor_id
+               WHERE a.patient_id=?
+               ORDER BY a.appointment_date DESC""",
+            (patient_id,),
+        ).fetchall()
+        return {"records": [dict(r) for r in rows]}
+    except Exception as e:
+        print("ERROR in patient_records:", e)
+        return {"records": []}
+
+
+@router.post("/update-profile")
+async def update_profile(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        data = await request.json()
+        patient_id = int(data.get("patient_id", 0))
+        if not patient_id:
+            return {"success": False, "message": "patient_id required"}
+        patient = patient_repo.get_patient_by_id(db, patient_id)
+        if not patient:
+            return {"success": False, "message": "Patient not found"}
+        name = data.get("name", patient["name"]).strip()
+        age = int(data.get("age", patient.get("age") or 0))
+        gender = data.get("gender", patient.get("gender") or "Unknown")
+        language = data.get("language") or data.get("preferred_language") or patient.get("preferred_language") or "en"
+        patient_repo.update_patient(
+            db, patient_id, name, age, gender, patient["phone"], language, patient.get("email")
+        )
+        return {"success": True}
+    except Exception as e:
+        print("ERROR in update_profile:", e)
+        return {"success": False, "message": "Could not update profile"}
+
+
 @router.post("/set-appointment-date")
 def set_appointment_date_api(req: DateRequest, db: sqlite3.Connection = Depends(get_db)):
     try:

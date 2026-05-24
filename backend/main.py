@@ -190,7 +190,38 @@ def process_text(request: Request, data: TextInput):
         "doctors": meta.get("data", {}).get("doctors", [])
     })
 
-# ------------------ UTILITY APIs ------------------
+# ------------------ UTILITY APIs (must be registered before static mounts) ------------------
+
+@app.get("/temp-audio/{filename}")
+async def serve_temp_audio(filename: str):
+    path = f"{TEMP_DIR}/{filename}"
+    if os.path.exists(path):
+        return FileResponse(path, media_type="audio/mpeg")
+    return JSONResponse({"error": "File not found"}, status_code=404)
+
+
+@app.get("/push/vapid-public-key")
+def vapid_public_key():
+    from push_service import get_vapid_public_key
+    key = get_vapid_public_key()
+    return {"publicKey": key}
+
+
+@app.post("/translate-text")
+@limiter.limit("30/minute")
+def translate_text_api(request: Request, req: TranslateRequest):
+    try:
+        translated = GoogleTranslator(source='auto', target=req.target_lang).translate(req.text)
+        return {"success": True, "translation": translated}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@app.get("/doctors")
+async def get_all_doctors(db: sqlite3.Connection = Depends(get_db)):
+    rows = db.execute("SELECT * FROM doctors").fetchall()
+    return {"doctors": [dict(d) for d in rows]}
+
 
 @app.get("/")
 async def root():
@@ -215,35 +246,6 @@ if (FRONTEND_DIR / "assets").exists():
 
 # Finally, mount the root directory for index.html and other top-level files
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
-
-@app.get("/temp-audio/{filename}")
-async def serve_temp_audio(filename: str):
-    path = f"{TEMP_DIR}/{filename}"
-    if os.path.exists(path):
-        return FileResponse(path, media_type="audio/mpeg")
-    return JSONResponse({"error": "File not found"}, status_code=404)
-
-@app.get("/push/vapid-public-key")
-def vapid_public_key():
-    from push_service import get_vapid_public_key
-    key = get_vapid_public_key()
-    return {"publicKey": key}
-
-
-@app.post("/translate-text")
-@limiter.limit("30/minute")
-def translate_text_api(request: Request, req: TranslateRequest):
-    try:
-        translated = GoogleTranslator(source='auto', target=req.target_lang).translate(req.text)
-        return {"success": True, "translation": translated}
-    except Exception as e:
-        return {"success": False, "message": str(e)}
-
-
-@app.get("/doctors")
-async def get_all_doctors(db: sqlite3.Connection = Depends(get_db)):
-    rows = db.execute("SELECT * FROM doctors").fetchall()
-    return {"doctors": [dict(d) for d in rows]}
 
 # Start server
 if __name__ == "__main__":
